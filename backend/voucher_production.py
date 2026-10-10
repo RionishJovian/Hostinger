@@ -99,7 +99,7 @@ def register_voucher_production(app,current,db,owner,log):
   for v in vouchers if vouchers is not None else s.scalars(select(Voucher).where(Voucher.production_job_id==job.id)):
    status=voucher_json(v)['status'];counts[status]=counts.get(status,0)+1
    if status=='unused' and not v.dealer_id:free.append(v.id)
-  sold=len(list(s.scalars(select(VoucherSale.id).where(VoucherSale.voucher_id.in_(free))))) if free else 0
+  sold=len(list(s.scalars(select(VoucherSale.id).where(VoucherSale.voucher_id.in_(free),VoucherSale.cancelled_at.is_(None))))) if free else 0
   return {k:getattr(job,k) for k in ['id','number','name','site_id','package_id','quantity','settings','status','serial_start','serial_end','created','generated_at','calibrated_at','verified_at','distributed_at','distributed_note','cancelled_at']}|{'ref':ref(job),'plan':p,'sheets':job.sheets or {},'calibration_required':job.status=='draft' and calibration_required(s,job,p),'counts':counts,'available':len(free)-sold}
  def transition(s,job,status_from,values,message):
   result=s.execute(update(VoucherProductionJob).where(VoucherProductionJob.id==job.id,VoucherProductionJob.status.in_(status_from)).values(**values))
@@ -216,7 +216,7 @@ def register_voucher_production(app,current,db,owner,log):
    from .dealers import hand_over
    dealer=dealer_for(s,u,dealer_id,lock=True);now=int(time.time())
    candidates=list(s.scalars(select(Voucher).where(Voucher.production_job_id==job.id,Voucher.dealer_id.is_(None),Voucher.redeemed_by.is_(None),Voucher.revoked==False,Voucher.disabled_at.is_(None),Voucher.deleted_at.is_(None),Voucher.expires>now).order_by(Voucher.serial_no)))
-   sold=set(s.scalars(select(VoucherSale.voucher_id).where(VoucherSale.voucher_id.in_([v.id for v in candidates]))))
+   sold=set(s.scalars(select(VoucherSale.voucher_id).where(VoucherSale.voucher_id.in_([v.id for v in candidates]),VoucherSale.cancelled_at.is_(None))))
    stock=[v for v in candidates if v.id not in sold]
    if not stock:raise HTTPException(409,'No unused vouchers are left in this job to hand to the dealer')
    hand_over(s,u,log,dealer,stock,b.unit_price,b.request_key,note=b.note,job_id=job.id);handed=len(stock)

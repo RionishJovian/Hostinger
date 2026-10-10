@@ -21,8 +21,37 @@ class VoucherSaleTests(unittest.TestCase):
   r=self.client.get('/v1/revenue',headers=self.owner).json();self.assertEqual(r['net_collections'],0);self.assertEqual(r['gross_collections'],3000);self.assertEqual(r['refunds'],3000);self.assertTrue(self.client.get('/v1/entitlements',headers=self.guest).json()[0]['revoked']);self.assertEqual(self.refund(v['id'],reference='changed').status_code,409)
  def test_permissions_amount_and_receipt_confirmation(self):
   v=self.setup_voucher();other=self.login('other');self.assertEqual(self.payment(v['id'],headers=other).status_code,404);self.assertEqual(self.payment(v['id'],headers=self.guest).status_code,403)
-  self.assertEqual(self.payment(v['id'],amount=2000).status_code,422);self.assertEqual(self.payment(v['id'],confirmed_received=False).status_code,422);self.assertEqual(self.payment(v['id'],reference='').status_code,422)
+  self.assertEqual(self.payment(v['id'],amount=2000).status_code,422);self.assertEqual(self.payment(v['id'],confirmed_received=False).status_code,422)
+  for bad in [{'method':'Cash at counter'},{'method':'KBZPay','reference':''},{'method':'WavePay','reference':' '},{'method':'Other','evidence':''}]:
+   self.assertEqual(self.payment(v['id'],**bad).status_code,422,bad)
   self.assertEqual(self.client.get('/v1/revenue',headers=self.owner).json()['net_collections'],0)
+ def test_cash_needs_no_reference_and_methods_are_reported(self):
+  v=self.setup_voucher();r=self.payment(v['id'],reference='',evidence='');self.assertEqual(r.status_code,200);self.assertEqual((r.json()['method'],r.json()['reference']),('Cash',''))
+  w=self.client.post('/v1/vouchers',headers=self.owner,json={**self.body,'request_key':'wavepay-voucher-key'}).json()
+  self.assertEqual(self.payment(w['id'],method='WavePay',reference='WP-778812',evidence='').status_code,200)
+  methods={m['method']:m['net_collections'] for m in self.client.get('/v1/revenue',headers=self.owner).json()['by_method']}
+  self.assertEqual(methods,{'Cash':3000,'WavePay':3000})
+ def cancel(self,id,**overrides):return self.client.post('/v1/vouchers/'+id+'/sale/cancel',headers=self.owner,json={'reason':'Sold the wrong card','confirmed':True,**overrides})
+ def test_cancel_sale_keeps_history_reverses_revenue_and_allows_resale(self):
+  v=self.setup_voucher();first=self.payment(v['id']).json()
+  r=self.cancel(v['id']);self.assertEqual(r.status_code,200);self.assertIsNotNone(r.json()['cancelled_at']);self.assertTrue(self.cancel(v['id']).json()['replayed'])
+  self.assertEqual(self.cancel(v['id'],reason='Another reason').status_code,404)
+  rev=self.client.get('/v1/revenue',headers=self.owner).json()
+  self.assertEqual((rev['net_collections'],rev['gross_collections'],rev['refunds'],rev['voucher_sales'],rev['cancelled_sales']),(0,3000,3000,0,1))
+  ledger=self.client.get('/v1/revenue/ledger',headers=self.owner).json()['items'];self.assertEqual([e['sale_cancelled'] for e in ledger if e['kind']=='refund'],[True])
+  row=[x for x in self.client.get('/v1/vouchers',headers=self.owner).json() if x['id']==v['id']][0]
+  self.assertIsNone(row['sale']);self.assertEqual(row['status'],'unused');self.assertEqual([c['id'] for c in row['cancelled_sales']],[first['id']])
+  again=self.payment(v['id'],method='KBZPay',reference='KBZ-1001');self.assertEqual(again.status_code,200);self.assertNotEqual(again.json()['id'],first['id'])
+  self.assertEqual(self.client.get('/v1/revenue',headers=self.owner).json()['net_collections'],3000)
+  with self.app.state.factory() as s:self.assertEqual(len(list(s.scalars(select(VoucherSale)))),2)
+  self.assertEqual(len(self.client.get('/v1/audit?action=voucher_sale_cancelled',headers=self.owner).json()),1)
+ def test_cancel_sale_refused_after_use_refund_or_without_sale(self):
+  v=self.setup_voucher();self.assertEqual(self.cancel(v['id']).status_code,404)
+  self.payment(v['id']);self.redeem(v['code'])
+  r=self.cancel(v['id']);self.assertEqual(r.status_code,409);self.assertIn('Record a refund',r.json()['detail'])
+  self.assertEqual(self.refund(v['id']).status_code,200);self.assertEqual(self.cancel(v['id']).status_code,409)
+  self.assertEqual(self.cancel(v['id'],confirmed=False).status_code,422);self.assertEqual(self.cancel(v['id'],reason='').status_code,422)
+  self.assertEqual(self.client.post('/v1/vouchers/'+v['id']+'/sale/cancel',headers=self.guest,json={'reason':'x','confirmed':True}).status_code,403)
  def test_revocation_does_not_imply_refund_and_no_sale_for_revoked_code(self):
   v=self.setup_voucher();self.payment(v['id']);self.client.post('/v1/vouchers/'+v['id']+'/revoke',headers=self.owner,json={'reason':'Access stopped'})
   self.assertEqual(self.client.get('/v1/revenue',headers=self.owner).json()['net_collections'],3000);self.assertEqual(self.refund(v['id'],confirmed_returned=False).status_code,422)

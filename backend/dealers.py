@@ -117,14 +117,14 @@ def assign_problem(v,sold):
 def hand_over(s,u,log,dealer,vouchers,unit_price,key,kind='assign',note=None,job_id=None,counterpart=None):
  """Give unused, unsold, unassigned vouchers to a dealer and charge the dealer price."""
  now=int(time.time());ids=[v.id for v in vouchers]
- sold=set(s.scalars(select(VoucherSale.voucher_id).where(VoucherSale.voucher_id.in_(ids))))
+ sold=set(s.scalars(select(VoucherSale.voucher_id).where(VoucherSale.voucher_id.in_(ids),VoucherSale.cancelled_at.is_(None))))
  bad=problems(vouchers,lambda v:assign_problem(v,sold))
  if bad:refuse(bad,'hand over')
  charge=unit_price*len(ids);money_check(dealer,balance(s,dealer.id),charge)
  result=s.execute(update(Voucher).where(Voucher.id.in_(ids),Voucher.tenant_id==u.tenant_id,Voucher.dealer_id.is_(None),*usable(now)).values(dealer_id=dealer.id,dealer_price=unit_price).execution_options(synchronize_session=False))
  if result.rowcount!=len(ids):s.rollback();raise HTTPException(409,'Some vouchers changed at the same time; refresh and try again')
  # The update above takes the row lock that counter-sale recording also takes.
- if s.scalar(select(VoucherSale.id).where(VoucherSale.voucher_id.in_(ids))):s.rollback();raise HTTPException(409,'A counter sale was recorded at the same time; refresh and try again')
+ if s.scalar(select(VoucherSale.id).where(VoucherSale.voucher_id.in_(ids),VoucherSale.cancelled_at.is_(None))):s.rollback();raise HTTPException(409,'A counter sale was recorded at the same time; refresh and try again')
  movement=record(s,DealerMovement,tenant_id=u.tenant_id,dealer_id=dealer.id,kind=kind,voucher_ids=ids,count=len(ids),unit_price=unit_price,production_job_id=job_id,counterpart_dealer_id=counterpart,note=note,details={'serials':span(vouchers),'face_value':sum(int(v.policy.get('price') or 0) for v in vouchers)},request_key=key,actor_id=u.id,created=now)
  if charge:record(s,DealerLedgerEntry,tenant_id=u.tenant_id,dealer_id=dealer.id,kind='charge',delta=charge,movement_id=movement.id,note=f'{len(ids)} vouchers × {unit_price} MMK',request_key=key+':charge',actor_id=u.id,created=now)
  log(s,u,'dealer_stock_assigned',movement.id)
@@ -235,7 +235,7 @@ def register_dealers(app,current,db,owner,log):
   vouchers,job=choose(s,u,b)
   if job and not b.voucher_ids and b.serial_from is None:
    # "Everything left in this job": skip cards already activated, sold, disabled or with a dealer.
-   sold=set(s.scalars(select(VoucherSale.voucher_id).where(VoucherSale.voucher_id.in_([v.id for v in vouchers]))))
+   sold=set(s.scalars(select(VoucherSale.voucher_id).where(VoucherSale.voucher_id.in_([v.id for v in vouchers]),VoucherSale.cancelled_at.is_(None))))
    vouchers=[v for v in vouchers if not assign_problem(v,sold)]
    if not vouchers:raise HTTPException(409,'No unused vouchers are left in this job to hand over')
   hand_over(s,u,log,d,vouchers,b.unit_price,b.request_key,note=b.note,job_id=job.id if job else None);commit(s);return detail(s,d)

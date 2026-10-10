@@ -637,3 +637,14 @@ Owner-managed dealers with no dealer login, app or portal (migration 038, additi
 - Production jobs: the Dealer step is live; Distribute can hand the job's remaining unused vouchers to a dealer.
 
 Verification: dealer tests (5) and helper tests (5) added; full Python suite, 44 JavaScript tests, build and Sites 4/4 pass. Local browser walk-through on a scratch database: two dealers, prepaid refusal then payment and handover, job handover of the 25 available cards, stock check with 2 lost and disabled, return with credit, ledger and ranking.
+
+## 2026-10-11 — Voucher sale payment methods and Cancel Sale (frozen v1)
+
+Counter sales record how the customer paid, and a mistaken sale can be cancelled without losing its history (migration 039).
+
+- Paid with: Cash, KBZPay, WavePay or Other. KBZPay and WavePay need the wallet transaction ID; Other needs a short description; Cash needs nothing extra. Older free-text methods still display.
+- Cancel Sale (owner only): for a sale whose voucher is unused and not refunded. It needs a reason and the confirmation "No money was kept for this sale". The sale stays in history, revenue is reversed, an audit record is written, and the voucher returns to unsold stock and can be sold again. Used vouchers still need a refund, which revokes the pass.
+- Revenue: "Refunds & cancelled sales" metric, cancellations included by site, payment method and day, and "sale cancelled" in the ledger.
+- Vouchers: the Payment column shows the method and a cancelled count; the sale panel lists cancelled sales.
+
+Verification: new backend tests for payment-method rules and Cancel Sale (history, revenue reversal, resale, refusals), dealer handover after a cancelled sale, migration downgrade guard; 3 new JavaScript helper tests. Local browser walk-through on a scratch database: Cash sale, Cancel Sale, KBZPay resale blocked until a transaction ID was entered, then recorded; Revenue showed net MMK 1,500 from MMK 3,000 gross with the Cash sale cancelled.

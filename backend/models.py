@@ -1,5 +1,5 @@
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
-from sqlalchemy import String, Integer, BigInteger, ForeignKey, JSON, UniqueConstraint, Boolean, CheckConstraint, LargeBinary, Index
+from sqlalchemy import String, Integer, BigInteger, ForeignKey, JSON, UniqueConstraint, Boolean, CheckConstraint, LargeBinary, Index, text
 import uuid
 class Base(DeclarativeBase):pass
 def uid():return str(uuid.uuid4())
@@ -241,7 +241,7 @@ class VoucherTemplate(Base):
 class VoucherSale(Base):
  __tablename__='voucher_sales'
  id:Mapped[str]=mapped_column(String(36),primary_key=True,default=uid)
- voucher_id:Mapped[str]=mapped_column(ForeignKey('vouchers.id'),unique=True)
+ voucher_id:Mapped[str]=mapped_column(ForeignKey('vouchers.id'))
  tenant_id:Mapped[str]=mapped_column(ForeignKey('tenants.id'),index=True)
  snapshot:Mapped[dict]=mapped_column(JSON)
  amount:Mapped[int]=mapped_column(BigInteger)
@@ -255,7 +255,11 @@ class VoucherSale(Base):
  refunded_by:Mapped[str|None]=mapped_column(ForeignKey('users.id'))
  refund_reason:Mapped[str|None]=mapped_column(String(1000))
  refund_reference:Mapped[str|None]=mapped_column(String(160))
- __table_args__=(CheckConstraint('amount > 0'),)
+ cancelled_at:Mapped[int|None]=mapped_column(BigInteger)
+ cancelled_by:Mapped[str|None]=mapped_column(ForeignKey('users.id'))
+ cancel_reason:Mapped[str|None]=mapped_column(String(500))
+ # A cancelled sale stays as history; only one sale per voucher may be active.
+ __table_args__=(CheckConstraint('amount > 0'),Index('uq_voucher_sales_active_voucher','voucher_id',unique=True,sqlite_where=text('cancelled_at IS NULL'),postgresql_where=text('cancelled_at IS NULL')))
 class OfflineVoucherEvent(Base):
  __tablename__='offline_voucher_events'
  id:Mapped[str]=mapped_column(String(36),primary_key=True,default=uid)

@@ -218,3 +218,10 @@ limitations.
 - `backend/dealers.py`; production Distribute hands remaining stock to a dealer; counter sale and delete refuse dealer-held vouchers.
 - Frontend: `src/Dealers.jsx`, `src/dealers.mjs`; production Dealer step enabled; dealer short code on printed sheets.
 - Tests: `test_dealers` (5), `dealers.test.mjs` (5); head assertions moved to 038.
+
+## Voucher sale payment methods and Cancel Sale (2026-10-11)
+
+- Migration 039: `voucher_sales` gains `cancelled_at`, `cancelled_by`, `cancel_reason`; the unique constraint on `voucher_id` becomes a partial unique index over active (not cancelled) sales. Downgrade refuses while cancelled sales exist.
+- `POST /v1/vouchers/{id}/sale/cancel` (owner only, idempotent replay by reason); sold checks in dealers, lifecycle and production ignore cancelled sales; revenue counts cancellations as refund-kind events.
+- Frontend: `src/voucher-sales.mjs`, `src/VoucherPayments.jsx` (Record sale / Cancel sale / Refund), Vouchers, Cashier and Revenue labels.
+- Tests: `test_voucher_sales` (+3), `test_dealers` (+1), `voucher-sales.test.mjs` (3); head assertions moved to 039.

@@ -57,7 +57,7 @@ class PostgreSQLSessionHistoryTests(unittest.TestCase):
   self.assertEqual(self.client.post('/v1/account/sessions/revoke',headers=owner,json={'session_ref':target['session_ref']}).status_code,200)
   self.assertEqual(self.client.get('/v1/me',headers=second).status_code,401)
   with self.app.state.factory() as db:
-   self.assertEqual(db.scalar(text("SELECT version_num FROM alembic_version")),'038')
+   self.assertEqual(db.scalar(text("SELECT version_num FROM alembic_version")),'039')
    self.assertEqual(db.scalar(select(LoginHistory.outcome).where(LoginHistory.user_id==self.owner_a,LoginHistory.outcome=='failure')),'failure')
    self.assertEqual(db.scalar(text("SELECT count(*) FROM login_history WHERE user_id='pg-owner-a'")),3)
    self.assertEqual(db.scalar(text("SELECT count(*) FROM sessions WHERE user_id='pg-owner-a'")),1)

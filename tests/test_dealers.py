@@ -48,6 +48,9 @@ class DealerTests(unittest.TestCase):
   self.assertEqual(self.client.post(f"/v1/vouchers/{self.vid[30]}/sale",headers=self.owner,json=sale).status_code,200)
   r=self.assign(credit,30,30,2500);self.assertEqual(r.status_code,409);self.assertIn('sold at the counter',r.json()['detail'])
   self.assertEqual(self.client.get('/v1/revenue',headers=self.owner).json()['net_collections'],3000)
+  self.assertEqual(self.client.post(f"/v1/vouchers/{self.vid[29]}/sale",headers=self.owner,json=sale).status_code,200)
+  self.assertEqual(self.client.post(f"/v1/vouchers/{self.vid[29]}/sale/cancel",headers=self.owner,json={'reason':'Wrong card','confirmed':True}).status_code,200)
+  self.assertEqual(self.assign(credit,29,29,500).status_code,200)
   stock={v['serial_no']:v['dealer_id'] for v in self.client.get('/v1/vouchers',headers=self.owner).json() if v['serial_no']}
   self.assertEqual((stock[1],stock[11],stock[20]),(credit['id'],prepaid['id'],None))
   for action in ['dealer_created','dealer_stock_assigned','dealer_payment_recorded']:self.assertIn(action,self.actions())

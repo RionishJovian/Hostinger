@@ -28,11 +28,17 @@ class VoucherCodeMigrationTests(unittest.TestCase):
                     db.execute("INSERT INTO vouchers (id, tenant_id, package_id, policy, code_hash, code_hint, issued_by, request_key, created, expires, revoked) VALUES ('v', 't', 'p', '{}', 'legacy-hash', 'WXYZ', 'u', 'key', 1, 2, 0)")
                 command.upgrade(cfg, 'head')
                 with sqlite3.connect(database) as db:
-                    self.assertEqual(db.execute('SELECT version_num FROM alembic_version').fetchone()[0], '038')
+                    self.assertEqual(db.execute('SELECT version_num FROM alembic_version').fetchone()[0], '039')
                     self.assertEqual(db.execute("SELECT code_hash, code_hint, code_format, code_prefix FROM vouchers WHERE id='v'").fetchone(), ('legacy-hash', 'WXYZ', 'legacy', None))
                     self.assertEqual(db.execute("SELECT disabled_at, deleted_at, router_sync FROM vouchers WHERE id='v'").fetchone(), (None, None, None))
                     self.assertEqual(db.execute("SELECT serial_no, production_job_id, sheet_no FROM vouchers WHERE id='v'").fetchone(), (None, None, None))
                     self.assertEqual(db.execute("SELECT dealer_id, dealer_price FROM vouchers WHERE id='v'").fetchone(), (None, None))
+                    db.execute("INSERT INTO voucher_sales (id, voucher_id, tenant_id, snapshot, amount, currency, method, reference, evidence, recorded_by, created, cancelled_at, cancelled_by, cancel_reason) VALUES ('s', 'v', 't', '{}', 1000, 'MMK', 'Cash', '', '', 'u', 1, 2, 'u', 'Wrong card')")
+                with self.assertRaises(RuntimeError):
+                    command.downgrade(cfg, '038')
+                with sqlite3.connect(database) as db:
+                    self.assertEqual(db.execute("SELECT cancel_reason FROM voucher_sales WHERE id='s'").fetchone()[0], 'Wrong card')
+                    db.execute("DELETE FROM voucher_sales")
                     db.execute("INSERT INTO dealers (id, tenant_id, name, settlement, created_by, created) VALUES ('d', 't', 'Ko Aung', 'credit', 'u', 1)")
                 with self.assertRaises(RuntimeError):
                     command.downgrade(cfg, '037')

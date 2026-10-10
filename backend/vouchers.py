@@ -16,8 +16,11 @@ def register_vouchers(app,current,db,owner,log):
  @app.get('/v1/vouchers')
  def inventory(u=Depends(current),s=Depends(db)):
   from .voucher_sales import sale_json
-  owner(u);sales={x.voucher_id:sale_json(x) for x in s.scalars(select(VoucherSale).where(VoucherSale.tenant_id==u.tenant_id))}
-  return [voucher_json(v)|{'sale':sales.get(v.id)} for v in s.scalars(select(Voucher).where(Voucher.tenant_id==u.tenant_id,Voucher.deleted_at.is_(None)).order_by(Voucher.created.desc()))]
+  owner(u);sales={};cancelled={}
+  for x in s.scalars(select(VoucherSale).where(VoucherSale.tenant_id==u.tenant_id).order_by(VoucherSale.created)):
+   if x.cancelled_at:cancelled.setdefault(x.voucher_id,[]).append(sale_json(x))
+   else:sales[x.voucher_id]=sale_json(x)
+  return [voucher_json(v)|{'sale':sales.get(v.id),'cancelled_sales':cancelled.get(v.id,[])} for v in s.scalars(select(Voucher).where(Voucher.tenant_id==u.tenant_id,Voucher.deleted_at.is_(None)).order_by(Voucher.created.desc()))]
  @app.post('/v1/vouchers',status_code=201)
  def issue(b:VoucherIssue,u=Depends(current),s=Depends(db)):
   owner(u);prefix=normalize_prefix(b.prefix);custom=normalize_custom(b.custom_code) if b.custom_code else None

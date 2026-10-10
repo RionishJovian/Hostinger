@@ -182,10 +182,18 @@ class FirmwarePlanIn(Strict):
 
 class VoucherSaleIn(Strict):
  amount:int=Field(gt=0,le=1_000_000_000)
- method:str=Field(min_length=1,max_length=80)
- reference:str=Field(min_length=1,max_length=160)
- evidence:str=Field(min_length=1,max_length=4000)
+ method:Literal['Cash','KBZPay','WavePay','Other']
+ reference:str=Field(default='',max_length=160)
+ evidence:str=Field(default='',max_length=4000)
  confirmed_received:Literal[True]
+ @model_validator(mode='after')
+ def method_details(self):
+  if self.method in ('KBZPay','WavePay') and not self.reference:raise ValueError(f'Enter the {self.method} transaction ID')
+  if self.method=='Other' and not self.evidence:raise ValueError('Describe how the customer paid')
+  return self
+class VoucherSaleCancel(Strict):
+ reason:str=Field(min_length=1,max_length=500)
+ confirmed:Literal[True]
 class VoucherSaleRefund(Strict):
  reason:str=Field(min_length=1,max_length=1000)
  reference:str=Field(min_length=1,max_length=160)

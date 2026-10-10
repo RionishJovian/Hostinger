@@ -21,7 +21,7 @@ class HotspotPortalPlanMigrationTests(unittest.TestCase):
             try:
                 command.upgrade(cfg, 'head')
                 with sqlite3.connect(database) as db:
-                    self.assertEqual(db.execute('SELECT version_num FROM alembic_version').fetchone()[0], '038')
+                    self.assertEqual(db.execute('SELECT version_num FROM alembic_version').fetchone()[0], '039')
                     self.assertIn('hotspot_portal_plans', {row[0] for row in db.execute("SELECT name FROM sqlite_master WHERE type='table'")})
                 command.downgrade(cfg, '033')
                 command.upgrade(cfg, 'head')
