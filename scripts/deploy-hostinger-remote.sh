@@ -69,7 +69,10 @@ fi
 note "migrate and start"
 $C --profile operations run --rm -T migrate < /dev/null > backups/migrate.log 2>&1 \
   || stop "migration failed (see $NEW/backups/migrate.log); restore backups/pre-deploy.dump before restarting old images"
-$C up -d > backups/up.log 2>&1 || stop "compose up failed (see $NEW/backups/up.log)"
+recreate="api web"
+case "$changed" in *hub*|*backend/__init__.py*) recreate="$recreate magic-hub" ;; esac
+{ $C up -d && $C up -d --no-deps --force-recreate $recreate; } > backups/up.log 2>&1 \
+  || stop "compose up failed (see $NEW/backups/up.log)"
 
 ok=0
 for _ in $(seq 60); do
@@ -77,6 +80,10 @@ for _ in $(seq 60); do
   [ $ok = 1 ] && break; sleep 3
 done
 [ $ok = 1 ] || stop "containers not healthy after 3 minutes"
+for s in $recreate; do
+  [ "$(docker inspect -f '{{.Image}}' "$P-$s-1")" = "$(docker image inspect -f '{{.Id}}' "$P-$s:latest")" ] \
+    || stop "$s is not running the newly built image"
+done
 
 echo "previous=$PREV"
 echo "new=$NEW"
@@ -84,5 +91,6 @@ echo "alembic=$pre -> $(alembic_now)"
 echo "dump_entries=$entries"
 echo "rehearsal=$rehearsal"
 echo "infra_changed=${changed:- none}"
+echo "recreated=$recreate"
 echo "hub_key=$(docker exec $P-magic-hub-1 wg show mm-prod-hub public-key)"
 echo "hub_port=$(docker port $P-magic-hub-1 51820/udp | head -1)"
