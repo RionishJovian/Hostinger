@@ -659,3 +659,14 @@ Each shop (site) can store an optional default Wi-Fi name to print on voucher ca
 - The name is a printed label only; it does not change any router or access point.
 
 Verification: backend test for the setting (owner only, tenant isolation, byte limit with Burmese text, control characters, clearing, audit), migration 040 up/down with a downgrade guard while names are set, 3 JavaScript tests. Local browser walk-through on a scratch database: over-long Burmese name refused with the byte count, name saved, production form prefill and switching, Quick Voucher card showing the Wi-Fi name.
+
+## 2026-10-11 — Platform console for the platform owner (owner request)
+
+The owner asked for a "Platform console" tab, visible only on their own platform account, that lists sign-in sessions. Migration 041 (additive) adds `users.platform_owner` (default false). It is set only by trusted server-side provisioning and honored only for the platform role; no API can set it.
+
+- `GET /v1/platform/console/sessions`: every unexpired session on the platform with account, role (staff shown as staff), business, device/browser labels, login and last-active times, masked approximate source and expiry. Tokens and session references are not returned.
+- `GET /v1/platform/console/sign-ins`: past 7 days of sign-ins, sign-outs and ended sessions (from the audit log) plus failed sign-ins (from login history). Device details are joined from login history where one was recorded.
+- Platform-account sign-ins now also write login history rows (device/browser, approximate source, success/failure); they are shown only in the Platform console. Staff, guests and unknown usernames still get no row.
+- `/v1/me` returns `platform_owner`; the workspace adds the Platform console tab only when it is true. Both endpoints return 403 for every other account, including other platform accounts.
+
+Verification: `test_platform_console` (4 cases: access limited to the flagged platform account, cross-account session listing without tokens, platform sign-ins/failures/sign-outs with device details and no secrets, 7-day retention), migration 041 up/down on SQLite. Local browser walk-through on a scratch database: a second platform account has no tab; the owner account sees the tab, all active sessions and its own failed and successful sign-ins.

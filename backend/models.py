@@ -17,6 +17,8 @@ class User(Base):
  active:Mapped[bool]=mapped_column(Boolean,default=True)
  must_change_password:Mapped[bool]=mapped_column(Boolean,default=False,server_default='0')
  temporary_password_expires:Mapped[int|None]=mapped_column(BigInteger,nullable=True)
+ # Set only by trusted server-side provisioning; honored only for the platform role.
+ platform_owner:Mapped[bool]=mapped_column(Boolean,default=False,server_default='0',nullable=False)
  __table_args__=(CheckConstraint("role in ('platform','sme','guest')"),CheckConstraint("role = 'platform' OR tenant_id IS NOT NULL"))
 class SessionToken(Base):
  __tablename__='sessions'

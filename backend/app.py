@@ -133,9 +133,9 @@ def make_app(url=None,initialize=False):
   u=s.scalar(select(User).where(User.username==name))
   device,browser=client_labels(request.headers.get('user-agent'));source=approximate_source(ip)
   def record_history(outcome):
-   # Login history is an Owner/Admin feature. Delegated staff, guests, platform
-   # accounts, and unknown usernames do not gain a customer-facing history row.
-   if not u or u.role!='sme' or s.get(StaffGrant,u.id):return
+   # Login history covers Owner/Admin and platform accounts (Platform console only).
+   # Delegated staff, guests, and unknown usernames do not gain a history row.
+   if not u or u.role not in ('sme','platform') or s.get(StaffGrant,u.id):return
    s.add(LoginHistory(user_id=u.id,tenant_id=u.tenant_id,outcome=outcome,created=now,device=device,browser=browser,source=source))
    s.execute(delete(LoginHistory).where(LoginHistory.user_id==u.id,LoginHistory.created<now-7*24*60*60))
   try:
@@ -160,7 +160,7 @@ def make_app(url=None,initialize=False):
  def logout(c:HTTPAuthorizationCredentials=Depends(auth),u:User=Depends(current),s:Session=Depends(db)):
   s.delete(s.get(SessionToken,digest(c.credentials)));log(s,u,'sign_out',u.id);s.commit();return {'signed_out':True}
  @app.get('/v1/me')
- def me(u:User=Depends(current)):return {'id':u.id,'username':u.username,'role':u.role,'tenant_id':u.tenant_id,'must_change_password':u.session_must_change_password,'temporary_password_expires':u.temporary_password_expires if u.session_must_change_password else None,'staff_profile':u.staff_profile}
+ def me(u:User=Depends(current)):return {'id':u.id,'username':u.username,'role':u.role,'tenant_id':u.tenant_id,'must_change_password':u.session_must_change_password,'temporary_password_expires':u.temporary_password_expires if u.session_must_change_password else None,'staff_profile':u.staff_profile,'platform_owner':bool(u.role=='platform' and u.platform_owner)}
  @app.get('/v1/tenants')
  def tenants(u:User=Depends(current),s:Session=Depends(db)):
   q=select(Tenant)
@@ -249,6 +249,8 @@ def make_app(url=None,initialize=False):
  from .managed_devices import register_managed_devices
  register_managed_devices(app,current,db,owner,log)
  register_account_sessions(app,current,db,log,digest)
+ from .platform_console import register_platform_console
+ register_platform_console(app,current,db,digest)
  register_portal_exports(app,current,db,owner,log)
  from .guest_entry import register_guest_entry
  register_guest_entry(app,db,HASHER,digest,log)

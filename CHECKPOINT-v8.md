@@ -232,3 +232,11 @@ limitations.
 - `POST /v1/sites/{id}/settings`; `GET /v1/sites` and site creation return and accept `printed_ssid`.
 - Frontend: `src/site-settings.mjs` (byte limit, prefill rules), Shop settings on the Sites page, production prefill, batch sheet and Quick Voucher Wi-Fi line.
 - Tests: `test_sites` (+1), `site-settings.test.mjs` (3); head assertions moved to 040.
+
+## Platform console (2026-10-11)
+
+- Migration 041 (additive): `users.platform_owner` boolean, default false, provisioned server-side only.
+- `backend/platform_console.py`: `GET /v1/platform/console/sessions` and `/v1/platform/console/sign-ins` (platform owner only).
+- Login history now also records platform accounts (Platform console only; the Owner/Admin endpoint is unchanged).
+- Frontend: `src/PlatformConsole.jsx`; the tab appears only when `/v1/me` returns `platform_owner`.
+- Tests: `test_platform_console` (4); head assertions moved to 041; `test_enrollment_migration` inserts its user with SQL.

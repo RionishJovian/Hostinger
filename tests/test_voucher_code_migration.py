@@ -28,7 +28,7 @@ class VoucherCodeMigrationTests(unittest.TestCase):
                     db.execute("INSERT INTO vouchers (id, tenant_id, package_id, policy, code_hash, code_hint, issued_by, request_key, created, expires, revoked) VALUES ('v', 't', 'p', '{}', 'legacy-hash', 'WXYZ', 'u', 'key', 1, 2, 0)")
                 command.upgrade(cfg, 'head')
                 with sqlite3.connect(database) as db:
-                    self.assertEqual(db.execute('SELECT version_num FROM alembic_version').fetchone()[0], '040')
+                    self.assertEqual(db.execute('SELECT version_num FROM alembic_version').fetchone()[0], '041')
                     self.assertEqual(db.execute("SELECT code_hash, code_hint, code_format, code_prefix FROM vouchers WHERE id='v'").fetchone(), ('legacy-hash', 'WXYZ', 'legacy', None))
                     self.assertEqual(db.execute("SELECT disabled_at, deleted_at, router_sync FROM vouchers WHERE id='v'").fetchone(), (None, None, None))
                     self.assertEqual(db.execute("SELECT serial_no, production_job_id, sheet_no FROM vouchers WHERE id='v'").fetchone(), (None, None, None))

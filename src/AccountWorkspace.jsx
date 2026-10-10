@@ -8,6 +8,7 @@ import VoucherBatch from './VoucherBatch.jsx';
 import VoucherProduction from './VoucherProduction.jsx';
 import Dealers from './Dealers.jsx';
 import AccountSessions from './AccountSessions.jsx';
+import PlatformConsole from './PlatformConsole.jsx';
 import AuditExplorer from './AuditExplorer.jsx';
 import InternetPlanning from './InternetPlanning.jsx';
 import NetworkPlanning from './NetworkPlanning.jsx';
@@ -51,7 +52,7 @@ function AccountWorkspaceContent({onDemo}){
  const [chatCard,setChatCard]=useState(null);
  const [publicTheme,setPublicTheme]=useState(DEFAULT_THEMES),[health,setHealth]=useState(null),[selectedSite,setSelectedSite]=useState('');
  const [user,setUser]=useState(null),[s,setS]=useState(empty),[page,setPage]=useState('Overview'),[notice,setNotice]=useState(''),[busy,setBusy]=useState(false),[menu,setMenu]=useState(false),[chat,setChat]=useState(false),[dark,setDark]=useState(false);
- const navigation=user?.staff_profile?staffPages(user.staff_profile):names[user?.role]||[];
+ const navigation=user?.staff_profile?staffPages(user.staff_profile):user?.platform_owner?[...names.platform,'Platform console']:names[user?.role]||[];
  useEffect(()=>{if(user?.staff_profile&&!staffPages(user.staff_profile).includes(page))setPage(staffPages(user.staff_profile)[0])},[user,page]);
  const client=useRef(null);if(!client.current)client.current=accountClient(()=>{setUser(null);setS(empty);setNotice('Your session ended. Sign in again.')});const api=client.current;
  useEffect(()=>{let active=true;api.request('health').then(()=>{if(active)setHealth(true)}).catch(()=>{if(active)setHealth(false)});return ()=>{active=false;api.clear()}},[api]);
@@ -74,7 +75,7 @@ function AccountWorkspaceContent({onDemo}){
  if(magicConnectEntry)return <MagicConnectTechnician/>;
  if(!user)return <div className="app accountsignin"><div className="brand"><img src="/assets/brand.png" alt="MikroMagic logo"/><strong>MikroMagic<small>Cloud & business management</small></strong></div><div className="title"><div><h1>Your network.<br/><em>Your business.</em></h1><p>Sign in to your account. Your assigned role and business determine what you can access.</p></div></div><Panel title="Account sign-in"><p role="status">{health===null?'Checking sign-in service…':health?'Sign-in service available':'Sign-in service unavailable. Try again later.'}</p>{entrySite?(entryPortal?<GuestEntry portal={entryPortal} busy={busy} onRegister={registerGuest} onLogin={signIn}/>:<p>Guest site unavailable or loading.</p>):<Login busy={busy} unavailable={health!==true} signIn={signIn}/>}{notice&&<p role="alert">{notice}</p>}<p className="muted">Business accounts are provisioned by the platform operator. Guest registration is available only through a published site link. Sign out to revoke the current session.</p></Panel>{import.meta.env.DEV&&<button className="button secondary" onClick={onDemo}>Explore the demo workspace</button>}</div>;
  if(user.must_change_password)return <div className="app accountsignin"><div className="brand"><strong>MikroMagic</strong></div>{notice&&<p role="alert">{notice}</p>}<PasswordChange user={user} busy={busy} forced onChangePassword={changePassword} onLogout={logout}/></div>;
- const implemented=[STAFF_ACCESS_CLOSED_PAGE,'Overview','Revenue','Packages','Payments','Guest portal','My access','Operations','Businesses','Audit','Captive portal','Vouchers','Sites','Routers','Magic Hubs','Appearance','Media','Guidance','Did you know?','Account','Internet','Network','Staff','Subscription','Subscriptions'].includes(page)||(page==='Integrations'&&user.role==='sme');
+ const implemented=[STAFF_ACCESS_CLOSED_PAGE,'Overview','Revenue','Packages','Payments','Guest portal','My access','Operations','Businesses','Audit','Captive portal','Vouchers','Sites','Routers','Magic Hubs','Appearance','Media','Guidance','Did you know?','Account','Internet','Network','Staff','Subscription','Subscriptions'].includes(page)||(page==='Platform console'&&user.platform_owner)||(page==='Integrations'&&user.role==='sme');
  return <div className={'app '+(menu?'menuopen':'')} aria-busy={busy}>
   <aside>
    <div className="brand"><img src="/assets/brand.png" alt="MikroMagic logo"/><strong>MikroMagic<small>{user.role==='sme'?t('shell','businessWorkspace'):user.role==='guest'?'Guest access':'Cloud operations'}</small></strong></div>
@@ -103,6 +104,7 @@ function AccountWorkspaceContent({onDemo}){
  {page===STAFF_ACCESS_CLOSED_PAGE&&user.staff_profile&&<Panel title="Staff access closed"><p>MikroMagic v1 has one business Owner/Admin. Staff accounts can no longer view or change business, payment, voucher or network records.</p><p>Ask the business Owner/Admin for help, then sign out.</p></Panel>}
  {page==='Account'&&<PasswordChange user={user} busy={busy} onChangePassword={changePassword}/>}
  {page==='Account'&&<AccountSessions api={api} ownerAdmin={user.role==='sme'&&!user.staff_profile}/>}
+ {page==='Platform console'&&user.platform_owner&&<PlatformConsole api={api}/>}
  {page==='Audit'&&<AuditExplorer api={api}/>}
  {page==='Internet'&&user.role==='sme'&&<InternetPlanning api={api} sites={s.sites}/>}
  {page==='Network'&&user.role==='sme'&&<NetworkPlanning api={api} sites={s.sites}/>}

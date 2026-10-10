@@ -8,7 +8,7 @@ from alembic import command
 from alembic.config import Config
 from sqlalchemy import create_engine,text
 from sqlalchemy.orm import Session
-from backend.models import Tenant,User,RouterDevice,MagicHub,RouterPlan,MagicConnectAttempt,MagicConnectEnrollment
+from backend.models import Tenant,RouterDevice,MagicHub,RouterPlan,MagicConnectAttempt,MagicConnectEnrollment
 
 
 class EnrollmentMigrationTests(unittest.TestCase):
@@ -21,7 +21,8 @@ class EnrollmentMigrationTests(unittest.TestCase):
                 command.upgrade(cfg,'031')
                 engine=create_engine(url)
                 with Session(engine) as session:
-                    session.add_all([Tenant(id='t',name='Synthetic'),User(id='u',username='synthetic',password_hash='disabled',role='sme',tenant_id='t',active=True)]);session.flush()
+                    session.add(Tenant(id='t',name='Synthetic'));session.flush()
+                    session.execute(text("INSERT INTO users (id,username,password_hash,role,tenant_id,active) VALUES ('u','synthetic','disabled','sme','t',1)"))
                     session.execute(text("INSERT INTO sites (id,tenant_id,name,timezone,created) VALUES ('s','t','Synthetic','UTC',1)"))
                     session.add_all([
                         RouterDevice(id='r',tenant_id='t',site_id='s',name='Synthetic',model='unknown',reported_routeros='',registered_by='u',created=1),
@@ -31,7 +32,7 @@ class EnrollmentMigrationTests(unittest.TestCase):
                     ]);session.commit()
                 command.upgrade(cfg,'032');command.upgrade(cfg,'head')
                 with sqlite3.connect(database) as db:
-                    self.assertEqual(db.execute('SELECT version_num FROM alembic_version').fetchone()[0],'040')
+                    self.assertEqual(db.execute('SELECT version_num FROM alembic_version').fetchone()[0],'041')
                     self.assertEqual(db.execute('SELECT status FROM magic_connect_attempts').fetchone()[0],'approved')
                     self.assertEqual(db.execute('SELECT count(*) FROM users').fetchone()[0],1)
                 with Session(engine) as session:
