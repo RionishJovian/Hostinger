@@ -27,7 +27,7 @@ Owner decisions:
 | Firewall | UFW active, allowing 22, 80, 443, 51820/udp and 51821/udp (IPv4 and IPv6) |
 | Reverse proxy | The `megamagic-landing-caddy-1` container binds `156.67.216.128:80/443` and routes `megamagic.tech` and `www` to `mikromagic-build21-public-test-web` over `megamagic-landing-net` |
 | Co-hosted stacks (untouched) | `megamagic-landing`, `mikromagic-build21-rc` (127.0.0.1:18081), `mikromagic-v8-acceptance` (127.0.0.1:8080/8443), `v8-auth-candidate`, `v8-auth-final-retest-20261009`, `v8-auth-pgtest` (exited), `voucher-pg-20261009` |
-| Deployment directories | `-20261010` = `4e78…` (first public test); `-hub-20261010T143844Z` = `6288…` (Hub release); `-20261010T150700Z` = `6514…`; `-20261010T171319Z` = `4092…`; `-20261010T180343Z` = `5f93…` (migration 037); `-20261010T182316Z` = `379f…` (migration 038); `-20261010T185246Z` = `379f…` (first scripted deploy); `-20261010T195352Z` = `601e…` (migration 039); `-20261010T201247Z` = `201e…` (current, migration 040); `-20261010T184257Z` and `-20261010T184809Z` never served traffic |
+| Deployment directories | `-20261010` = `4e78…` (first public test); `-hub-20261010T143844Z` = `6288…` (Hub release); `-20261010T150700Z` = `6514…`; `-20261010T171319Z` = `4092…`; `-20261010T180343Z` = `5f93…` (migration 037); `-20261010T182316Z` = `379f…` (migration 038); `-20261010T185246Z` = `379f…` (first scripted deploy); `-20261010T195352Z` = `601e…` (migration 039); `-20261010T201247Z` = `201e…` (migration 040); `-20261010T203831Z` = `4fba…` (current, migration 041); `-20261010T184257Z` and `-20261010T184809Z` never served traffic |
 
 The `6514…` artifact (the guest access diagnosis) **was deployed** at 15:07 UTC,
 which no project document recorded. The `bfbe…` digest reported in Discrepancy 3
@@ -158,7 +158,31 @@ any shop has a printed Wi-Fi name.
 - At the owner's request, created `nish@magic` with the existing `platform` role (full operator access; there is no separate Developer role in the app or the Notion tracker). Temporary password generated locally, delivered only through the owner's clipboard, valid 24 hours, with a forced change at first sign-in. Audit action `platform_account_provisioned`.
 - Before writing: `backups/pre-platform-account-20261010T202406Z.dump` in `-20261010T201247Z` (414 restore-list entries).
 - Verified: sign-in on `https://megamagic.tech` returns the platform role with the password change required; the test session was signed out.
-- `public-test-owner` (platform) is still active; its password was never recorded. Owner decision: disable it once `nish@magic` is confirmed working.
+- `public-test-owner` (platform) was still active at that point; its password was never recorded. Owner decision: disable it once `nish@magic` is confirmed working.
+
+### Scripted redeploy — Platform console for the platform owner (2026-10-10 20:38 UTC)
+
+| Item | Value |
+|---|---|
+| Source | Commit `2d8e238` on `origin/main`; artifact `4fba51b73ca5286376969d4a39271d39679591a0da24fc3e4aa90a5b168d3747` (168 files); local checks: 512 backend (12 skipped), 50 frontend tests, build, manifest; browser walk-through on a scratch database |
+| Directory | `/opt/mikromagic-build21-public-test-20261010T203831Z`; previous `-20261010T201247Z` |
+| Infra / Hub files | Unchanged |
+| Pre-deploy dump | `backups/pre-deploy.dump` (399 restore-list entries) |
+| PostgreSQL rehearsal | 040 → 041 → 040 → 041 clean on a throwaway database |
+| Migration | 040 → 041 (`041_platform_owner`): `users.platform_owner` boolean, default false |
+| Rollback images | `…-{api,web,magic-hub,migrate}:rollback-20261010T203831Z` |
+| Result | api and web recreated and healthy; db and Hub untouched (Hub key and UDP 51820 unchanged); HTTPS 200; served bundle `index-Ci4Q7lb3.js` contains the Platform console; both `/v1/platform/console/*` endpoints return 401 without a session |
+
+**Rollback:** retag the `rollback-20261010T203831Z` images, then
+`up -d --no-deps --force-recreate api web` from `-20261010T201247Z`. Migration 041
+only adds a defaulted column, so the 040 code runs on it.
+
+### Platform owner flag and old operator account (2026-10-10 20:40 UTC)
+
+- The audit log shows `nish@magic` changed its temporary password at 20:24:40 and signed in again at 20:34:41, so the account works with the owner's own password.
+- Set `platform_owner` on `nish@magic` only (audit `platform_owner_granted`). Before writing: `backups/pre-platform-owner-20261010T203954Z.dump` in `-20261010T203831Z` (414 entries).
+- Disabled `public-test-owner` (`active=false`, its sessions removed; it had none). Audit `platform_account_disabled`. Before writing: `backups/pre-disable-public-test-owner-20261010T204016Z.dump` (414 entries). Re-enable by setting `active=true` if ever needed.
+- Live state: `nish@magic` active, platform owner; `public-test-owner` inactive. Only `nish@magic` sees the Platform console.
 
 ### Credential rotation and access
 
