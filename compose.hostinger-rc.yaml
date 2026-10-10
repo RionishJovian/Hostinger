@@ -1,0 +1,100 @@
+name: mikromagic-build21-rc
+
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: build21_rc
+      POSTGRES_USER: build21_rc
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+    secrets: [postgres_password]
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks: [private]
+    cpus: 1.0
+    mem_limit: 1g
+    logging:
+      options: {max-size: "10m", max-file: "3"}
+
+  migrate:
+    profiles: [operations]
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    environment: &api_env
+      POSTGRES_DB: build21_rc
+      POSTGRES_USER: build21_rc
+      POSTGRES_HOST: db
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+      MIKROMAGIC_BACKUP_KEY_FILE: /run/secrets/backup_key
+      MIKROMAGIC_BACKUP_DIR: /var/lib/mikromagic/backups
+      MIKROMAGIC_ENVIRONMENT: hostinger-private-rc
+      MIKROMAGIC_MAGIC_CONNECT_TEST_MODE: "false"
+      MIKROMAGIC_ROUTEROS_ALLOW_HTTP: "false"
+      MIKROMAGIC_ROUTEROS_SECRETS_DIR: /run/routeros-secrets
+    secrets: [postgres_password, backup_key]
+    command: ["python", "-m", "alembic", "upgrade", "head"]
+    depends_on:
+      db: {condition: service_healthy}
+    networks: [private]
+    restart: "no"
+    cpus: 1.0
+    mem_limit: 1g
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    restart: unless-stopped
+    environment:
+      <<: *api_env
+      MIKROMAGIC_API_WORKERS: "2"
+      MIKROMAGIC_TRUSTED_PROXY_CIDRS: ""
+    depends_on:
+      db: {condition: service_healthy}
+    secrets: [postgres_password, backup_key]
+    volumes:
+      - encrypted_backups:/var/lib/mikromagic/backups
+    networks: [private, frontend]
+    cpus: 1.0
+    mem_limit: 1g
+    logging:
+      options: {max-size: "10m", max-file: "3"}
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+    restart: unless-stopped
+    environment:
+      MIKROMAGIC_SITE_ADDRESS: :80
+    depends_on:
+      api: {condition: service_healthy}
+    ports:
+      - "127.0.0.1:18081:80"
+    networks: [frontend]
+    cpus: 0.25
+    mem_limit: 256m
+    logging:
+      options: {max-size: "10m", max-file: "3"}
+
+networks:
+  private:
+    internal: true
+  frontend:
+
+volumes:
+  postgres_data:
+  encrypted_backups:
+
+secrets:
+  postgres_password:
+    file: ./secrets/postgres_password.txt
+  backup_key:
+    file: ./secrets/backup_key.txt

@@ -1,0 +1,163 @@
+name: mikromagic-build21
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+    secrets:
+      - postgres_password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - private
+    cpus: 2.0
+    mem_limit: 4g
+    logging:
+      driver: json-file
+      options:
+        max-size: 20m
+        max-file: "5"
+
+  migrate:
+    profiles: ["operations"]
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_HOST: db
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+    secrets:
+      - postgres_password
+    command: ["python", "-m", "alembic", "upgrade", "head"]
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - private
+    restart: "no"
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_HOST: db
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+      MIKROMAGIC_BACKUP_KEY_FILE: /run/secrets/backup_key
+      MIKROMAGIC_BACKUP_DIR: /var/lib/mikromagic/backups
+      MIKROMAGIC_API_WORKERS: ${MIKROMAGIC_API_WORKERS:-2}
+      MIKROMAGIC_TRUSTED_PROXY_CIDRS: ${MIKROMAGIC_TRUSTED_PROXY_CIDRS:-}
+      MIKROMAGIC_MAX_SWITCHES_PER_SITE: ${MIKROMAGIC_MAX_SWITCHES_PER_SITE:-1}
+      MIKROMAGIC_MAX_APS_PER_SITE: ${MIKROMAGIC_MAX_APS_PER_SITE:-5}
+      MIKROMAGIC_ROUTEROS_SECRETS_DIR: /run/routeros-secrets
+    depends_on:
+      db:
+        condition: service_healthy
+    secrets:
+      - postgres_password
+      - backup_key
+    volumes:
+      - ./routeros-secrets:/run/routeros-secrets:ro
+      - encrypted_backups:/var/lib/mikromagic/backups
+    networks:
+      - private
+    cpus: 2.0
+    mem_limit: 2g
+    logging:
+      driver: json-file
+      options:
+        max-size: 20m
+        max-file: "5"
+
+  safe-change-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_HOST: db
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+      MIKROMAGIC_BACKUP_KEY_FILE: /run/secrets/backup_key
+      MIKROMAGIC_BACKUP_DIR: /var/lib/mikromagic/backups
+      MIKROMAGIC_ROUTEROS_SECRETS_DIR: /run/routeros-secrets
+      MIKROMAGIC_SAFE_CHANGE_POLL_SECONDS: ${MIKROMAGIC_SAFE_CHANGE_POLL_SECONDS:-10}
+    command: ["python", "-m", "backend.safe_change_worker"]
+    depends_on:
+      db:
+        condition: service_healthy
+    secrets:
+      - postgres_password
+      - backup_key
+    volumes:
+      - ./routeros-secrets:/run/routeros-secrets:ro
+      - encrypted_backups:/var/lib/mikromagic/backups
+    networks:
+      - private
+    cpus: 0.25
+    mem_limit: 256m
+    logging:
+      driver: json-file
+      options:
+        max-size: 20m
+        max-file: "5"
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+    restart: unless-stopped
+    environment:
+      MIKROMAGIC_SITE_ADDRESS: ${MIKROMAGIC_SITE_ADDRESS:-:80}
+    depends_on:
+      api:
+        condition: service_healthy
+    ports:
+      - "${MIKROMAGIC_HTTP_PORT:-80}:80"
+      - "${MIKROMAGIC_HTTPS_PORT:-443}:443"
+      - "${MIKROMAGIC_HTTPS_PORT:-443}:443/udp"
+    volumes:
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - public
+      - private
+    cpus: 0.5
+    mem_limit: 256m
+    logging:
+      driver: json-file
+      options:
+        max-size: 20m
+        max-file: "5"
+
+networks:
+  public:
+  private:
+    internal: true
+
+volumes:
+  postgres_data:
+  caddy_data:
+  caddy_config:
+  encrypted_backups:
+
+secrets:
+  postgres_password:
+    file: ./secrets/postgres_password.txt
+  backup_key:
+    file: ./secrets/backup_key.txt

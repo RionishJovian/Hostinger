@@ -1,0 +1,4 @@
+.workspace-language{display:flex;gap:4px;flex:none;border:1px solid var(--border);border-radius:9px;padding:3px}
+.workspace-language button{min-height:38px;min-width:68px;padding:7px 9px;border:0;border-radius:6px;background:transparent;color:var(--text);font:inherit;font-size:12px;white-space:nowrap}
+.workspace-language button[aria-pressed="true"]{background:var(--primary);color:var(--background);font-weight:700}
+@media(max-width:720px){.workspace-language{gap:2px;padding:2px}.workspace-language button{min-height:36px;min-width:0;padding:6px 7px;font-size:10px}.headtools{gap:4px}.headtools>.button.secondary{padding:8px 9px;font-size:11px}.headtools>.iconbutton{padding:5px}}

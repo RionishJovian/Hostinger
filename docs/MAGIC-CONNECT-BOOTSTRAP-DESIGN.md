@@ -1,0 +1,25 @@
+# Magic Connect bootstrap boundary (design; not executable)
+
+This document is an implementation boundary, not a RouterOS script, command list for execution, or authorization to write to a router. No bootstrap is generated or distributed by this build.
+
+## Intended path
+
+1. Owner selects an existing tenant/site and starts a 10-minute single-use pairing attempt.
+2. Technician uses the official HTTPS pairing page while physically present at the selected router. The owner independently checks the same short comparison phrase and approves or denies. Pair-code possession is not consent.
+3. Owner reviews a preflight and exact proposed change summary before any one-time local WinBox action. A mismatch, conflict, unsupported version, missing backup, or unknown state stops the flow.
+4. The router should generate its own WireGuard interface private key. Only its public key may be registered through a one-time, site/router-bound, expiring, anti-replay authorization. No permanent router password, owner password, hub private key, router private key, or reusable management credential may appear in QR, technician output, script, logs, or audit history.
+5. The hub side may add only one peer on a preconfigured dedicated MikroMagic interface: the exact router public key and that plan's unique tunnel `/32`, after collision checks and an owner-reviewed idempotent operation. The adapter performs readback and refuses conflicting key/address state.
+6. The proposed router additions are limited to a labeled dedicated WireGuard interface, one peer for the Hub public key, one nonconflicting management address, a Hub `/32` allowed-address/route, and the minimum keepalive required for router-initiated NAT traversal. Any input/service filtering required to reach management over that tunnel must be separately inspected and explicitly owner-approved.
+7. Do not alter existing WireGuard interfaces/peers, WAN/default route, LAN, DHCP, DNS, HotSpot, portal/vouchers, unrelated firewall rules, public RouterOS services, or other VPNs. No arbitrary command endpoint or unbounded script is allowed.
+8. A fresh Hub handshake is only transport evidence. Connected requires a subsequent authenticated, certificate-validated RouterOS management read bound to the expected tenant, site and router identity. If identity cannot be independently bound, remain Verifying Management / Unable to Verify.
+9. Partial failure is not retried blindly. First read back the exact MikroMagic-owned objects; recovery may remove only those objects after separate owner confirmation. Cloud peer revocation and physical router cleanup are reported independently. Never promise rollback if the router is offline.
+
+## D1 feasibility decision
+
+RouterOS WireGuard documentation says an interface generates its key pair when created if no private key is provided ([WireGuard manual](https://help.mikrotik.com/docs/spaces/ROS/pages/69664792/WireGuard)). The REST API uses HTTP Basic Auth and secure use requires HTTPS/certificate trust ([REST API manual](https://help.mikrotik.com/docs/spaces/ROS/pages/47579162/REST%20API), [Certificates manual](https://help.mikrotik.com/docs/spaces/ROS/pages/2555969/Certificates)). The documented RouterOS user-group `read` policy is broader than read-only monitoring: it includes sensitive, reboot and test capabilities ([User manual](https://help.mikrotik.com/docs/spaces/ROS/pages/8978504/User)). Those documented facts do not prove a safe one-time provisioning protocol, a temporary technician boundary, narrowly scoped monitoring and Safe Change identities, or a least-privilege bootstrap across the target device/version.
+
+Therefore D1 remains **BLOCKED / HARDWARE VERIFICATION REQUIRED**. Before executable bootstrap work, test the owner-approved RouterOS model/version in a disposable configuration, validate Fetch/REST TLS trust without disabling verification, determine whether the required credential roles can be safely constrained, prove one-time public-key registration without reusable secrets, and demonstrate cancellation, partial-run recovery, revoke and identity verification. Any privilege design that needs broad `write`, `policy`, `sensitive`, shell, or generic REST command rights must be reviewed rather than assumed safe.
+
+## Current software status model
+
+Pairing approval persists `pairing_approved`; because no verified bootstrap exists, the technician sees that bootstrap is unavailable rather than receiving an executable. A separately owner-reviewed router plan enters `awaiting_bootstrap`. The peer orchestrator can advance a reviewed plan to `awaiting_handshake` only after a gated Hub peer operation and readback. A fresh handshake advances to `verifying_management`. Only a later authenticated and identity-bound read can produce `connected`. Adapter failures become `failed_recovery_required`; retry requires a readback confirming no peer remains. Emergency management lock is explicit, reasoned and audited; Hub peer removal does not imply physical RouterOS cleanup or affect local Wi-Fi.

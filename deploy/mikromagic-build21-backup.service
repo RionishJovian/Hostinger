@@ -1,0 +1,9 @@
+[Unit]
+Description=MikroMagic Build 21 production backup with isolated restore verification
+Requires=docker.service
+After=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/mikromagic-build21-backup.sh
+Nice=10

@@ -1,0 +1,2 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {staffPages,staffPaths,STAFF_ACCESS_CLOSED_PAGE} from '../src/staff-access.mjs';
+test('legacy staff see only the closed-access notice and load no business data',()=>{for(const p of ['cashier','manager','technician',undefined]){assert.deepEqual(staffPages(p),[STAFF_ACCESS_CLOSED_PAGE]);assert.deepEqual(staffPaths(p),[])}});

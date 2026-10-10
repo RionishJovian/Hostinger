@@ -1,0 +1,37 @@
+"""Build a narrowly allowlisted, secret-free Hostinger RC source artifact."""
+from pathlib import Path
+import hashlib
+import zipfile
+
+root = Path(__file__).resolve().parents[1]
+output = root / "release" / "mikromagic-build21-hostinger-rc.zip"
+files = [root / name for name in (
+    "compose.hostinger-rc.yaml", "Dockerfile.api", "Dockerfile.web",
+    ".dockerignore", "alembic.ini", "requirements.txt", "package.json",
+    "package-lock.json", "index.html", "vite.config.mjs", "docker/Caddyfile",
+    "docker/api-entrypoint.sh",
+)]
+for folder, suffixes in (
+    ("backend", {".py"}),
+    ("src", {".js", ".jsx", ".mjs", ".css"}),
+    ("public", {".png", ".svg", ".webp", ".jpg", ".jpeg", ".ico"}),
+):
+    files.extend(path for path in (root / folder).rglob("*") if path.is_file() and path.suffix in suffixes)
+files = sorted(set(files))
+for path in files:
+    if not path.is_file() or path.is_symlink():
+        raise RuntimeError(f"Missing or symlinked artifact input: {path}")
+    if any(part in {"secrets", "routeros-secrets", "node_modules", "dist", ".venv", ".runtime"} for part in path.parts):
+        raise RuntimeError(f"Forbidden artifact input: {path}")
+output.parent.mkdir(exist_ok=True)
+with zipfile.ZipFile(output, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+    for path in files:
+        relative = path.relative_to(root)
+        info = zipfile.ZipInfo(str(relative), date_time=(2026, 10, 9, 0, 0, 0))
+        info.external_attr = (0o755 if relative == Path("docker/api-entrypoint.sh") else 0o644) << 16
+        info.compress_type = zipfile.ZIP_DEFLATED
+        archive.writestr(info, path.read_bytes())
+digest = hashlib.sha256(output.read_bytes()).hexdigest()
+print(f"artifact={output}")
+print(f"sha256={digest}")
+print(f"files={len(files)}")

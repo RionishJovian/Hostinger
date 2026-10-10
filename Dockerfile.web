@@ -1,0 +1,16 @@
+FROM node:24-alpine AS build
+
+WORKDIR /app
+COPY package.json package-lock.json ./
+RUN npm ci
+COPY index.html vite.config.mjs ./
+COPY public ./public
+COPY src ./src
+RUN npx vite build
+
+FROM caddy:2.10-alpine
+COPY docker/Caddyfile /etc/caddy/Caddyfile
+COPY --from=build /app/dist/client /srv
+
+HEALTHCHECK --interval=15s --timeout=5s --start-period=10s --retries=5 \
+  CMD wget --quiet --tries=1 --spider http://127.0.0.1/ || exit 1

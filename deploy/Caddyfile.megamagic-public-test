@@ -1,0 +1,17 @@
+megamagic.tech, www.megamagic.tech {
+	tls {
+		issuer acme https://acme-v02.api.letsencrypt.org/directory
+	}
+
+	encode zstd gzip
+	reverse_proxy mikromagic-build21-public-test-web:80
+
+	header {
+		X-Content-Type-Options nosniff
+		Referrer-Policy strict-origin-when-cross-origin
+		X-Frame-Options DENY
+		Permissions-Policy "camera=(), microphone=(), geolocation=()"
+		Strict-Transport-Security "max-age=31536000"
+		-Server
+	}
+}
