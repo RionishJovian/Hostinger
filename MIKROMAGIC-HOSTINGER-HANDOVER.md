@@ -27,7 +27,7 @@ Owner decisions:
 | Firewall | UFW active, allowing 22, 80, 443, 51820/udp and 51821/udp (IPv4 and IPv6) |
 | Reverse proxy | The `megamagic-landing-caddy-1` container binds `156.67.216.128:80/443` and routes `megamagic.tech` and `www` to `mikromagic-build21-public-test-web` over `megamagic-landing-net` |
 | Co-hosted stacks (untouched) | `megamagic-landing`, `mikromagic-build21-rc` (127.0.0.1:18081), `mikromagic-v8-acceptance` (127.0.0.1:8080/8443), `v8-auth-candidate`, `v8-auth-final-retest-20261009`, `v8-auth-pgtest` (exited), `voucher-pg-20261009` |
-| Deployment directories | `-20261010` = `4e78…` (first public test); `-hub-20261010T143844Z` = `6288…` (Hub release); `-20261010T150700Z` = `6514…`; `-20261010T171319Z` = `4092…`; `-20261010T180343Z` = `5f93…` (migration 037); `-20261010T182316Z` = `379f…` (migration 038); `-20261010T185246Z` = `379f…` (current, first scripted deploy); `-20261010T184257Z` and `-20261010T184809Z` never served traffic |
+| Deployment directories | `-20261010` = `4e78…` (first public test); `-hub-20261010T143844Z` = `6288…` (Hub release); `-20261010T150700Z` = `6514…`; `-20261010T171319Z` = `4092…`; `-20261010T180343Z` = `5f93…` (migration 037); `-20261010T182316Z` = `379f…` (migration 038); `-20261010T185246Z` = `379f…` (first scripted deploy); `-20261010T195352Z` = `601e…` (current, migration 039); `-20261010T184257Z` and `-20261010T184809Z` never served traffic |
 
 The `6514…` artifact (the guest access diagnosis) **was deployed** at 15:07 UTC,
 which no project document recorded. The `bfbe…` digest reported in Discrepancy 3
@@ -115,6 +115,25 @@ The script therefore force-recreates api and web (and the Hub only for a reviewe
 checks that they run the newly built images. Any rollback must also use
 `up -d --no-deps --force-recreate <services>` after retagging; a plain `up -d` keeps the current
 containers. This applies to the rollback notes of the earlier redeploys above.
+
+### Scripted redeploy — voucher sale payment methods and Cancel Sale (2026-10-10 19:53 UTC)
+
+| Item | Value |
+|---|---|
+| Source | Commit `17beab6` on `origin/main`; artifact `601e8945be546b3f5e20a9b3571709f00511dc656ea174b23e6d564536a1d80b` (163 files); local checks: 507 backend (12 skipped), 47 frontend tests, build, manifest; browser walk-through on a scratch database |
+| Directory | `/opt/mikromagic-build21-public-test-20261010T195352Z`; previous `-20261010T185246Z` |
+| Infra / Hub files | Unchanged |
+| Pre-deploy dump | `backups/pre-deploy.dump` (398 restore-list entries) |
+| PostgreSQL rehearsal | 038 → 039 → 038 → 039 clean on a throwaway database |
+| Migration | 038 → 039 (`039_cancel_voucher_sale`); live `voucher_sales` has `uq_voucher_sales_active_voucher`, `fk_voucher_sales_cancelled_by` and the amount check, and no longer has the plain unique constraint |
+| Rollback images | `…-{api,web,magic-hub,migrate}:rollback-20261010T195352Z` |
+| Result | api and web recreated and healthy; db and Hub untouched (Hub key and UDP 51820 unchanged); HTTPS 200; served bundle `index-CeTuxk_1.js` equals the local build; `POST /v1/vouchers/{id}/sale/cancel` returns 401 without a session |
+
+**Rollback:** retag the `rollback-20261010T195352Z` images, then
+`up -d --no-deps --force-recreate api web` from `-20261010T185246Z`. The 038 code
+expects a unique `voucher_id` and does not know about cancellation; it still runs on
+039 while no sale has been cancelled. Downgrading to 038 refuses once a cancelled
+sale exists; restore `pre-deploy.dump` only if the migration itself is at fault.
 
 ### Credential rotation and access
 
