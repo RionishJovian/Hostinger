@@ -27,7 +27,7 @@ Owner decisions:
 | Firewall | UFW active, allowing 22, 80, 443, 51820/udp and 51821/udp (IPv4 and IPv6) |
 | Reverse proxy | The `megamagic-landing-caddy-1` container binds `156.67.216.128:80/443` and routes `megamagic.tech` and `www` to `mikromagic-build21-public-test-web` over `megamagic-landing-net` |
 | Co-hosted stacks (untouched) | `megamagic-landing`, `mikromagic-build21-rc` (127.0.0.1:18081), `mikromagic-v8-acceptance` (127.0.0.1:8080/8443), `v8-auth-candidate`, `v8-auth-final-retest-20261009`, `v8-auth-pgtest` (exited), `voucher-pg-20261009` |
-| Deployment directories | `-20261010` = `4e78…` (first public test); `-hub-20261010T143844Z` = `6288…` (Hub release); `-20261010T150700Z` = `6514…`; `-20261010T171319Z` = `4092…`; `-20261010T180343Z` = `5f93…` (migration 037); `-20261010T182316Z` = `379f…` (migration 038); `-20261010T185246Z` = `379f…` (first scripted deploy); `-20261010T195352Z` = `601e…` (current, migration 039); `-20261010T184257Z` and `-20261010T184809Z` never served traffic |
+| Deployment directories | `-20261010` = `4e78…` (first public test); `-hub-20261010T143844Z` = `6288…` (Hub release); `-20261010T150700Z` = `6514…`; `-20261010T171319Z` = `4092…`; `-20261010T180343Z` = `5f93…` (migration 037); `-20261010T182316Z` = `379f…` (migration 038); `-20261010T185246Z` = `379f…` (first scripted deploy); `-20261010T195352Z` = `601e…` (migration 039); `-20261010T201247Z` = `201e…` (current, migration 040); `-20261010T184257Z` and `-20261010T184809Z` never served traffic |
 
 The `6514…` artifact (the guest access diagnosis) **was deployed** at 15:07 UTC,
 which no project document recorded. The `bfbe…` digest reported in Discrepancy 3
@@ -134,6 +134,24 @@ containers. This applies to the rollback notes of the earlier redeploys above.
 expects a unique `voucher_id` and does not know about cancellation; it still runs on
 039 while no sale has been cancelled. Downgrading to 038 refuses once a cancelled
 sale exists; restore `pre-deploy.dump` only if the migration itself is at fault.
+
+### Scripted redeploy — shop setting: default printed Wi-Fi name (2026-10-10 20:12 UTC)
+
+| Item | Value |
+|---|---|
+| Source | Commit `78e1c53` on `origin/main`; artifact `201e26e3bfe88a249de512e7af75d10bf1628e88c03fa6082a325d258de747c8` (165 files); local checks: 508 backend (12 skipped), 50 frontend tests, build, manifest; browser walk-through on a scratch database |
+| Directory | `/opt/mikromagic-build21-public-test-20261010T201247Z`; previous `-20261010T195352Z` |
+| Infra / Hub files | Unchanged |
+| Pre-deploy dump | `backups/pre-deploy.dump` (399 restore-list entries) |
+| PostgreSQL rehearsal | 039 → 040 → 039 → 040 clean on a throwaway database |
+| Migration | 039 → 040 (`040_site_printed_ssid`); live `sites.printed_ssid` is `character varying(32)` |
+| Rollback images | `…-{api,web,magic-hub,migrate}:rollback-20261010T201247Z` |
+| Result | api and web recreated and healthy; db and Hub untouched (Hub key and UDP 51820 unchanged); HTTPS 200; served bundle `index-BhkTAnBU.js` equals the local build; `POST /v1/sites/{id}/settings` returns 401 without a session |
+
+**Rollback:** retag the `rollback-20261010T201247Z` images, then
+`up -d --no-deps --force-recreate api web` from `-20261010T195352Z`. Migration 040
+only adds a nullable column, so the 039 code runs on it; downgrading refuses while
+any shop has a printed Wi-Fi name.
 
 ### Credential rotation and access
 
