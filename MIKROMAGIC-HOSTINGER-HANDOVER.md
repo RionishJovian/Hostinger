@@ -153,6 +153,13 @@ sale exists; restore `pre-deploy.dump` only if the migration itself is at fault.
 only adds a nullable column, so the 039 code runs on it; downgrading refuses while
 any shop has a printed Wi-Fi name.
 
+### Owner platform account (2026-10-10 20:24 UTC)
+
+- At the owner's request, created `nish@magic` with the existing `platform` role (full operator access; there is no separate Developer role in the app or the Notion tracker). Temporary password generated locally, delivered only through the owner's clipboard, valid 24 hours, with a forced change at first sign-in. Audit action `platform_account_provisioned`.
+- Before writing: `backups/pre-platform-account-20261010T202406Z.dump` in `-20261010T201247Z` (414 restore-list entries).
+- Verified: sign-in on `https://megamagic.tech` returns the platform role with the password change required; the test session was signed out.
+- `public-test-owner` (platform) is still active; its password was never recorded. Owner decision: disable it once `nish@magic` is confirmed working.
+
 ### Credential rotation and access
 
 - A new dedicated SSH key, `~/.ssh/mikromagic-hostinger-20261010`, is the only authorized root key (fingerprint `SHA256:YgnX3RLZ…`). The Mac reaches the VPS as `ssh mikromagic-hostinger`, with strict host-key checking.
