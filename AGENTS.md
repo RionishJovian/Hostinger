@@ -18,6 +18,16 @@
 - Notion owner direction 2026-10-10: work in small increments of build → deploy to the `megamagic.tech` public test → owner-visible test → fix; do not ask the owner to repeat requirements or manage agents. Report as Changed / Deployed / Owner action (only if required) / Blockers, verified results only.
 - Each VPS change still follows its documented procedure: verify first, back up before writing, change only MikroMagic Build 21 resources, keep rollback, record evidence, and stop on anomalies. Co-hosted legacy stacks, `/opt/build21`, `/opt/mikromagic-v8` and router configuration stay untouched unless separately required.
 
+## Cursor Cloud specific instructions — owner decision 2026-10-11
+
+- The owner works from the Mac or, when it is unavailable, from a phone through Cursor cloud agents. Both use this GitHub repository (`RionishJovian/Hostinger`, private). It is the only source of truth for code and docs; the Mac copy must `git pull` before starting work.
+- Environment: `.cursor/environment.json` runs `scripts/cloud-agent-install.sh` (`.venv` from `requirements.txt`, `npm ci`) and `scripts/cloud-agent-start.sh` (VPS SSH from the `MIKROMAGIC_VPS_SSH_KEY_B64` runtime secret).
+- Checks: `.venv/bin/python -m unittest discover -s tests -p 'test_*.py'`, `node --test tests/*.test.mjs`, `npm run build`, then `npm run test:sites`. PostgreSQL tests skip without a database.
+- Production is reachable only as `ssh mikromagic-hostinger` (root, dedicated cloud agent key, strict host key `deploy/known_hosts.hostinger`). The same rules apply as from the Mac: read-only verification freely; writes only to MikroMagic Build 21 public-test resources; never touch `/opt/build21`, `/opt/mikromagic-v8`, the `mikromagic-build21-rc` stack, other co-hosted stacks, sshd, the firewall or routers. Never print secret files, `.env` values or keys.
+- Deploy only with `scripts/deploy-hostinger-public-test.sh`, only commits already on `origin/main`, under the owner's standing approval. It runs local checks, packages, uploads to a new dated directory, dumps the database, tags rollback images, rehearses new migrations on a throwaway PostgreSQL copy, migrates, starts, and verifies health, the Hub key/port, HTTPS and the served bundle. If it stops, do not work around it: report the message. `ALLOW_INFRA_CHANGE=1` is only for a reviewed Compose/Dockerfile/Caddy/Hub change.
+- After a deploy, add a redeploy section to `MIKROMAGIC-HOSTINGER-HANDOVER.md` (copy the script's summary and rollback lines), commit and push it, then append the Notion execution checkpoint. Session notes that must survive go into the repository docs, not the agent's VM.
+- Notion: use the Notion MCP server configured for cloud agents; the tracker rules above apply unchanged. If Notion tools are unavailable, say so in the report instead of skipping the checkpoint silently.
+
 ## Mandatory physical-router window gate — owner decision 2026-10-09
 
 - Do not request hAP ax² availability until offline readiness is YES: the Lima VM, Mac-to-guest UDP delivery, development Hub interface/port, rotated key, exact proposed router commands, known-conflict review, rollback, and available software-only checks must be complete.
