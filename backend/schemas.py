@@ -199,9 +199,16 @@ class VoucherSaleRefund(Strict):
  reference:str=Field(min_length=1,max_length=160)
  confirmed_returned:Literal[True]
 
+def printed_ssid(v):
+ v=(v or '').strip()
+ if not v:return None
+ if any(ord(c)<32 or ord(c)==127 for c in v):raise ValueError('The Wi-Fi name cannot contain control characters')
+ if len(v.encode())>32:raise ValueError('Wi-Fi names are limited to 32 bytes; Burmese letters use about 3 bytes each')
+ return v
 class SiteIn(Strict):
  name:str=Field(min_length=1,max_length=120)
  timezone:str=Field(default='Asia/Yangon',max_length=80)
+ printed_ssid:str|None=Field(default=None,max_length=64)
  @field_validator('timezone')
  @classmethod
  def valid_zone(cls,v):
@@ -209,6 +216,14 @@ class SiteIn(Strict):
   try:ZoneInfo(v)
   except (ZoneInfoNotFoundError,ValueError):raise ValueError('Use a recognized IANA timezone')
   return v
+ @field_validator('printed_ssid')
+ @classmethod
+ def valid_ssid(cls,v):return printed_ssid(v)
+class SiteSettingsIn(Strict):
+ printed_ssid:str|None=Field(default=None,max_length=64)
+ @field_validator('printed_ssid')
+ @classmethod
+ def valid_ssid(cls,v):return printed_ssid(v)
 class RouterIn(Strict):
  site_id:str=Field(min_length=1,max_length=36)
  name:str=Field(min_length=1,max_length=120)

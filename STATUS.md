@@ -648,3 +648,14 @@ Counter sales record how the customer paid, and a mistaken sale can be cancelled
 - Vouchers: the Payment column shows the method and a cancelled count; the sale panel lists cancelled sales.
 
 Verification: new backend tests for payment-method rules and Cancel Sale (history, revenue reversal, resale, refusals), dealer handover after a cancelled sale, migration downgrade guard; 3 new JavaScript helper tests. Local browser walk-through on a scratch database: Cash sale, Cancel Sale, KBZPay resale blocked until a transaction ID was entered, then recorded; Revenue showed net MMK 1,500 from MMK 3,000 gross with the Cash sale cancelled.
+
+## 2026-10-11 — Shop setting: default printed Wi-Fi name (frozen v1)
+
+Each shop (site) can store an optional default Wi-Fi name to print on voucher cards (migration 040, additive; `POST /v1/sites/{id}/settings`, owner only, audited as `site_printed_ssid_updated`).
+
+- Sites page: a "Printed Wi-Fi name" column, a Shop settings panel, and an optional field when adding a site. Names are limited to 32 bytes like a real SSID; the form explains that Burmese letters use about 3 bytes each.
+- Production jobs: choosing a shop fills in its Wi-Fi name ("From this shop's settings"); switching shops replaces it only if the owner has not typed their own. Business-wide jobs keep the typed value.
+- Batch sheets and Quick Voucher cards show "Wi-Fi: <name>" for vouchers of a shop that has one.
+- The name is a printed label only; it does not change any router or access point.
+
+Verification: backend test for the setting (owner only, tenant isolation, byte limit with Burmese text, control characters, clearing, audit), migration 040 up/down with a downgrade guard while names are set, 3 JavaScript tests. Local browser walk-through on a scratch database: over-long Burmese name refused with the byte count, name saved, production form prefill and switching, Quick Voucher card showing the Wi-Fi name.

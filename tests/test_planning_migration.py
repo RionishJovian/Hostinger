@@ -11,6 +11,6 @@ class PlanningMigrationTests(unittest.TestCase):
    with patch.dict(os.environ,{'DATABASE_URL':'sqlite:///'+str(path)}):
     command.upgrade(cfg,'head');command.downgrade(cfg,'014');command.upgrade(cfg,'head')
     with sqlite3.connect(path) as db:
-     db.execute("INSERT INTO tenants VALUES ('t','Cafe')");db.execute("INSERT INTO sites VALUES ('s','t','Branch','Asia/Yangon',1)");db.execute("INSERT INTO site_planning VALUES ('s',1,'{}',1)")
+     db.execute("INSERT INTO tenants VALUES ('t','Cafe')");db.execute("INSERT INTO sites (id,tenant_id,name,timezone,created) VALUES ('s','t','Branch','Asia/Yangon',1)");db.execute("INSERT INTO site_planning VALUES ('s',1,'{}',1)")
     with self.assertRaisesRegex(RuntimeError,'Site plans exist'):command.downgrade(cfg,'014')
     with sqlite3.connect(path) as db:self.assertEqual(db.execute('SELECT revision FROM site_planning').fetchone()[0],1);self.assertEqual(db.execute('PRAGMA foreign_key_check').fetchall(),[])

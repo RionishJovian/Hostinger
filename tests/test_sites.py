@@ -45,6 +45,18 @@ class SiteTests(unittest.TestCase):
   self.assertEqual(self.client.get('/v1/revenue',headers=owner,params={'site_id':b}).json()['net_collections'],0)
   self.assertEqual(self.client.post('/v1/vouchers/redeem',headers=guest,json={'site_id':b,'code':voucher['code']}).status_code,400)
   right=self.client.post('/v1/vouchers/redeem',headers=guest,json={'site_id':a,'code':voucher['code']});self.assertEqual(right.status_code,200);self.assertEqual(self.client.get('/v1/entitlements',headers=guest).json()[0]['site_id'],a)
+ def test_printed_wifi_name_is_an_owner_shop_setting(self):
+  owner=self.login('owner');other=self.login('other');guest=self.login('guest');a=self.site(owner,'A')
+  created=self.client.post('/v1/sites',headers=owner,json={'name':'B','printed_ssid':'  Golden Cafe B  '});self.assertEqual(created.json()['printed_ssid'],'Golden Cafe B')
+  def setting(value,header=owner):return self.client.post('/v1/sites/'+a+'/settings',headers=header,json={'printed_ssid':value})
+  self.assertEqual(setting('Golden Cafe WiFi').json()['printed_ssid'],'Golden Cafe WiFi')
+  self.assertEqual({x['name']:x['printed_ssid'] for x in self.client.get('/v1/sites',headers=owner).json()},{'A':'Golden Cafe WiFi','B':'Golden Cafe B'})
+  self.assertEqual(setting('ရွှေ'*2).status_code,200)
+  self.assertEqual(setting('ရွှေ'*3).status_code,422)
+  self.assertEqual(setting('x'*33).status_code,422);self.assertEqual(setting('bad\nname').status_code,422)
+  self.assertEqual(setting('Hacked',other).status_code,404);self.assertEqual(setting('Hacked',guest).status_code,403)
+  self.assertIsNone(setting('   ').json()['printed_ssid'])
+  self.assertEqual(len(self.client.get('/v1/audit',headers=owner,params={'action':'site_printed_ssid_updated'}).json()),3)
  def test_bad_timezone_and_unpublished_sites(self):
   owner=self.login('owner');guest=self.login('guest');self.assertEqual(self.client.post('/v1/sites',headers=owner,json={'name':'Invalid','timezone':'not/a-zone'}).status_code,422)
   a=self.site(owner,'Unpublished');self.assertEqual(self.client.get('/v1/guest-sites',headers=guest).json(),[]);self.assertIsNone(self.client.get('/v1/portal/public',headers=guest,params={'site_id':a}).json()['settings'])

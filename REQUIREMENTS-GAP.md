@@ -58,7 +58,7 @@ Baseline preserved: Build 21; 281 Python tests and the production frontend build
 <br>• Each sheet carries Batch ID, Sheet x/y and serial range; thermal runs carry Print Run ID and sequence range.
 <br>• Human-readable serial numbers are tenant-wide inventory identity, never authentication; stock search and CSV include them.
 <br>• Fake-code Print Test & Calibration page with a ruler, required before the first multi-sheet run of each layout.
-<br>• Optional printed SSID and price; printer/layout preferences remembered per device. | QR stays off until a verified guest portal destination exists (QR prefill without activation). Default SSID is not yet a Shop Setting (entered per job/template). Real printer output on paper is unverified. |
+<br>• Optional printed SSID and price; printer/layout preferences remembered per device. | QR stays off until a verified guest portal destination exists (QR prefill without activation). Each shop can set a default printed Wi-Fi name (32-byte limit) in Shop settings; it prefills print runs and appears on batch sheets and Quick Voucher cards, and owners can still change it per run. It is a printed label only and does not configure any Wi-Fi network. Real printer output on paper is unverified. |
 | Voucher production jobs and templates | 🟡 | Implemented 2026-10-11 (migration 037, `backend/voucher_production.py`, `src/VoucherProduction.jsx`):
 <br>• Ten-step flow Profile→…→Distribute. A draft holds settings only; secure codes are generated only on final confirmation and shown once.
 <br>• The owner marks each sheet or run printed or failed; opening the print dialog is not treated as proof.

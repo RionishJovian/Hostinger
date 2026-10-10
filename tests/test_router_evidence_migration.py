@@ -14,7 +14,7 @@ class RouterEvidenceMigrationTests(unittest.TestCase):
     with sqlite3.connect(file) as db:
      db.execute("INSERT INTO tenants VALUES ('t','Cafe')")
      db.execute("INSERT INTO users (id,username,password_hash,role,tenant_id,active,must_change_password,temporary_password_expires) VALUES ('u','owner','hash','sme','t',1,0,NULL)")
-     db.execute("INSERT INTO sites VALUES ('s','t','Site','Asia/Yangon',1)")
+     db.execute("INSERT INTO sites (id,tenant_id,name,timezone,created) VALUES ('s','t','Site','Asia/Yangon',1)")
      db.execute("INSERT INTO router_devices VALUES ('r','t','s','Gateway','RB5009','7.20','u',1)")
      db.execute("INSERT INTO router_evidence VALUES ('e','t','r','preflight',1,'routeros_rest_live_read','{}','u',1)")
      self.assertEqual(db.execute('PRAGMA foreign_key_check').fetchall(),[])

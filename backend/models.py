@@ -336,6 +336,7 @@ class Site(Base):
  name:Mapped[str]=mapped_column(String(120))
  timezone:Mapped[str]=mapped_column(String(80),default='Asia/Yangon')
  created:Mapped[int]=mapped_column(BigInteger)
+ printed_ssid:Mapped[str|None]=mapped_column(String(32),nullable=True)
  __table_args__=(UniqueConstraint('tenant_id','name'),)
 class RouterDevice(Base):
  __tablename__='router_devices'

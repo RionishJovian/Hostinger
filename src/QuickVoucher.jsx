@@ -1,5 +1,6 @@
 import React,{useMemo,useRef,useState} from 'react';
 import {prioritizePackages} from './quick-voucher.mjs';
+import {shopSsid} from './site-settings.mjs';
 
 export default function QuickVoucher({packages=[],sites=[],vouchers=[],act,busy,selectedSite=''}){
  const choices=useMemo(()=>prioritizePackages(packages,vouchers),[packages,vouchers]);
@@ -14,7 +15,7 @@ export default function QuickVoucher({packages=[],sites=[],vouchers=[],act,busy,
  }
  async function share(){
   if(!issued?.code)return;
-  const text=`MikroMagic Wi-Fi voucher ${issued.code}`;
+  const wifi=shopSsid(sites,issued.site_id),text=`MikroMagic Wi-Fi voucher ${issued.code}${wifi?` · Wi-Fi: ${wifi}`:''}`;
   try{
    if(navigator.share)await navigator.share({title:'Wi-Fi voucher',text});
    else if(navigator.clipboard?.writeText){await navigator.clipboard.writeText(text);setMessage('Voucher copied. Share it only with its intended recipient.')}
@@ -37,7 +38,7 @@ export default function QuickVoucher({packages=[],sites=[],vouchers=[],act,busy,
   {message&&<p role="status" className="muted">{message}</p>}
   {issued&&<div className="voucher quickvoucher-result" aria-live="polite">
    <small>{issued.policy?.name||'Wi-Fi voucher'} · Generated</small>
-   {issued.code?<><strong aria-label="Voucher code">{issued.code}</strong><p>Redeem by {new Date(issued.expires*1000).toLocaleString()}</p><div className="buttons quickvoucher-actions"><button type="button" className="button secondary" onClick={()=>window.print()}>Print</button><button type="button" className="button secondary" onClick={share}>Share</button></div></>:<p>{issued.message||'This code was already issued and can no longer be shown. Check voucher inventory.'}</p>}
+   {issued.code?<><strong aria-label="Voucher code">{issued.code}</strong>{shopSsid(sites,issued.site_id)&&<p>Wi-Fi: {shopSsid(sites,issued.site_id)}</p>}<p>Redeem by {new Date(issued.expires*1000).toLocaleString()}</p><div className="buttons quickvoucher-actions"><button type="button" className="button secondary" onClick={()=>window.print()}>Print</button><button type="button" className="button secondary" onClick={share}>Share</button></div></>:<p>{issued.message||'This code was already issued and can no longer be shown. Check voucher inventory.'}</p>}
    {issued.code&&<div className="callout quickvoucher-qr"><button type="button" className="button secondary" disabled aria-describedby="quick-voucher-qr-note">QR unavailable — portal deployment pending</button><p id="quick-voucher-qr-note">A verified site-specific guest portal address is not available. No QR is shown; scanning must not activate a voucher.</p></div>}
    <small>Generated · not marked sold · MikroTik activation is unverified. Internet access is not confirmed.</small>
   </div>}

@@ -4,7 +4,7 @@ from fastapi import Depends,HTTPException
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from .models import Site,RouterDevice,RouterPlan
-from .schemas import SiteIn,RouterIn
+from .schemas import SiteIn,SiteSettingsIn,RouterIn
 
 def allowed_site(s,u,id):
  site=s.get(Site,id)
@@ -17,13 +17,19 @@ def register_sites(app,current,db,owner,log):
   if u.role=='guest':raise HTTPException(403,'Guest site discovery uses the published portal list')
   q=select(Site)
   if u.role!='platform':q=q.where(Site.tenant_id==u.tenant_id)
-  return [{k:getattr(x,k) for k in ['id','tenant_id','name','timezone','created']} for x in s.scalars(q.order_by(Site.name))]
+  return [{k:getattr(x,k) for k in ['id','tenant_id','name','timezone','created','printed_ssid']} for x in s.scalars(q.order_by(Site.name))]
  @app.post('/v1/sites',status_code=201)
  def create_site(b:SiteIn,u=Depends(current),s=Depends(db)):
   owner(u);x=Site(tenant_id=u.tenant_id,**b.model_dump(),created=int(time.time()));s.add(x)
   try:s.flush();log(s,u,'site_registered',x.id);s.commit()
   except IntegrityError:s.rollback();raise HTTPException(409,'A site with this name already exists')
-  return {'id':x.id,'name':x.name,'timezone':x.timezone}
+  return {'id':x.id,'name':x.name,'timezone':x.timezone,'printed_ssid':x.printed_ssid}
+ @app.post('/v1/sites/{id}/settings')
+ def site_settings(id:str,b:SiteSettingsIn,u=Depends(current),s=Depends(db)):
+  owner(u);x=allowed_site(s,u,id)
+  if x.printed_ssid!=b.printed_ssid:
+   x.printed_ssid=b.printed_ssid;log(s,u,'site_printed_ssid_updated',x.id);s.commit()
+  return {'id':x.id,'name':x.name,'timezone':x.timezone,'printed_ssid':x.printed_ssid}
  @app.get('/v1/routers')
  def routers(u=Depends(current),s=Depends(db)):
   if u.role not in ['sme','platform']:raise HTTPException(403,'Router registry permission required')

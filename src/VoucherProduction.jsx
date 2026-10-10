@@ -1,5 +1,6 @@
 import React,{useCallback,useEffect,useMemo,useState} from 'react';
 import {LAYOUTS,MAGIC_TEMPLATES,PRODUCTION_STEPS,calibrationSheet,loadPrintPrefs,nextStep,paperSummary,plan,productionSheets,savePrintPrefs,serial} from './voucher-production.mjs';
+import {shopSsid,ssidForSite} from './site-settings.mjs';
 function Field({label,children}){return <label className="field"><span>{label}</span>{children}</label>}
 const blank={package_id:'',site_id:'',quantity:40,expires_days:30,prefix:'',layout:'a4_economy',columns:5,rows:12,show_price:true,ssid:'',name:'',dealer_id:''};
 const newKey=()=>'web-'+(globalThis.crypto?.randomUUID?.()||Math.random().toString(36).slice(2)+Date.now().toString(36));
@@ -19,7 +20,7 @@ export default function VoucherProduction({api,sites=[],packages=[],business,ref
  const reload=useCallback(async()=>{const [j,t,d]=await Promise.all([api.request('voucher-jobs'),api.request('voucher-templates'),api.request('dealers')]);setJobs(j);setTemplates(t);setDealers(d)},[api]);
  useEffect(()=>{reload().catch(e=>setMessage(e.message))},[reload]);
  async function run(fn,done){setWorking(true);setMessage('');try{const result=await fn();await reload();if(done)setMessage(done);return result}catch(e){setMessage(e.message);return null}finally{setWorking(false)}}
- function apply(settings){setForm(f=>({...f,...Object.fromEntries(Object.entries(settings).filter(([,v])=>v!=null)),prefix:settings.prefix||'',ssid:settings.ssid||'',site_id:settings.site_id||f.site_id}));setMessage('Template applied to the form. Check every value, then create the draft.')}
+ function apply(settings){setForm(f=>({...f,...Object.fromEntries(Object.entries(settings).filter(([,v])=>v!=null)),prefix:settings.prefix||'',ssid:settings.ssid||shopSsid(sites,settings.site_id||f.site_id),site_id:settings.site_id||f.site_id}));setMessage('Template applied to the form. Check every value, then create the draft.')}
  async function createDraft(e){e.preventDefault();savePrintPrefs(form);const draft=await run(()=>api.request('voucher-jobs',{...body(form),...(form.name.trim()?{name:form.name}:{}),...(form.dealer_id?{dealer_id:form.dealer_id}:{})}),'Draft saved. No voucher codes exist yet.');if(draft){setActive(draft.id);setConfirmed(false);setHandover({dealer:draft.settings.dealer_id||'',price:''})}}
  async function generate(){const result=await run(()=>api.request(`voucher-jobs/${job.id}/generate`,{confirm:true}));if(result){if(!result.replayed)setCodes(c=>({...c,[job.id]:result.items}));setMessage(result.replayed?result.message:`${result.items.length} secure codes generated. Download the sheets and print them now; codes are kept only on this screen.`);refresh?.()}}
  const sheetNumbers=job?Object.keys(job.sheets).map(Number).sort((a,b)=>a-b):[];
@@ -36,13 +37,13 @@ export default function VoucherProduction({api,sites=[],packages=[],business,ref
   <form onSubmit={createDraft}><div className="formgrid">
    <Field label="1 · Profile (package)"><select required value={form.package_id} onChange={e=>set('package_id',e.target.value)}><option value="">Choose package</option>{packages.map(p=><option key={p.id} value={p.id}>{p.name} · {p.price} MMK</option>)}</select></Field>
    <Field label="2 · Quantity"><input required type="number" min={1} max={1000} value={form.quantity} onChange={e=>set('quantity',e.target.value)}/></Field>
-   <Field label="3 · Coverage (site)"><select value={form.site_id} onChange={e=>set('site_id',e.target.value)}><option value="">Business-wide</option>{sites.map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</select></Field>
+   <Field label="3 · Coverage (site)"><select value={form.site_id} onChange={e=>{const to=e.target.value;setForm(f=>({...f,site_id:to,ssid:ssidForSite(f.ssid,sites,f.site_id,to)}))}}><option value="">Business-wide</option>{sites.map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</select></Field>
    <Field label="4 · Dealer (optional)"><select value={form.dealer_id} onChange={e=>set('dealer_id',e.target.value)}><option value="">Not for a dealer</option>{dealers.map(d=><option key={d.id} value={d.id}>{d.name}{d.short_code?` (${d.short_code})`:''}</option>)}</select></Field>
    <Field label="5 · Print layout"><select value={form.layout} onChange={e=>set('layout',e.target.value)}>{Object.entries(LAYOUTS).map(([k,v])=><option key={k} value={k}>{v.label}</option>)}</select></Field>
    {form.layout==='a4_custom'&&<><Field label="Columns per sheet"><input type="number" min={2} max={8} value={form.columns} onChange={e=>set('columns',e.target.value)}/></Field><Field label="Rows per sheet"><input type="number" min={4} max={16} value={form.rows} onChange={e=>set('rows',e.target.value)}/></Field></>}
    <Field label="Redeem within (days)"><input required type="number" min={1} max={365} value={form.expires_days} onChange={e=>set('expires_days',e.target.value)}/></Field>
    <Field label="Code prefix (optional)"><input maxLength={8} pattern="[A-Za-z0-9]*" autoComplete="off" value={form.prefix} onChange={e=>set('prefix',e.target.value.toUpperCase())} placeholder="e.g. CAFE"/></Field>
-   <Field label="Printed Wi-Fi name (optional)"><input maxLength={32} value={form.ssid} onChange={e=>set('ssid',e.target.value)} placeholder="e.g. Golden Cafe WiFi"/></Field>
+   <Field label="Printed Wi-Fi name (optional)"><input maxLength={32} value={form.ssid} onChange={e=>set('ssid',e.target.value)} placeholder="e.g. Golden Cafe WiFi"/>{shopSsid(sites,form.site_id)&&form.ssid.trim()===shopSsid(sites,form.site_id)&&<small>From this shop's settings</small>}</Field>
    <Field label="Job label (optional)"><input maxLength={80} value={form.name} onChange={e=>set('name',e.target.value)} placeholder="e.g. October counter stock"/></Field>
   </div>
   <label className="check"><input type="checkbox" checked={form.show_price} onChange={e=>set('show_price',e.target.checked)}/> Print the package price</label>

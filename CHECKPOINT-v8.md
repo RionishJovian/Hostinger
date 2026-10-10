@@ -225,3 +225,10 @@ limitations.
 - `POST /v1/vouchers/{id}/sale/cancel` (owner only, idempotent replay by reason); sold checks in dealers, lifecycle and production ignore cancelled sales; revenue counts cancellations as refund-kind events.
 - Frontend: `src/voucher-sales.mjs`, `src/VoucherPayments.jsx` (Record sale / Cancel sale / Refund), Vouchers, Cashier and Revenue labels.
 - Tests: `test_voucher_sales` (+3), `test_dealers` (+1), `voucher-sales.test.mjs` (3); head assertions moved to 039.
+
+## Shop setting: default printed Wi-Fi name (2026-10-11)
+
+- Migration 040 (additive): `sites.printed_ssid` (nullable, 32 bytes). Downgrade refuses while any shop has a name set.
+- `POST /v1/sites/{id}/settings`; `GET /v1/sites` and site creation return and accept `printed_ssid`.
+- Frontend: `src/site-settings.mjs` (byte limit, prefill rules), Shop settings on the Sites page, production prefill, batch sheet and Quick Voucher Wi-Fi line.
+- Tests: `test_sites` (+1), `site-settings.test.mjs` (3); head assertions moved to 040.
