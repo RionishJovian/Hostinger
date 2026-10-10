@@ -64,7 +64,7 @@ cat <<EOF
 == Deployed $commit at $TS
 artifact sha256 $sha ($files files), bundle $bundle
 Rollback: on the VPS, for s in api web magic-hub migrate; do docker tag $PROJECT-\$s:rollback-$TS $PROJECT-\$s:latest; done
-          then cd $previous && docker compose -p $PROJECT -f compose.hostinger-public-test.yaml up -d
+          then cd $previous && docker compose -p $PROJECT -f compose.hostinger-public-test.yaml up -d --no-deps --force-recreate $(value recreated)
           Restore $NEW/backups/pre-deploy.dump only if the migration itself is at fault.
 Next: record this in MIKROMAGIC-HOSTINGER-HANDOVER.md and append a Notion execution checkpoint.
 EOF

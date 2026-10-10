@@ -27,7 +27,7 @@ Owner decisions:
 | Firewall | UFW active, allowing 22, 80, 443, 51820/udp and 51821/udp (IPv4 and IPv6) |
 | Reverse proxy | The `megamagic-landing-caddy-1` container binds `156.67.216.128:80/443` and routes `megamagic.tech` and `www` to `mikromagic-build21-public-test-web` over `megamagic-landing-net` |
 | Co-hosted stacks (untouched) | `megamagic-landing`, `mikromagic-build21-rc` (127.0.0.1:18081), `mikromagic-v8-acceptance` (127.0.0.1:8080/8443), `v8-auth-candidate`, `v8-auth-final-retest-20261009`, `v8-auth-pgtest` (exited), `voucher-pg-20261009` |
-| Deployment directories | `-20261010` = `4e78…` (first public test); `-hub-20261010T143844Z` = `6288…` (Hub release); `-20261010T150700Z` = `6514…`; `-20261010T171319Z` = `4092…`; `-20261010T180343Z` = `5f93…` (migration 037); `-20261010T182316Z` = `379f…` (current, migration 038) |
+| Deployment directories | `-20261010` = `4e78…` (first public test); `-hub-20261010T143844Z` = `6288…` (Hub release); `-20261010T150700Z` = `6514…`; `-20261010T171319Z` = `4092…`; `-20261010T180343Z` = `5f93…` (migration 037); `-20261010T182316Z` = `379f…` (migration 038); `-20261010T185246Z` = `379f…` (current, first scripted deploy); `-20261010T184257Z` and `-20261010T184809Z` never served traffic |
 
 The `6514…` artifact (the guest access diagnosis) **was deployed** at 15:07 UTC,
 which no project document recorded. The `bfbe…` digest reported in Discrepancy 3
@@ -96,10 +96,31 @@ serials exist.
 tables and nullable columns, so the older code runs on it; restore
 `pre-deploy.dump` only if the migration itself is at fault.
 
+### Scripted redeploy — same code, first run of `scripts/deploy-hostinger-public-test.sh` (2026-10-10 18:52 UTC)
+
+| Item | Value |
+|---|---|
+| Source | Commit `eb79b37` on `origin/main` ([RionishJovian/Hostinger](https://github.com/RionishJovian/Hostinger)); artifact `379fa032…` (161 files), unchanged from 18:23 |
+| Directory | `/opt/mikromagic-build21-public-test-20261010T185246Z`; previous `-20261010T182316Z` |
+| Pre-deploy dump | `backups/pre-deploy.dump` (398 restore-list entries); migration 038 → 038, so no rehearsal |
+| Rollback images | `…-{api,web,magic-hub,migrate}:rollback-20261010T185246Z`, tagged from the images the containers were running |
+| Result | api and web recreated on the new images and healthy; db and Hub untouched (Hub key and UDP 51820 unchanged); HTTPS 200 for both names and `/v1/ready`; served bundle `index-DoAW5Ion.js` equals the local build; no API errors |
+
+Two earlier attempts left directories that never served traffic: `-20261010T184257Z` (the VPS steps
+were fed through stdin and `docker compose run` consumed the rest; it stopped after the no-op
+migration) and `-20261010T184809Z` (completed, but recreated nothing). Both are fixed in the script.
+
+**Docker Compose v5.6 on this VPS does not recreate a container when only its image changes.**
+The script therefore force-recreates api and web (and the Hub only for a reviewed Hub change) and
+checks that they run the newly built images. Any rollback must also use
+`up -d --no-deps --force-recreate <services>` after retagging; a plain `up -d` keeps the current
+containers. This applies to the rollback notes of the earlier redeploys above.
+
 ### Credential rotation and access
 
 - A new dedicated SSH key, `~/.ssh/mikromagic-hostinger-20261010`, is the only authorized root key (fingerprint `SHA256:YgnX3RLZ…`). The Mac reaches the VPS as `ssh mikromagic-hostinger`, with strict host-key checking.
 - Old keys are rejected and were moved to `~/.ssh/retired-20261010/`.
+- 2026-10-11 (owner request): a second root key for Cursor cloud agents, comment `cursor-cloud-agent-mikromagic-20261011`, fingerprint `SHA256:QhrYUh7P…`, restricted with `no-agent-forwarding,no-X11-forwarding,no-port-forwarding`. Backup before the change: `/root/.ssh/authorized_keys.bak-20261010T183409Z`. Cloud agents receive it as the `MIKROMAGIC_VPS_SSH_KEY_B64` runtime secret and connect with the pinned host key `deploy/known_hosts.hostinger`. To revoke it, delete that line from `/root/.ssh/authorized_keys`; the Mac key is unaffected.
 - sshd now refuses all passwords (`PermitRootLogin prohibit-password`, `PasswordAuthentication no`). The main `sshd_config` has no `Include`, so drop-in files are ignored.
 - Removed from the Mac to the Trash:
   - the plaintext Z.com VPS password in `~/AGENTS.md`;
