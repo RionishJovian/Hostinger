@@ -24,9 +24,8 @@ commit=$(git rev-parse --short HEAD)
 
 echo "== Local checks for $commit"
 "$PY" -m unittest discover -s tests -p 'test_*.py'
-node --test tests/*.test.mjs
 npm run build
-npm run test:sites
+node --test tests/*.test.mjs
 node scripts/generate-source-manifest.mjs >/dev/null
 [ -z "$(git status --porcelain)" ] || stop "source manifest is out of date; commit .corrective-source-manifest.txt and rerun"
 bundle=$(cd dist/client/assets && ls index-*.js)
