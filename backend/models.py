@@ -358,6 +358,16 @@ class SiteMaintenance(Base):
  created_by:Mapped[str]=mapped_column(ForeignKey('users.id'))
  ended_by:Mapped[str|None]=mapped_column(ForeignKey('users.id'),nullable=True)
  __table_args__=(CheckConstraint('planned_end > started',name='ck_site_maintenance_window'),CheckConstraint('ended IS NULL OR ended >= started',name='ck_site_maintenance_ended'),CheckConstraint('extensions >= 0',name='ck_site_maintenance_extensions'))
+class SupportReport(Base):
+ __tablename__='support_reports'
+ id:Mapped[str]=mapped_column(String(36),primary_key=True,default=uid)
+ tenant_id:Mapped[str]=mapped_column(ForeignKey('tenants.id'),index=True)
+ site_id:Mapped[str]=mapped_column(ForeignKey('sites.id'),index=True)
+ created:Mapped[int]=mapped_column(BigInteger)
+ created_by:Mapped[str]=mapped_column(ForeignKey('users.id'))
+ report:Mapped[dict]=mapped_column(JSON)
+ shared_at:Mapped[int|None]=mapped_column(BigInteger,nullable=True)
+ shared_by:Mapped[str|None]=mapped_column(ForeignKey('users.id'),nullable=True)
 class RouterDevice(Base):
  __tablename__='router_devices'
  id:Mapped[str]=mapped_column(String(36),primary_key=True,default=uid)

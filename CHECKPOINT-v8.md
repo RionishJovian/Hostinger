@@ -259,3 +259,10 @@ limitations.
 - `backend/site_hours.py` (hours, maintenance, expected-incident label, post-maintenance Magic Check); `backend/incidents.py` stores the label; `/v1/sites` adds hours and `maintenance_until`.
 - Frontend: `src/SiteHours.jsx`, `src/site-hours.mjs`; Overview maintenance item in `src/OverviewHealth.jsx` and `src/sme-localization.mjs`.
 - Tests: `test_site_hours` (5), `site-hours.test.mjs` (4); head assertions moved to 042.
+
+## Magic Support Mode / Get help (2026-10-11)
+
+- Migration 043 (additive): `support_reports`.
+- `backend/support_report.py` (report builder, scrubbing, share, platform inbox).
+- Frontend: `src/SupportReport.jsx` (owner page and platform `SupportInbox`), `src/support-report.mjs` (text, file name, short cause); Get help menu item and Overview button; translations in `src/sme-localization.mjs`.
+- Tests: `test_support_report` (3), `support-report.test.mjs` (3); head assertions moved to 043.

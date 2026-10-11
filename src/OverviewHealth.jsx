@@ -10,7 +10,7 @@ function SummaryCard({icon:Icon,label,value,note,onClick}){
 export default function OverviewHealth({sites=[],routers=[],devices=[],vouchers=[],pendingPayments,navigate}){
  const {t:message}=useSMELocalization();
  const t={};
- for(const key of ['health','question','attention','summary','shops','gateways','aps','customers','vouchers','notConnected','unable','noRouter','unverified','siteNeeded','payments','paymentsHint','noKnown','routerAction','siteAction','paymentAction','maintenance','maintenanceHint','countNote','apNote','customerNote','voucherNote','unavailable'])t[key]=message('overview',key);
+ for(const key of ['health','question','attention','summary','shops','gateways','aps','customers','vouchers','notConnected','unable','noRouter','unverified','siteNeeded','payments','paymentsHint','noKnown','routerAction','siteAction','paymentAction','maintenance','maintenanceHint','getHelp','getHelpHint','countNote','apNote','customerNote','voucherNote','unavailable'])t[key]=message('overview',key);
  const noRouter=routers.length===0;
  const apCount=devices.filter(device=>device.kind==='access_point').length;
  const issues=[];
@@ -21,7 +21,7 @@ export default function OverviewHealth({sites=[],routers=[],devices=[],vouchers=
  if(Number.isFinite(pendingPayments)&&pendingPayments>0)issues.push({message:t.payments(pendingPayments),detail:t.paymentsHint,action:t.paymentAction,page:'Payments'});
  return <section className="overview-priorities" aria-label={t.health}>
   <div className="overview-health panel">
-   <div><span className="overview-kicker"><WifiHigh size={18}/>{t.health}</span><h2>{t.question}</h2><div className="overview-health-state"><span className={'overview-health-dot '+(noRouter?'is-offline':'is-unknown')}/><strong>{noRouter?t.notConnected:t.unable}</strong>{noRouter&&<><span>·</span><strong>{t.unable}</strong></>}</div><p>{noRouter?t.noRouter:t.unverified}</p></div>
+   <div><span className="overview-kicker"><WifiHigh size={18}/>{t.health}</span><h2>{t.question}</h2><div className="overview-health-state"><span className={'overview-health-dot '+(noRouter?'is-offline':'is-unknown')}/><strong>{noRouter?t.notConnected:t.unable}</strong>{noRouter&&<><span>·</span><strong>{t.unable}</strong></>}</div><p>{noRouter?t.noRouter:t.unverified}</p><button type="button" className="button secondary" title={t.getHelpHint} onClick={()=>navigate('Get help')}>{t.getHelp}<ArrowRight size={16}/></button></div>
   </div>
   <section className="overview-attention panel" aria-labelledby="overview-attention-title">
    <div className="panelhead"><h2 id="overview-attention-title"><WarningCircle size={20}/>{t.attention}</h2></div>

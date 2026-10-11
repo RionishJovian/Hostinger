@@ -28,6 +28,7 @@ import {MagicHubs,RouterOnboarding} from './MagicHubs.jsx';
 import {MagicConnectOwner,MagicConnectTechnician} from './MagicConnect.jsx';
 import {SiteRegistry,RouterRegistry} from './NetworkRegistry.jsx';
 import SiteHours from './SiteHours.jsx';
+import SupportReport,{SupportInbox} from './SupportReport.jsx';
 import FirstSiteAcceptance from './FirstSiteAcceptance.jsx';
 import {SafeRouterChanges} from './SafeRouterChanges.jsx';
 import {VoucherInventory} from './Vouchers.jsx';
@@ -44,7 +45,7 @@ function Panel({title,children}){return <section className="panel"><div classNam
 function Field({label,children}){return <label className="field"><span>{label}</span>{children}</label>}
 function Table({heads,rows}){return <div className="tablewrap"><table><thead><tr>{heads.map(h=><th key={h}>{h}</th>)}</tr></thead><tbody>{rows.length?rows.map((r,i)=><tr key={i}>{r.map((v,j)=><td key={j}>{v}</td>)}</tr>):<tr><td colSpan={heads.length}>No records yet.</td></tr>}</tbody></table></div>}
 function Metric({title,value}){return <div className="metric"><small>{title}</small><strong>{value}</strong></div>}
-const names={platform:['Operations','Businesses','Subscriptions','Magic Hubs','Routers','Integrations','Appearance','Guidance','Audit','Account'],sme:['Overview','Revenue','Sites','Network','Routers','Internet','Captive portal','Packages','Vouchers','Payments','Staff','Subscription','Integrations','Media','Did you know?','Audit','Account'],guest:['Guest portal','My access','Media','Account']};
+const names={platform:['Operations','Businesses','Subscriptions','Magic Hubs','Routers','Integrations','Appearance','Guidance','Audit','Account'],sme:['Overview','Revenue','Sites','Network','Routers','Internet','Captive portal','Packages','Vouchers','Payments','Staff','Subscription','Integrations','Media','Did you know?','Get help','Audit','Account'],guest:['Guest portal','My access','Media','Account']};
 export default function AccountWorkspace(props){return <SMELocalizationProvider><AccountWorkspaceContent {...props}/></SMELocalizationProvider>}
 function AccountWorkspaceContent({onDemo}){
  const {t}=useSMELocalization();
@@ -79,7 +80,7 @@ function AccountWorkspaceContent({onDemo}){
  if(magicConnectEntry)return <MagicConnectTechnician/>;
  if(!user)return <div className="app accountsignin"><div className="brand"><img src="/assets/brand.png" alt="MikroMagic logo"/><strong>MikroMagic<small>Cloud & business management</small></strong></div><div className="title"><div><h1>Your network.<br/><em>Your business.</em></h1><p>Sign in to your account. Your assigned role and business determine what you can access.</p></div></div><Panel title="Account sign-in"><p role="status">{health===null?'Checking sign-in service…':health?'Sign-in service available':'Sign-in service unavailable. Try again later.'}</p>{entrySite?(entryPortal?<GuestEntry portal={entryPortal} busy={busy} onRegister={registerGuest} onLogin={signIn}/>:<p>Guest site unavailable or loading.</p>):<>{pendingBatch&&<p role="status">Sign in as the business owner to open the voucher batch you scanned.</p>}<Login busy={busy} unavailable={health!==true} signIn={signIn}/></>}{notice&&<p role="alert">{notice}</p>}<p className="muted">Business accounts are provisioned by the platform operator. Guest registration is available only through a published site link. Sign out to revoke the current session.</p></Panel>{import.meta.env.DEV&&<button className="button secondary" onClick={onDemo}>Explore the demo workspace</button>}</div>;
  if(user.must_change_password)return <div className="app accountsignin"><div className="brand"><strong>MikroMagic</strong></div>{notice&&<p role="alert">{notice}</p>}<PasswordChange user={user} busy={busy} forced onChangePassword={changePassword} onLogout={logout}/></div>;
- const implemented=[STAFF_ACCESS_CLOSED_PAGE,'Overview','Revenue','Packages','Payments','Guest portal','My access','Operations','Businesses','Audit','Captive portal','Vouchers','Sites','Routers','Magic Hubs','Appearance','Media','Guidance','Did you know?','Account','Internet','Network','Staff','Subscription','Subscriptions'].includes(page)||(page==='Platform console'&&user.platform_owner)||(page==='Integrations'&&user.role==='sme');
+ const implemented=[STAFF_ACCESS_CLOSED_PAGE,'Overview','Revenue','Packages','Payments','Guest portal','My access','Operations','Businesses','Audit','Captive portal','Vouchers','Sites','Routers','Magic Hubs','Appearance','Media','Guidance','Did you know?','Account','Internet','Network','Staff','Subscription','Subscriptions','Get help'].includes(page)||(page==='Platform console'&&user.platform_owner)||(page==='Integrations'&&user.role==='sme');
  return <div className={'app '+(menu?'menuopen':'')} aria-busy={busy}>
   <aside>
    <div className="brand"><img src="/assets/brand.png" alt="MikroMagic logo"/><strong>MikroMagic<small>{user.role==='sme'?t('shell','businessWorkspace'):user.role==='guest'?'Guest access':'Cloud operations'}</small></strong></div>
@@ -109,6 +110,8 @@ function AccountWorkspaceContent({onDemo}){
  {page==='Account'&&<PasswordChange user={user} busy={busy} onChangePassword={changePassword}/>}
  {page==='Account'&&<AccountSessions api={api} ownerAdmin={user.role==='sme'&&!user.staff_profile}/>}
  {page==='Platform console'&&user.platform_owner&&<PlatformConsole api={api}/>}
+ {page==='Get help'&&user.role==='sme'&&!user.staff_profile&&<SupportReport api={api} sites={s.sites}/>}
+ {page==='Operations'&&user.role==='platform'&&<SupportInbox api={api}/>}
  {page==='Audit'&&<AuditExplorer api={api}/>}
  {page==='Internet'&&user.role==='sme'&&<InternetPlanning api={api} sites={s.sites}/>}
  {page==='Network'&&user.role==='sme'&&<NetworkPlanning api={api} sites={s.sites}/>}
