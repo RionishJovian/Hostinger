@@ -795,3 +795,9 @@ Verification: `tests/test_notifications.py` (4: owner-only and tenant isolation,
 - Frontend: package form drops "combined" and adds category selection from catalogue genres; Media page adds Feature / Remove from featured, the preview setting and a Media Pass rules panel; guest passes show Active until / Expired and the one-device rule.
 
 Verification: `tests/test_media_pass_rules.py` (3: category validation and guest availability, activation at first redemption with expiry and no activation for Internet vouchers, featured-only preview with pass holders and tenant isolation); `tests/test_media.py` legacy combined case; SQLite 047 → 048 → 047 → 048 with a title row (constraints and index preserved); media UI check extended; full suites green. Local browser run: category pass created from the form, title featured, preview switched to Featured only, no failed requests.
+
+## 2026-10-11 — Media Pass bought online starts at first use (owner decision)
+
+- Owner decision: a Media Pass bought online starts at the guest's first use. Online-purchased passes now report `activation: starts_at_first_use` and state `not_started`, and the guest sees "Starts at your first use"; the owner's Media Pass rules panel and the guest package text say the same. No clock runs until playback (not yet connected) records the first use. No migration.
+
+Verification: `tests/test_media.py` asserts the online pass state; media UI check covers the new label; full suites green.

@@ -70,6 +70,7 @@ class MediaTests(unittest.TestCase):
   self.assertEqual(self.client.post('/v1/vouchers',headers=owner,json={'package_id':legacy_id,'expires_days':7,'request_key':'legacy-combined-voucher'}).status_code,409)
   pending=next(x for x in self.client.get('/v1/orders',headers=owner).json() if x['snapshot']['name']=='Combined')
   self.assertEqual(self.client.post('/v1/orders/'+pending['id']+'/decision',headers=owner,json={'decision':'approved'}).status_code,200)
+  m=next(e for e in self.client.get('/v1/entitlements',headers=guest).json() if e['policy']['name']=='Library')['media_policy'];self.assertEqual((m['activation'],m['state'],m['activated_at'],m['valid_until']),('starts_at_first_use','not_started',None,None))
   e=next(e for e in self.client.get('/v1/entitlements',headers=guest).json() if e['policy']['name']=='Combined');self.assertEqual((e['media_policy']['library_hours'],e['media_policy']['legacy_combined']),(72,True));self.assertEqual(e['policy']['hours'],3)
  def test_empty_library_cannot_sell_media_only_pass(self):
   owner=self.login('owner');guest=self.login('guest');p=self.client.post('/v1/packages',headers=owner,json={'name':'Library','service':'media','mode':'library','hours':24,'price':1000}).json()

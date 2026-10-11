@@ -2,7 +2,7 @@
 
 Media Pass rules (owner decisions Q36–Q49): Internet and Media passes are sold separately; a pass covers the whole
 library, one title (optionally with the library) or selected categories; a voucher pass starts its clock at the first
-successful redemption in the guest portal; one device, no transfer until expiry. Playback and device enforcement need
+successful redemption in the guest portal and a pass bought online at the guest's first use; one device, no transfer until expiry. Playback and device enforcement need
 the SME's local Jellyfin/Plex connection, which does not exist yet, so passes report playback 'not_connected'.
 """
 import time
@@ -71,7 +71,7 @@ def media_policy(p,activated=None,revoked=False,now=None):
  mode=p['mode']
  out={'mode':mode,'library_hours':p['hours'] if mode in ['library','hybrid'] else None,'title_hours':p.get('title_hours',48) if mode=='hybrid' else p['hours'] if mode=='title' else None,'title':p.get('title_snapshot') or ({'id':p.get('title'),'name':p.get('title'),'legacy_unresolved':True} if mode in ['title','hybrid'] else None),
   'category_hours':p['hours'] if mode=='category' else None,'categories':p.get('categories') or [],'device_limit':1,'device_transfer':'not_allowed_until_expiry','device_binding':'not_connected','playback':'not_connected'}
- if not activated:return out|{'activation':'awaiting_redemption','activated_at':None,'valid_until':None,'state':'revoked' if revoked else 'not_activated'}
+ if not activated:return out|{'activation':'starts_at_first_use','activated_at':None,'valid_until':None,'state':'revoked' if revoked else 'not_started'}
  windows={k:activated+int(out[k]*3600) for k in ['library_hours','title_hours','category_hours'] if out[k]}
  until=max(windows.values());now=now or int(time.time())
  return out|{'activation':'redeemed_in_portal','activated_at':activated,'valid_until':until,'windows':{k.replace('_hours','_until'):v for k,v in windows.items()},'state':'revoked' if revoked else 'expired' if until<=now else 'active'}

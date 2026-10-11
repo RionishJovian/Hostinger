@@ -671,3 +671,7 @@ _Clarification synced 2026-10-09 from the authoritative Notion tracker; frozen v
 - The SME Owner chooses between **A: Full Catalog Preview** (guests may browse all titles, posters, descriptions and categories before buying a Media Pass; playback is locked) and **B: Featured Content Only** (guests see only the SME Owner's chosen featured/promotional titles before purchase).
 - This is a per-SME setting, controlled by its SME Owner. It does not make media playback free; a valid Media Pass remains necessary to stream content.
 - This records the owner's Q49 preference; it is a requirement for Cursor and not an implementation claim.
+
+### Owner decision — 2026-10-11: start of a Media Pass bought online
+- A Media Pass bought online through the guest portal (no voucher code) starts at the **guest's first use**, not when the owner approves the payment. Voucher passes still start at the first redemption of the code in the guest portal (Q40).
+- Recorded from the owner's answer in the Cursor chat (18:27 UTC+6:30) to the question in the 18:40 execution checkpoint. Until playback is connected, such passes show "Starts at your first use" and no clock runs.
