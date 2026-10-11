@@ -27,7 +27,7 @@ Owner decisions:
 | Firewall | UFW active, allowing 22, 80, 443, 51820/udp and 51821/udp (IPv4 and IPv6) |
 | Reverse proxy | The `megamagic-landing-caddy-1` container binds `156.67.216.128:80/443` and routes `megamagic.tech` and `www` to `mikromagic-build21-public-test-web` over `megamagic-landing-net` |
 | Co-hosted stacks (untouched) | `megamagic-landing`, `mikromagic-build21-rc` (127.0.0.1:18081), `mikromagic-v8-acceptance` (127.0.0.1:8080/8443), `v8-auth-candidate`, `v8-auth-final-retest-20261009`, `v8-auth-pgtest` (exited), `voucher-pg-20261009` |
-| Deployment directories | `-20261010` = `4e78…` (first public test); `-hub-20261010T143844Z` = `6288…` (Hub release); `-20261010T150700Z` = `6514…`; `-20261010T171319Z` = `4092…`; `-20261010T180343Z` = `5f93…` (migration 037); `-20261010T182316Z` = `379f…` (migration 038); `-20261010T185246Z` = `379f…` (first scripted deploy); `-20261010T195352Z` = `601e…` (migration 039); `-20261010T201247Z` = `201e…` (migration 040); `-20261010T203831Z` = `4fba…` (migration 041); `-20261011T073612Z` = `0d55…` (daily voucher counts); `-20261011T075349Z` = `3d90…` (batch QR); `-20261011T082054Z` = `ae40…` (migration 042); `-20261011T084421Z` = `5098…` (migration 043); `-20261011T090702Z` = `7ce9…` (current, public Demo, migration 043); `-20261010T184257Z` and `-20261010T184809Z` never served traffic |
+| Deployment directories | `-20261010` = `4e78…` (first public test); `-hub-20261010T143844Z` = `6288…` (Hub release); `-20261010T150700Z` = `6514…`; `-20261010T171319Z` = `4092…`; `-20261010T180343Z` = `5f93…` (migration 037); `-20261010T182316Z` = `379f…` (migration 038); `-20261010T185246Z` = `379f…` (first scripted deploy); `-20261010T195352Z` = `601e…` (migration 039); `-20261010T201247Z` = `201e…` (migration 040); `-20261010T203831Z` = `4fba…` (migration 041); `-20261011T073612Z` = `0d55…` (daily voucher counts); `-20261011T075349Z` = `3d90…` (batch QR); `-20261011T082054Z` = `ae40…` (migration 042); `-20261011T084421Z` = `5098…` (migration 043); `-20261011T090702Z` = `7ce9…` (public Demo, migration 043); `-20261011T093325Z` and `-20261011T093659Z` = `7fbb…` (subscription renewal, migration 044; the same artifact deployed twice, `093659Z` is current); `-20261010T184257Z` and `-20261010T184809Z` never served traffic |
 
 The `6514…` artifact (the guest access diagnosis) **was deployed** at 15:07 UTC,
 which no project document recorded. The `bfbe…` digest reported in Discrepancy 3
@@ -300,15 +300,32 @@ only adds a defaulted column, so the 040 code runs on it.
 **Rollback:** retag the `rollback-20261011T090702Z` images, then
 `up -d --no-deps --force-recreate api web` from `-20261011T084421Z`. No database change to undo.
 
-- Next app work (as of 2026-10-11 15:40 UTC+6:30, live at migration 043, commit `0f761db`):
+### Scripted redeploy — subscription self-service and renewal rules, migration 044 (2026-10-11 09:33 and 09:37 UTC)
+
+| Item | Value |
+|---|---|
+| Source | Commit `9b7c0f5` on `origin/main`; artifact `7fbb6172c43e4b1aab8815d5c25d0a8004adda2e8620626ca27eba5e4a768d85` (181 files); local checks: 617 backend (12 skipped), 73 frontend tests, build, manifest, staff/subscriptions, billing, voucher and revenue UI checks; SQLite 044 upgrade/downgrade/upgrade; local browser run of expiry, request, approval and the 7-day banner |
+| Directories | The deploy command ran twice from the Mac (same key, same artifact): `/opt/mikromagic-build21-public-test-20261011T093325Z` (previous `-20261011T090702Z`) migrated 043 → 044 after the PostgreSQL rehearsal; `/opt/mikromagic-build21-public-test-20261011T093659Z` (current) found 044 → 044 and only recreated api and web. No other agent was involved. |
+| Infra / Hub files | Unchanged |
+| Pre-deploy dumps | Pre-044 state: `-20261011T093325Z/backups/pre-deploy.dump` (`pre-deploy.alembic` = 043). `-20261011T093659Z/backups/pre-deploy.dump` is already at 044 (421 restore-list entries). |
+| Migration | 043 → 044 (`platform_settings` table, empty); rehearsal passed in the first run |
+| Rollback images | Pre-044 code: `…-{api,web,magic-hub,migrate}:rollback-20261011T093325Z`. `rollback-20261011T093659Z` holds this same release and is not a rollback target. |
+| Result | api and web recreated and healthy; db and Hub untouched (Hub key and UDP 51820 unchanged); `/v1/health` and `/v1/ready` 200; `/v1/subscription/plans` and `/v1/platform/subscription-payment` 401 without a session; served bundle `index-C6bdtao-.js` contains the renewal screen and the payment-details form; no rehearsal containers or networks left. Read-only SQL: `alembic_version` 044, `platform_settings` 0 rows, `tenants` 0 rows |
+
+**Rollback:** retag the `rollback-20261011T093325Z` images, then
+`up -d --no-deps --force-recreate api web` from `-20261011T090702Z`. Migration 044 only adds an empty table, so the 043 code runs on it; downgrade or restore `-20261011T093325Z/backups/pre-deploy.dump` only if the table itself is at fault.
+
+- Next app work (as of 2026-10-11 16:10 UTC+6:30, live at migration 044, commit `9b7c0f5`):
+  - Subscription self-service is done (owner Q10–Q15): SME Owners request a monthly or annual term with payment evidence; only the platform owner approves; early renewal adds to the current expiry, late renewal starts on the approval date; 7-day warning; renewal-only sign-in from the expiry date. **Owner action:** as `nish@magic`, open Subscriptions and save the subscription payment details (receiving account, instructions, methods) and create the paid plans; until then SME Owners see "payment details not published".
+  - Agent accounts and referral commissions (Q20–Q22, 20% monthly / 30% annual on list price) are synced into the requirements and not built; refund/reversal, payout timing and registration flow are still open with the owner.
   - Public interactive Demo is done (owner decisions Q16–Q19): **Try the demo** on the sign-in page or `https://megamagic.tech/?demo=1`; sample business in the browser only, reset on exit. Not built: guest-side demo and a guided training tour.
   - Cash reconciliation save on Revenue was broken (422) and is fixed in the same release.
-  - Owner decisions synced into `MIKROMAGIC-REQUIREMENTS.md` and still to build: Developer Dashboard on `nish@magic` (four areas), SME subscription self-service with manual approval, 7-day warning, renewal-only login on expiry, renewal date rules.
+  - Still to build: Developer Dashboard on `nish@magic` (four areas); subscription plans and payment details move there when it exists.
   - Batch QR on sheets and thermal runs is done (owner-only, no codes). Guest QR on vouchers stays off until a verified guest portal destination exists on a router.
   - Magic Support Mode / Get help reports are done (migration 043): owner creates, platform reads shared reports on Operations.
   - Shop business/network hours and planned maintenance are done (migration 042). Still open in that area: automatic Opening Check, push-alert suppression and uptime, which need live monitoring and notifications.
   - Developer role: not built yet; the owner has now specified it (owner-only view on `nish@magic`, no second login). The owner works as `nish@magic` (platform role, platform owner, sole Platform console user).
-  - `scripts/verify-staff-subscriptions-ui.mjs` fails and is paused by the owner. Owner decision Q9 (no SME staff accounts) means its staff expectations are likely outdated; to be reconciled when that work resumes.
+  - The staff/subscriptions UI check passes again: reconciled with owner decision Q9 (no SME staff accounts); the SME Staff page is removed.
 
 ## How to read this document
 
