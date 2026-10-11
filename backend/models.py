@@ -901,3 +901,20 @@ class AccountMFA(Base):
  last_step:Mapped[int]=mapped_column(BigInteger,default=-1)
  recovery_hashes:Mapped[list]=mapped_column(JSON,default=list)
  updated:Mapped[int]=mapped_column(BigInteger)
+
+class NotificationPreference(Base):
+ __tablename__='notification_preferences'
+ user_id:Mapped[str]=mapped_column(ForeignKey('users.id'),primary_key=True)
+ tenant_id:Mapped[str]=mapped_column(ForeignKey('tenants.id'),index=True)
+ level:Mapped[str]=mapped_column(String(12),default='all')
+ daily_summary:Mapped[str]=mapped_column(String(12),default='daily')
+ revision:Mapped[int]=mapped_column(Integer,default=1)
+ updated:Mapped[int]=mapped_column(BigInteger)
+ __table_args__=(CheckConstraint("level in ('critical','attention','all')",name='ck_notification_preferences_level'),CheckConstraint("daily_summary in ('daily','important','off')",name='ck_notification_preferences_summary'))
+
+class NotificationRead(Base):
+ __tablename__='notification_reads'
+ user_id:Mapped[str]=mapped_column(ForeignKey('users.id'),primary_key=True)
+ key:Mapped[str]=mapped_column(String(120),primary_key=True)
+ version:Mapped[str]=mapped_column(String(32))
+ read_at:Mapped[int]=mapped_column(BigInteger)

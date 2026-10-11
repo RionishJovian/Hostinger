@@ -302,3 +302,10 @@ limitations.
 - New `backend/agents.py`; `provision_business` extracted in `backend/onboarding.py`; commission on approval and owner-only refund in `backend/subscription_billing.py`; Agent path guard in `backend/app.py`.
 - `src/AgentWorkspace.jsx` (application form and four Agent pages), `src/AgentManagement.jsx` (Developer Dashboard → Agents), refund step in `src/SubscriptionBilling.jsx`.
 - Tests: `tests/test_agents.py` (5); migration heads 046; roles test and the staff/subscriptions UI check updated for the Agents area.
+
+## Smart Notification Center and Daily Owner Summary (2026-10-11)
+
+- Migration 047 `notifications`: tables `notification_preferences` and `notification_reads`.
+- New `backend/notifications.py` (derived feed with root-cause grouping, instability aggregation and in-place updates; preferences; read markers; daily summary), registered in `backend/app.py`.
+- `src/NotificationCenter.jsx` (Notifications page, settings, Daily Owner Summary card); header bell, navigation entry and Overview card in `src/AccountWorkspace.jsx`; English and Burmese messages in `src/sme-localization.mjs`.
+- Tests: `tests/test_notifications.py` (4), `tests/notification-messages.test.mjs` (2); migration heads 047.

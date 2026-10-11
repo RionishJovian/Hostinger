@@ -256,6 +256,8 @@ def make_app(url=None,initialize=False):
  register_developer(app,current,db,log)
  from .branding import register_branding
  register_branding(app,current,db,log)
+ from .notifications import register_notifications
+ register_notifications(app,current,db,owner,log)
  from .agents import register_agents
  register_agents(app,current,db,log,HASHER,check,lambda request:resolve_client_ip(request,app.state.trusted_proxy_networks),digest)
  register_subscription_renewal(app,current,db,log)
