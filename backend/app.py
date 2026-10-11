@@ -13,6 +13,9 @@ from .revenue import record_event
 from .deliveries import emit_payment_event
 from .models import StaffGrant
 from .staff import staff_allowed,LEGACY_STAFF_CLOSED
+from .models import TenantSubscription
+from .subscriptions import is_restricted
+from .subscription_renewal import renewal_allowed,RESTRICTED_MESSAGE
 from .auth_metadata import client_labels,approximate_source
 HASHER=PasswordHasher();DUMMY=HASHER.hash(secrets.token_urlsafe(24));auth=HTTPBearer(auto_error=False)
 def digest(value):return hashlib.sha256(value.encode()).hexdigest()
@@ -110,6 +113,8 @@ def make_app(url=None,initialize=False):
   if grant:
    check(u.role=='sme' and grant.tenant_id==u.tenant_id,'Staff authority is invalid')
    check(staff_allowed(grant.profile,request.method,request.url.path),LEGACY_STAFF_CLOSED)
+  u.subscription_restricted=u.role=='sme' and is_restricted(s.get(TenantSubscription,u.tenant_id),now)
+  if u.subscription_restricted:check(renewal_allowed(request.url.path),RESTRICTED_MESSAGE)
   return u
  def log(s,u,action,target):s.add(Audit(actor_id=u.id,tenant_id=u.tenant_id,action=action,target=target,created=int(time.time())))
  def tenant(u,t):check(u.tenant_id==t,'Different business',404)
@@ -160,7 +165,7 @@ def make_app(url=None,initialize=False):
  def logout(c:HTTPAuthorizationCredentials=Depends(auth),u:User=Depends(current),s:Session=Depends(db)):
   s.delete(s.get(SessionToken,digest(c.credentials)));log(s,u,'sign_out',u.id);s.commit();return {'signed_out':True}
  @app.get('/v1/me')
- def me(u:User=Depends(current)):return {'id':u.id,'username':u.username,'role':u.role,'tenant_id':u.tenant_id,'must_change_password':u.session_must_change_password,'temporary_password_expires':u.temporary_password_expires if u.session_must_change_password else None,'staff_profile':u.staff_profile,'platform_owner':bool(u.role=='platform' and u.platform_owner)}
+ def me(u:User=Depends(current)):return {'id':u.id,'username':u.username,'role':u.role,'tenant_id':u.tenant_id,'must_change_password':u.session_must_change_password,'temporary_password_expires':u.temporary_password_expires if u.session_must_change_password else None,'staff_profile':u.staff_profile,'platform_owner':bool(u.role=='platform' and u.platform_owner),'subscription_restricted':u.subscription_restricted}
  @app.get('/v1/tenants')
  def tenants(u:User=Depends(current),s:Session=Depends(db)):
   q=select(Tenant)
@@ -242,6 +247,8 @@ def make_app(url=None,initialize=False):
  from .subscriptions import register_subscriptions
  from .subscription_billing import register_subscription_billing
  register_subscription_billing(app,current,db,log)
+ from .subscription_renewal import register_subscription_renewal
+ register_subscription_renewal(app,current,db,log)
  from .staff import register_staff
  register_staff(app,current,db,owner,log,HASHER,digest)
  register_subscriptions(app,current,db,log)

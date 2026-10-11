@@ -7,7 +7,7 @@ from sqlalchemy import select,update
 from sqlalchemy.exc import IntegrityError
 from .schemas import Strict
 from .models import SubscriptionInvoice,BillingEvent,SubscriptionPlan,TenantSubscription,Tenant,StaffGrant
-from .subscriptions import plan_json,subscription_json
+from .subscriptions import plan_json,subscription_json,renewal_term
 def fingerprint(data):return hashlib.sha256(json.dumps(data,sort_keys=True).encode()).hexdigest()
 class InvoiceIn(Strict):
  tenant_id:str
@@ -35,6 +35,15 @@ class ReviewIn(Strict):
  confirmed_received:bool=False
 def invoice_json(v):
  return {k:getattr(v,k) for k in ['id','tenant_id','plan_id','snapshot','amount','currency','period_start','period_end','subscription_revision','revision','status','destination','instructions','method','reference','evidence','reviewed_by','reason','created','updated']}|{'settlement_verified':False,'automatic_renewal':False}
+def apply_request(s,v,now):
+ """Activate or extend the subscription for an approved self-service request."""
+ sub=s.get(TenantSubscription,v.tenant_id);start,end,period_start=renewal_term(sub,v.snapshot['months'],now)
+ s.execute(update(SubscriptionInvoice).where(SubscriptionInvoice.id==v.id).values(period_start=start,period_end=end))
+ values={'plan_id':v.plan_id,'plan_snapshot':{k:x for k,x in v.snapshot.items() if k not in ('business_name','months','self_service')},'state':'active','period_start':period_start,'period_end':end,'updated':now,'reason':'Approved subscription request '+v.id,'payment_source_invoice_id':v.id}
+ if sub:
+  if not s.execute(update(TenantSubscription).where(TenantSubscription.tenant_id==v.tenant_id,TenantSubscription.revision==sub.revision).values(revision=sub.revision+1,**values)).rowcount:raise HTTPException(409,'Subscription changed; refresh')
+ else:s.add(TenantSubscription(tenant_id=v.tenant_id,revision=1,**values))
+
 def register_subscription_billing(app,current,db,log):
  def platform(u):
   if u.role!='platform':raise HTTPException(403,'Platform operator required')
@@ -86,12 +95,14 @@ def register_subscription_billing(app,current,db,log):
   history(s,u,v,'payment_submitted',b.model_dump()|{'fingerprint':key});s.commit();s.refresh(v);return invoice_json(v)|{'replayed':False}
  @app.post('/v1/platform/subscription-invoices/{id}/decision')
  def decide(id:str,b:ReviewIn,u=Depends(current),s=Depends(db)):
-  platform(u);v=scoped(s,u,id);status='paid' if b.decision=='approved' else b.decision
+  platform(u);v=scoped(s,u,id);status='paid' if b.decision=='approved' else b.decision;requested=bool(v.snapshot.get('self_service'))
+  if requested and not u.platform_owner:raise HTTPException(403,'Only the platform owner reviews subscription requests')
   if b.decision=='approved' and not b.confirmed_received:raise HTTPException(422,'Confirm receipt independently before approving')
   if v.revision==b.expected_revision+1 and v.status==status and v.reviewed_by==u.id and v.reason==b.reason:return invoice_json(v)|{'replayed':True}
   allowed=['unpaid','pending','needs_evidence','rejected'] if status=='void' else ['pending']
   if not s.execute(update(SubscriptionInvoice).where(SubscriptionInvoice.id==id,SubscriptionInvoice.revision==b.expected_revision,SubscriptionInvoice.status.in_(allowed)).values(status=status,revision=b.expected_revision+1,reviewed_by=u.id,reason=b.reason,updated=int(time.time()))).rowcount:raise HTTPException(409,'Invoice changed or already reviewed; refresh')
-  if status=='paid':
+  if status=='paid' and requested:apply_request(s,v,int(time.time()))
+  elif status=='paid':
    sub=s.get(TenantSubscription,v.tenant_id)
    if (sub.revision if sub else 0)!=v.subscription_revision:raise HTTPException(409,'Subscription changed since invoice issuance; resolve before approving')
    if sub and sub.state=='active' and v.period_start<sub.period_end:raise HTTPException(409,'Renewal overlaps an active period; resolve before approving')

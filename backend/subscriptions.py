@@ -1,5 +1,12 @@
-"""Platform subscription records; no payment gateway or router cutoff."""
-import time
+"""Platform subscription records; no payment gateway or router cutoff.
+
+Terms run in whole calendar months in the subscription timezone and end at local midnight, so the
+expiry date is the first day without paid access: the owner is warned for the seven days before it
+and, from that date, can sign in only to renew.
+"""
+import time,calendar
+from datetime import datetime,date,time as day_time
+from zoneinfo import ZoneInfo
 from typing import Literal
 from fastapi import Depends,HTTPException
 from pydantic import Field,model_validator
@@ -25,11 +32,28 @@ class SubscriptionIn(Strict):
  def dates(self):
   if self.period_end<=self.period_start:raise ValueError('Period end must follow start')
   return self
+SUBSCRIPTION_TZ='Asia/Yangon'
+WARNING_DAYS=7
+def local_date(ts):return datetime.fromtimestamp(ts,ZoneInfo(SUBSCRIPTION_TZ)).date()
+def midnight(d):return int(datetime.combine(d,day_time.min,ZoneInfo(SUBSCRIPTION_TZ)).timestamp())
+def add_months(d,months):
+ y,m=divmod(d.month-1+months,12);y+=d.year;m+=1
+ return date(y,m,min(d.day,calendar.monthrange(y,m)[1]))
+def is_restricted(row,now):return bool(row) and local_date(now)>=local_date(row.period_end)
+def renewal_term(row,months,now):
+ """Early renewal extends the current expiry; renewal after expiry starts on the approval date."""
+ if row and not is_restricted(row,now):start=local_date(row.period_end);period_start=row.period_start
+ else:start=local_date(now);period_start=midnight(start)
+ return midnight(start),midnight(add_months(start,months)),period_start
+def term_status(row,now):
+ if not row:return {'expires_on':None,'days_left':None,'warning':False,'restricted':False}
+ expiry=local_date(row.period_end);days=(expiry-local_date(now)).days
+ return {'expires_on':expiry.isoformat(),'days_left':max(days,0),'warning':0<days<=WARNING_DAYS,'restricted':days<=0}
 def plan_json(p):return {'id':p.id,**p.settings,'created':p.created,'pricing_source':'platform_entered'}
 def subscription_json(row):
- if not row:return {'revision':0,'state':'unassigned','enforcement':'not_connected'}
+ if not row:return {'revision':0,'state':'unassigned','enforcement':'not_connected'}|term_status(None,0)
  data={k:getattr(row,k) for k in ['tenant_id','revision','plan_id','plan_snapshot','state','period_start','period_end','updated','reason']}
- return data|{'period_elapsed':row.period_end<=time.time(),'enforcement':'not_connected','payment_verified':False,'payment_source_invoice_id':row.payment_source_invoice_id,'payment_confirmation':'operator_confirmed' if row.payment_source_invoice_id else 'not_recorded'}
+ return data|term_status(row,int(time.time()))|{'period_elapsed':row.period_end<=time.time(),'enforcement':'not_connected','payment_verified':False,'payment_source_invoice_id':row.payment_source_invoice_id,'payment_confirmation':'operator_confirmed' if row.payment_source_invoice_id else 'not_recorded'}
 def register_subscriptions(app,current,db,log):
  def platform(u):
   if u.role!='platform':raise HTTPException(403,'Platform operator required')

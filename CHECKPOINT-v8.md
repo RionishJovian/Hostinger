@@ -274,3 +274,11 @@ limitations.
 - Fix: Revenue cash reconciliation request body (`src/RevenueDashboard.jsx`), guarded in `scripts/verify-revenue-ui.mjs`.
 - Tests: `tests/demo-api.test.mjs` (8).
 
+
+## Subscription self-service and renewal rules (2026-10-11)
+
+- Migration 044 `platform_settings`; model `PlatformSetting`.
+- `backend/subscriptions.py` (term rules), new `backend/subscription_renewal.py`, approval path in `backend/subscription_billing.py`, restriction in `backend/app.py` `current()`.
+- `src/SubscriptionRenewal.jsx`, `src/SubscriptionPaymentSettings.jsx`, banner and restricted mode in `src/AccountWorkspace.jsx`, `renewal` strings in `src/sme-localization.mjs`.
+- Staff UI removed (`src/StaffRecovery.jsx`, `src/CashierVouchers.jsx` deleted); `scripts/verify-staff-subscriptions-ui.mjs` rewritten.
+- Tests: `tests/test_subscription_renewal.py` (7); migration heads 044.

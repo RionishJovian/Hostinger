@@ -368,6 +368,13 @@ class SupportReport(Base):
  report:Mapped[dict]=mapped_column(JSON)
  shared_at:Mapped[int|None]=mapped_column(BigInteger,nullable=True)
  shared_by:Mapped[str|None]=mapped_column(ForeignKey('users.id'),nullable=True)
+class PlatformSetting(Base):
+ __tablename__='platform_settings'
+ key:Mapped[str]=mapped_column(String(80),primary_key=True)
+ value:Mapped[dict]=mapped_column(JSON)
+ revision:Mapped[int]=mapped_column(Integer)
+ updated:Mapped[int]=mapped_column(BigInteger)
+ updated_by:Mapped[str]=mapped_column(ForeignKey('users.id'))
 class RouterDevice(Base):
  __tablename__='router_devices'
  id:Mapped[str]=mapped_column(String(36),primary_key=True,default=uid)

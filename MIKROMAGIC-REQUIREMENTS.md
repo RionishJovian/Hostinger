@@ -555,3 +555,29 @@ _Clarification synced 2026-10-09 from the authoritative Notion tracker; frozen v
 - **Question 19: Option A (reset on exit).** Public interactive Demo changes are temporary. On exit/end of a Demo visit, discard all visitor-made changes; each new visit starts from fresh, preset sample data.
 - Do not persist visitor Demo edits into production or other visitors' demos. No account or payment required to enter; no effect on real MikroTik devices or real vouchers.
 - This is a confirmed requirement, not an implementation or deployment claim.
+
+
+### Owner directive — 2026-10-11: Development ownership and Notion-only assistant scope
+- **Cursor is the sole lead and active developer for the entire MikroMagic project going forward**, not merely the Staff/Subscriptions UI issue. Cursor owns application development, technical investigation, testing, deployment planning and execution within the owner's established authorization.
+- **ChatGPT in this conversation is removed from the developer role** and is assigned **Notion-only collaboration** with the owner: collect and clarify requirements one question at a time when needed, record confirmed owner decisions faithfully, maintain organized Notion requirements and project documentation, and summarize or hand off documented decisions to Cursor when the owner requests.
+- ChatGPT must **not** undertake code changes, run or direct competing development work, initiate deployments, or claim ownership of implementation. It must not start a second development workflow or hand off development to Work without the owner's explicit new instruction.
+- This directive supersedes earlier notes that instructed ChatGPT to lead or resume implementation. Product requirements recorded earlier remain in force unless the owner changes them.
+
+### Owner decision — 2026-10-11: Platform account types and Agent referral commissions (Question 20)
+- Owner explicitly specified **three platform application account types**:
+  1. **Developer** — the owner alone, on existing `nish@magic` account. Exclusive owner-only Developer Dashboard and management privileges remain as previously confirmed.
+  2. **User** — each SME business Owner (one Owner/Admin account per SME, **no SME employee/staff accounts**).
+  3. **Agent** — referral/recruitment agents who recruit and register new SME Users for MikroMagic. An Agent account has attributable SME User registrations and earns commission from the **monthly or annual subscription payments** made by Users registered under that Agent.
+- **Referral attribution requirement:** when a User is registered via an Agent account, preserve the source Agent–User relationship for subscription commission accounting. This applies to the recruited User's monthly/annual subscription transactions, subject to the commission policy to be confirmed. Record attributable payments and commissions audibly and distinctly from SME customer-payment flows.
+- **Owner has now confirmed commission percentages in Question 21: 20% monthly, 30% annually.** The owner selected original full plan price **before discounts** as the calculation base in Question 22. Do not infer refund/reversal policy, payout schedule, payment method, exact registration flow, or Agent access permissions yet; these remain pending owner Q&A. The owner described commission **for every monthly/annually subscription** from Users registered by the Agent, implying recurring subscription attribution, not an initial-signup-only reward.
+- Prior historical mockups mentioning 'Magic Coins' and trial rewards are **not** authorization to implement any coins-based commission; ask about commission terms directly. Agent is a platform referral role, not SME staff or a MikroTik/router operator.
+- This clarification replaces the open Question 20 choice between an owner-only platform and generic extra platform users: the **owner-selected roles are Developer / User / Agent**.
+- Cursor remains the sole lead and active developer; this ChatGPT thread is Notion-only. **Requirements documentation, not evidence of implementation or deployment.**
+
+### Owner-confirmed Agent commission rates — 2026-10-11 (Question 21)
+- For an SME User attributed to a recruiting Agent, pay that Agent a **20% commission on each qualifying monthly MikroMagic platform subscription payment**.
+- Pay that Agent a **30% commission on each qualifying annual MikroMagic platform subscription payment**.
+- These are **recurring subscription commissions**, not solely first-purchase referral bonuses. Each approved monthly/annual payment or renewal by an attributed User can generate the respective commission, subject to rules still being clarified.
+- Do not conflate subscriptions paid to MikroMagic with customer payments received by the SME; Agent commission concerns MikroMagic platform subscriptions only.
+- **Question 22 decision B:** Agent commissions use the **original listed subscription price before discounts**, not the discounted amount received. Monthly rate remains 20%; annual rate remains 30%. Example: original monthly price 30,000 MMK, discounted to 25,000 MMK → commission = 6,000 MMK (20% × 30,000 MMK). This applies only when there is a qualifying approved subscription payment; do not presume commission for an unpaid signup. Refund/reversal, fee treatment, and payout timing are still to be confirmed.
+- These are product requirements for Cursor as lead developer, not a claim of code implementation, test verification, or deployment.
