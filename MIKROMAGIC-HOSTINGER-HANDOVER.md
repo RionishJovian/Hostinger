@@ -257,6 +257,7 @@ only adds a defaulted column, so the 040 code runs on it.
 - Old router tunnel `mmh-8adfeb441215`. Owner decision: during an approved router window, disable it first; delete it only after the new Hub connection is proven.
 - Next app work (as of 2026-10-11 14:25 UTC+6:30, live at migration 041, commit `6adffd0`):
   - Batch QR on sheets and thermal runs is done (owner-only, no codes). Guest QR on vouchers stays off until a verified guest portal destination exists on a router.
+  - Shop business/network hours and planned maintenance are done (migration 042). Still open in that area: automatic Opening Check, push-alert suppression and uptime, which need live monitoring and notifications.
   - Developer role: none exists in the app; the tracker item (L32) awaits the owner's details. The owner works as `nish@magic` (platform role, platform owner, sole Platform console user).
   - `scripts/verify-staff-subscriptions-ui.mjs` fails; this predates the voucher work and is not yet investigated.
 

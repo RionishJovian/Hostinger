@@ -27,6 +27,7 @@ import RevenueDashboard from './RevenueDashboard.jsx';
 import {MagicHubs,RouterOnboarding} from './MagicHubs.jsx';
 import {MagicConnectOwner,MagicConnectTechnician} from './MagicConnect.jsx';
 import {SiteRegistry,RouterRegistry} from './NetworkRegistry.jsx';
+import SiteHours from './SiteHours.jsx';
 import FirstSiteAcceptance from './FirstSiteAcceptance.jsx';
 import {SafeRouterChanges} from './SafeRouterChanges.jsx';
 import {VoucherInventory} from './Vouchers.jsx';
@@ -126,7 +127,7 @@ function AccountWorkspaceContent({onDemo}){
  {page==='Media'&&user.role==='sme'&&<OwnerMediaCatalogue titles={s.mediaTitles} act={act} busy={busy} go={go}/>}
  {page==='Media'&&user.role==='guest'&&<GuestMediaCatalogue sites={s.guestSites} titles={s.mediaTitles} packages={s.packages} entitlements={s.entitlements} go={go}/>}
  {page==='Packages'&&<Packages titles={s.mediaTitles} packages={s.packages} act={act} busy={busy}/>}
- {page==='Sites'&&<><SiteRegistry sites={s.sites} act={act} busy={busy}/>{user.role==='sme'&&!user.staff_profile&&<FirstSiteAcceptance api={api} sites={s.sites} routers={s.routers}/>}</>}
+ {page==='Sites'&&<><SiteRegistry sites={s.sites} act={act} busy={busy}/>{user.role==='sme'&&!user.staff_profile&&s.sites.length>0&&<SiteHours api={api} sites={s.sites} refresh={()=>load(user).catch(e=>setNotice(e.message))}/>}{user.role==='sme'&&!user.staff_profile&&<FirstSiteAcceptance api={api} sites={s.sites} routers={s.routers}/>}</>}
  {page==='Magic Hubs'&&<MagicHubs hubs={s.hubs} tenants={s.tenants} assignments={s.hubAssignments} act={act} busy={busy} platform/>}
  {page==='Routers'&&<><RouterRegistry sites={s.sites} routers={s.routers} act={act} busy={busy} platform={user.role==='platform'}/>{user.role==='sme'&&<MagicHubs hubs={s.hubs}/ >}{user.role==='sme'&&!user.staff_profile&&<MagicConnectOwner sites={s.sites} api={api} busy={busy}/>}<RouterOnboarding hubs={s.hubs} routers={s.routers} plans={s.routerPlans} act={act} busy={busy} platform={user.role==='platform'}/>{user.role==='sme'&&!user.staff_profile&&<SafeRouterChanges routers={s.routers} plans={s.routerPlans} changes={s.routerChanges} act={act} busy={busy}/>}</>}
  {page==='Vouchers'&&(user.staff_profile==='cashier'?<CashierVouchers vouchers={s.vouchers} act={act} busy={busy}/>:<VoucherInventory sites={s.sites} packages={s.packages} vouchers={s.vouchers} act={act} busy={busy}/>)}

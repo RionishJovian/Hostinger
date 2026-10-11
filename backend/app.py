@@ -286,6 +286,8 @@ def make_app(url=None,initialize=False):
  register_voucher_sales(app,current,db,owner,log)
  from .sites import register_sites
  register_sites(app,current,db,owner,log)
+ from .site_hours import register_site_hours
+ register_site_hours(app,current,db,owner,log)
  from .first_site_acceptance import register_first_site_acceptance
  register_first_site_acceptance(app,current,db)
  from .site_portal import register_site_portals

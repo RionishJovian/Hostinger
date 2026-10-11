@@ -294,6 +294,7 @@ class SiteIncident(Base):
  notes:Mapped[str]=mapped_column(String(2000),default='')
  created_by:Mapped[str]=mapped_column(ForeignKey('users.id'))
  created:Mapped[int]=mapped_column(BigInteger)
+ expected_reason:Mapped[str|None]=mapped_column(String(24),nullable=True)
  __table_args__=(CheckConstraint("scope in ('control_plane','gateway','wan','switch','access_point','dns_portal','dependency')"),CheckConstraint("status in ('open','resolved','unknown')"),)
 class BackupArtifact(Base):
  __tablename__='backup_artifacts'
@@ -339,7 +340,24 @@ class Site(Base):
  timezone:Mapped[str]=mapped_column(String(80),default='Asia/Yangon')
  created:Mapped[int]=mapped_column(BigInteger)
  printed_ssid:Mapped[str|None]=mapped_column(String(32),nullable=True)
+ business_hours:Mapped[dict|None]=mapped_column(JSON,nullable=True)
+ network_hours_mode:Mapped[str]=mapped_column(String(10),default='always',server_default='always')
+ network_hours:Mapped[dict|None]=mapped_column(JSON,nullable=True)
  __table_args__=(UniqueConstraint('tenant_id','name'),)
+class SiteMaintenance(Base):
+ __tablename__='site_maintenance'
+ id:Mapped[str]=mapped_column(String(36),primary_key=True,default=uid)
+ tenant_id:Mapped[str]=mapped_column(ForeignKey('tenants.id'),index=True)
+ site_id:Mapped[str]=mapped_column(ForeignKey('sites.id'),index=True)
+ reason:Mapped[str]=mapped_column(String(300),default='',server_default='')
+ started:Mapped[int]=mapped_column(BigInteger)
+ planned_end:Mapped[int]=mapped_column(BigInteger)
+ ended:Mapped[int|None]=mapped_column(BigInteger,nullable=True)
+ extensions:Mapped[int]=mapped_column(Integer,default=0,server_default='0')
+ post_check:Mapped[dict|None]=mapped_column(JSON,nullable=True)
+ created_by:Mapped[str]=mapped_column(ForeignKey('users.id'))
+ ended_by:Mapped[str|None]=mapped_column(ForeignKey('users.id'),nullable=True)
+ __table_args__=(CheckConstraint('planned_end > started',name='ck_site_maintenance_window'),CheckConstraint('ended IS NULL OR ended >= started',name='ck_site_maintenance_ended'),CheckConstraint('extensions >= 0',name='ck_site_maintenance_extensions'))
 class RouterDevice(Base):
  __tablename__='router_devices'
  id:Mapped[str]=mapped_column(String(36),primary_key=True,default=uid)

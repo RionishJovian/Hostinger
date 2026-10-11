@@ -1,11 +1,14 @@
-"""Tenant-scoped incident history; root cause remains evidence-labelled."""
+"""Tenant-scoped incident history; root cause remains evidence-labelled.
+
+Incidents that start during planned maintenance or network-off hours are labelled expected when recorded."""
 import time
 from fastapi import Depends,HTTPException
 from sqlalchemy import select,update
 from .models import Site,SiteIncident
 from .schemas import IncidentIn
+from .site_hours import expected_reason
 
-def incident_json(x):return {k:getattr(x,k) for k in ['id','site_id','scope','status','started','ended','detection_source','symptoms','suspected_root_cause','confirmed_root_cause','remediation','notes','created_by','created']}
+def incident_json(x):return {k:getattr(x,k) for k in ['id','site_id','scope','status','started','ended','detection_source','symptoms','suspected_root_cause','confirmed_root_cause','remediation','notes','created_by','created','expected_reason']}
 def register_incidents(app,current,db,owner,log):
  @app.get('/v1/incidents')
  def incidents(u=Depends(current),s=Depends(db)):
@@ -20,7 +23,7 @@ def register_incidents(app,current,db,owner,log):
   if not site or site.tenant_id!=u.tenant_id:raise HTTPException(404,'Site not found')
   if b.status=='resolved' and b.ended is None:raise HTTPException(422,'Resolved incidents require an end time')
   if b.ended is not None and b.ended<b.started:raise HTTPException(422,'End time cannot precede start time')
-  x=SiteIncident(tenant_id=u.tenant_id,created_by=u.id,created=int(time.time()),**b.model_dump());s.add(x);s.flush();log(s,u,'incident_recorded',x.id);s.commit();return incident_json(x)
+  x=SiteIncident(tenant_id=u.tenant_id,created_by=u.id,created=int(time.time()),expected_reason=expected_reason(s,site,b.scope,b.started),**b.model_dump());s.add(x);s.flush();log(s,u,'incident_recorded',x.id);s.commit();return incident_json(x)
 
  @app.post('/v1/incidents/{id}/resolve')
  def resolve_incident(id:str,b:IncidentIn,u=Depends(current),s=Depends(db)):

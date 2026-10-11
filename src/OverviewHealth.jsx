@@ -10,12 +10,14 @@ function SummaryCard({icon:Icon,label,value,note,onClick}){
 export default function OverviewHealth({sites=[],routers=[],devices=[],vouchers=[],pendingPayments,navigate}){
  const {t:message}=useSMELocalization();
  const t={};
- for(const key of ['health','question','attention','summary','shops','gateways','aps','customers','vouchers','notConnected','unable','noRouter','unverified','siteNeeded','payments','paymentsHint','noKnown','routerAction','siteAction','paymentAction','countNote','apNote','customerNote','voucherNote','unavailable'])t[key]=message('overview',key);
+ for(const key of ['health','question','attention','summary','shops','gateways','aps','customers','vouchers','notConnected','unable','noRouter','unverified','siteNeeded','payments','paymentsHint','noKnown','routerAction','siteAction','paymentAction','maintenance','maintenanceHint','countNote','apNote','customerNote','voucherNote','unavailable'])t[key]=message('overview',key);
  const noRouter=routers.length===0;
  const apCount=devices.filter(device=>device.kind==='access_point').length;
  const issues=[];
  if(noRouter)issues.push({message:sites.length===0?`${t.siteNeeded} ${t.noRouter}`:t.noRouter,action:sites.length?t.routerAction:t.siteAction,page:sites.length?'Routers':'Sites'});
  else if(routers.every(router=>router.connection_state!=='connected'))issues.push({message:t.unverified,action:t.routerAction,page:'Routers'});
+ const now=Date.now()/1000;
+ for(const site of sites)if(site.maintenance_until>now)issues.push({message:t.maintenance(site.name,new Date(site.maintenance_until*1000).toLocaleTimeString('en-GB',{timeZone:site.timezone,hour:'2-digit',minute:'2-digit'})),detail:t.maintenanceHint,action:t.siteAction,page:'Sites'});
  if(Number.isFinite(pendingPayments)&&pendingPayments>0)issues.push({message:t.payments(pendingPayments),detail:t.paymentsHint,action:t.paymentAction,page:'Payments'});
  return <section className="overview-priorities" aria-label={t.health}>
   <div className="overview-health panel">

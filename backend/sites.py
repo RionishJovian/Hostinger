@@ -3,7 +3,7 @@ import time
 from fastapi import Depends,HTTPException
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
-from .models import Site,RouterDevice,RouterPlan
+from .models import Site,SiteMaintenance,RouterDevice,RouterPlan
 from .schemas import SiteIn,SiteSettingsIn,RouterIn
 
 def allowed_site(s,u,id):
@@ -17,7 +17,10 @@ def register_sites(app,current,db,owner,log):
   if u.role=='guest':raise HTTPException(403,'Guest site discovery uses the published portal list')
   q=select(Site)
   if u.role!='platform':q=q.where(Site.tenant_id==u.tenant_id)
-  return [{k:getattr(x,k) for k in ['id','tenant_id','name','timezone','created','printed_ssid']} for x in s.scalars(q.order_by(Site.name))]
+  now=int(time.time());active=select(SiteMaintenance).where(SiteMaintenance.ended.is_(None),SiteMaintenance.planned_end>now)
+  if u.role!='platform':active=active.where(SiteMaintenance.tenant_id==u.tenant_id)
+  until={m.site_id:m.planned_end for m in s.scalars(active)}
+  return [{k:getattr(x,k) for k in ['id','tenant_id','name','timezone','created','printed_ssid','business_hours','network_hours_mode','network_hours']}|{'maintenance_until':until.get(x.id)} for x in s.scalars(q.order_by(Site.name))]
  @app.post('/v1/sites',status_code=201)
  def create_site(b:SiteIn,u=Depends(current),s=Depends(db)):
   owner(u);x=Site(tenant_id=u.tenant_id,**b.model_dump(),created=int(time.time()));s.add(x)

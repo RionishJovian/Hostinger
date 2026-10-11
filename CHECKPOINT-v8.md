@@ -252,3 +252,10 @@ limitations.
 - `backend/voucher_production.py`: `ProductionSettings.batch_qr` (default true) in print settings. No migration.
 - Frontend: `src/batch-link.mjs` (build/read/strip the `?batch=&sheet=` link, QR per sheet), QR in sheet/run headers in `src/voucher-production.mjs`, setting and deep-link open in `src/VoucherProduction.jsx`, pending batch through sign-in in `src/AccountWorkspace.jsx`.
 - Tests: `test_voucher_production` (+1), `batch-link.test.mjs` (4), `voucher-production.test.mjs` (+1).
+
+## Shop hours and planned maintenance (2026-10-11)
+
+- Migration 042 (additive): hours columns on `sites`, `site_incidents.expected_reason`, table `site_maintenance`.
+- `backend/site_hours.py` (hours, maintenance, expected-incident label, post-maintenance Magic Check); `backend/incidents.py` stores the label; `/v1/sites` adds hours and `maintenance_until`.
+- Frontend: `src/SiteHours.jsx`, `src/site-hours.mjs`; Overview maintenance item in `src/OverviewHealth.jsx` and `src/sme-localization.mjs`.
+- Tests: `test_site_hours` (5), `site-hours.test.mjs` (4); head assertions moved to 042.
