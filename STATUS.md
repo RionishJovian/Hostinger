@@ -829,3 +829,8 @@ Verification: `tests/test_agents.py` (required fields, bounds, stored and return
 
 - The router state is shown once, in the Wi-Fi health card, with its action next to Get help; Needs your attention no longer repeats it. Order: health, attention, Quick Voucher, daily summary, network summary.
 - Revenue detail stays on Revenue: the Overview's revenue figures, Revenue by service (which still listed the retired "combined" service) and Business actions are removed; a Net confirmed collections card opens Revenue. No API change; no migration.
+
+## 2026-10-12 — Routers page guided, technician detail under Advanced (P0a, increment 5)
+
+- SME owners see **Connect your router** first: four steps with Done / Next / Later and one action on the next step. An unverified router is never shown as connected.
+- Magic Hub, connection plans and Safe RouterOS changes moved into a closed **Advanced (technician)** section that opens by itself when a router change needs attention. No API change; no migration.

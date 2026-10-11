@@ -343,3 +343,8 @@ limitations.
 
 - `src/OverviewHealth.jsx` (health card owns the router message and action; `OverviewNetwork` split out with a collections card), `src/AccountWorkspace.jsx` (Overview order, revenue panels removed, unused `Metric` removed), `src/NotificationCenter.jsx` and `src/styles.css` (four-figure daily summary row), `src/sme-localization.mjs` (new `noKnown`, `netCollections`, `revenueNote` in English and Burmese).
 - New `scripts/verify-overview-ui.mjs`.
+
+## Interface increment 5, Routers guided (2026-10-12)
+
+- New `src/RouterSetup.jsx` (`routerSetupSteps`, `RouterSetupSteps`, `RouterAdvanced`, `changeNeedsAttention`), `src/AccountWorkspace.jsx` (owner Routers order; platform keeps its plan list), `src/NetworkRegistry.jsx` (form anchor, heading spacing), `src/sme-localization.mjs` (`routerSetup` in English and Burmese), `src/styles.css`.
+- New `scripts/verify-router-setup-ui.mjs`.

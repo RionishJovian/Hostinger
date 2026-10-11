@@ -74,8 +74,8 @@ export function RouterRegistry({ sites, routers, act, busy, platform = false }) 
   const [preflight, setPreflight] = useState(null);
 
   return <>
-    {!platform && <section className="panel">
-      <h2>Register a MikroTik</h2>
+    {!platform && <section className="panel" id="register-router">
+      <div className="panelhead"><h2>Register a MikroTik</h2></div>
       <form onSubmit={async event => {
         event.preventDefault();
         if (await act('routers', { site_id: site, name, model, reported_routeros: version })) setName('');
