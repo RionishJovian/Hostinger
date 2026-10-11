@@ -809,3 +809,8 @@ Verification: `tests/test_media.py` asserts the online pass state; media UI chec
 - Migration 049 `agent_location`: five nullable columns on `agent_profiles`; the SQLite downgrade restores the exact 048 schema.
 
 Verification: `tests/test_agents.py` (required fields, bounds, stored and returned location, legacy rows, region list parity with the form); `scripts/verify-agent-location-ui.mjs`; local browser run (apply with a map pin, Developer view and pin link); full suites green.
+
+## 2026-10-11 — Interface review and page-frame cleanup (P0a, increment 1)
+
+- Product-wide interface review recorded in `docs/UX-REVIEW-2026-10-11.md` (72 captures: SME owner, Developer, Agent, sign-in, demo; desktop and phone), with findings F1–F13 and the increment plan.
+- Increment 1: on phones the header fits (Refresh and Sign out become labelled icons), tables scroll inside their box instead of squeezing columns, and no page scrolls sideways at 390 px (was every SME page). Developer-facing texts removed for signed-in users: "Development build" footer, "account database · Your authorized workspace" subtitle, sidebar "Authenticated records" and adapters note, the page eyebrow. The Captive portal page no longer goes blank on an older draft. No migration.

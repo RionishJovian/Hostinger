@@ -323,3 +323,8 @@ limitations.
 - `backend/agents.py` (`REGIONS`, `MYANMAR` bounds, required location in `ApplicationIn`, `location` in profile output).
 - `src/AgentLocation.jsx` (region list, on-demand Leaflet map pin with typed fallback, pin link), application form in `src/AgentWorkspace.jsx`, Developer list in `src/AgentManagement.jsx`. New dependency `leaflet` 1.9.4 (BSD-2-Clause), split into its own chunk.
 - Tests: `tests/test_agents.py` (2 new); `scripts/verify-agent-location-ui.mjs`; migration heads 049.
+
+## Interface review, increment 1 (2026-10-11)
+
+- `docs/UX-REVIEW-2026-10-11.md` (findings and plan).
+- `src/AccountWorkspace.jsx` (header icon buttons, removed developer texts), `src/styles.css` (phone header and table rules), `src/PortalSettings.jsx` (older drafts), `src/sme-localization.mjs` (unused `authenticatedRecords` removed).

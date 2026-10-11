@@ -43,7 +43,7 @@ try {
   assert.match(css, /\.tablewrap\{overflow-x:auto\}/);
   assert.match(css, /\.formgrid,\.details\{grid-template-columns:1fr\}/);
   const workspace = await readFile('src/AccountWorkspace.jsx', 'utf8');
-  assert.match(workspace, /onClick=\{logout\}>\{demo\?t\('shell','exitDemo'\):localizeSme\?t\('shell','signOut'\):'Sign out'\}<\/button>/);
+  assert.match(workspace, /onClick=\{logout\}><SignOut size=\{18\}\/><span>\{demo\?t\('shell','exitDemo'\):localizeSme\?t\('shell','signOut'\):'Sign out'\}<\/span><\/button>/);
   assert.match(workspace, /forced onChangePassword=\{changePassword\} onLogout=\{logout\}/);
   assert.match(workspace, /await revokeCurrentSession\(api\);throw Error\('Use a guest account/);
   assert.doesNotMatch(workspace, /api\.request\(['"]auth\/logout['"]/);

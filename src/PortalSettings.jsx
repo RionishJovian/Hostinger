@@ -6,7 +6,7 @@ const money=n=>new Intl.NumberFormat('en',{style:'currency',currency:'MMK',maxim
 function Panel({title,children}){return <section className="panel"><div className="panelhead"><h2>{title}</h2></div>{children}</section>}
 function Field({label,children}){return <label className="field"><span>{label}</span>{children}</label>}
 export function PortalEditor({portal,act,busy}){
- const [draft,setDraft]=useState(portal.draft);const [hosts,setHosts]=useState(portal.draft.allowed_hosts.join('\n'));const [methods,setMethods]=useState(portal.draft.payment_methods.join('\n'));const [dirty,setDirty]=useState(false);
+ const [draft,setDraft]=useState(portal.draft);const [hosts,setHosts]=useState((portal.draft.allowed_hosts||[]).join('\n'));const [methods,setMethods]=useState((portal.draft.payment_methods||[]).join('\n'));const [dirty,setDirty]=useState(false);
  const change=(key,value)=>{setDraft({...draft,[key]:value});setDirty(true)};
  const settings=()=>({...draft,allowed_hosts:hosts.split('\n').map(x=>x.trim()).filter(Boolean),payment_methods:methods.split('\n').map(x=>x.trim()).filter(Boolean)});
  const publish=()=>publishPortalContent({act,portal,settings:settings(),dirty});
