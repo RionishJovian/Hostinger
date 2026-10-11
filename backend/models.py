@@ -1,5 +1,5 @@
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
-from sqlalchemy import String, Integer, BigInteger, ForeignKey, JSON, UniqueConstraint, Boolean, CheckConstraint, LargeBinary, Index, text
+from sqlalchemy import String, Integer, BigInteger, ForeignKey, JSON, UniqueConstraint, Boolean, CheckConstraint, LargeBinary, Index, Float, text
 import uuid
 class Base(DeclarativeBase):pass
 def uid():return str(uuid.uuid4())
@@ -390,6 +390,12 @@ class AgentProfile(Base):
  full_name:Mapped[str]=mapped_column(String(160))
  phone:Mapped[str]=mapped_column(String(40))
  note:Mapped[str|None]=mapped_column(String(1000),nullable=True)
+ # Applications from before owner decisions Q31–Q32 have no location.
+ region:Mapped[str|None]=mapped_column(String(80),nullable=True)
+ city:Mapped[str|None]=mapped_column(String(80),nullable=True)
+ township:Mapped[str|None]=mapped_column(String(80),nullable=True)
+ latitude:Mapped[float|None]=mapped_column(Float,nullable=True)
+ longitude:Mapped[float|None]=mapped_column(Float,nullable=True)
  status:Mapped[str]=mapped_column(String(20))
  reason:Mapped[str|None]=mapped_column(String(1000),nullable=True)
  revision:Mapped[int]=mapped_column(Integer)

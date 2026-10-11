@@ -13174,6 +13174,51 @@
               }
             ],
             "title": "Note"
+          },
+          "region": {
+            "type": "string",
+            "enum": [
+              "Ayeyarwady Region",
+              "Bago Region",
+              "Chin State",
+              "Kachin State",
+              "Kayah State",
+              "Kayin State",
+              "Magway Region",
+              "Mandalay Region",
+              "Mon State",
+              "Naypyidaw Union Territory",
+              "Rakhine State",
+              "Sagaing Region",
+              "Shan State",
+              "Tanintharyi Region",
+              "Yangon Region"
+            ],
+            "title": "Region"
+          },
+          "city": {
+            "type": "string",
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "City"
+          },
+          "township": {
+            "type": "string",
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Township"
+          },
+          "latitude": {
+            "type": "number",
+            "maximum": 28.6,
+            "minimum": 9.4,
+            "title": "Latitude"
+          },
+          "longitude": {
+            "type": "number",
+            "maximum": 101.2,
+            "minimum": 92.1,
+            "title": "Longitude"
           }
         },
         "additionalProperties": false,
@@ -13182,7 +13227,12 @@
           "username",
           "password",
           "full_name",
-          "phone"
+          "phone",
+          "region",
+          "city",
+          "township",
+          "latitude",
+          "longitude"
         ],
         "title": "ApplicationIn"
       },

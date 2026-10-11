@@ -69,3 +69,4 @@ aside nav{flex:1;min-height:0;overflow-y:auto;align-content:start}
 .notification p{margin:0}.notification-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.notification-head .count{margin-left:0}.notification-head small{margin-left:auto}
 .notification-settings{display:flex;flex-wrap:wrap;gap:12px;align-items:end}.notification-settings label{display:grid;gap:4px}
 .notification-bell{position:relative}.notification-bell .count{position:absolute;top:-4px;right:-6px;margin:0}
+.plainset{border:1px solid var(--border);border-radius:10px;padding:16px 18px 4px;margin:0 0 17px}.plainset legend{font-weight:600;font-size:13px;padding:0 6px}.plainset>p{margin-top:0;font-size:12px}.pinmap{height:320px;border:1px solid var(--border);border-radius:9px;margin-bottom:6px;z-index:0}.locationpin [role=status]{font-size:12px;margin:8px 0}.locationpin details summary{cursor:pointer;font-size:12px;margin-bottom:10px}

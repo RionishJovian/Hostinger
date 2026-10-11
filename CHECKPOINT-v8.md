@@ -316,3 +316,10 @@ limitations.
 - `backend/schemas.py` (no new combined packages, category mode), `backend/media.py` (category passes, `ensure_sold_separately`, activation windows and pass state, featured preview, settings endpoints), first-redemption activation in `backend/vouchers.py`, sale checks in `backend/app.py`, `backend/voucher_batch.py`, `backend/voucher_production.py`.
 - `src/MediaCatalogue.jsx` (featured, preview setting, rules panel, pass status), package form in `src/AccountWorkspace.jsx`.
 - Tests: `tests/test_media_pass_rules.py` (3); shared test package helper now an Internet package; migration heads 048.
+
+## Agent application location (2026-10-11)
+
+- Migration 049 `agent_location`: `agent_profiles.region`, `city`, `township`, `latitude`, `longitude` (nullable for earlier applicants).
+- `backend/agents.py` (`REGIONS`, `MYANMAR` bounds, required location in `ApplicationIn`, `location` in profile output).
+- `src/AgentLocation.jsx` (region list, on-demand Leaflet map pin with typed fallback, pin link), application form in `src/AgentWorkspace.jsx`, Developer list in `src/AgentManagement.jsx`. New dependency `leaflet` 1.9.4 (BSD-2-Clause), split into its own chunk.
+- Tests: `tests/test_agents.py` (2 new); `scripts/verify-agent-location-ui.mjs`; migration heads 049.

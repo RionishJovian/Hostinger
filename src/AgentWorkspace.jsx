@@ -1,4 +1,5 @@
 import React,{useEffect,useRef,useState} from 'react';
+import {LocationPin,REGIONS} from './AgentLocation.jsx';
 export const AGENT_PAGES=['Agent overview','Registered businesses','Commissions','Withdrawals','Account'];
 const METHOD_NAMES={kbzpay:'KBZPay',wavepay:'WavePay'};
 const STATUS_TEXT={pending:'Your application is waiting for the platform owner to approve it. You can register businesses once it is approved.',approved:'Approved. You can register new businesses and request withdrawals.',rejected:'Your application was not approved.',suspended:'Your Agent account is suspended. You cannot register businesses or request withdrawals.'};
@@ -6,14 +7,19 @@ const money=(n,c='MMK')=>`${Number(n).toLocaleString()} ${c}`;
 const day=t=>t?new Date(t*1000).toLocaleDateString():'—';
 
 export function AgentApplication({onDone}){
- const [form,setForm]=useState({username:'',password:'',full_name:'',phone:'',note:''}),[busy,setBusy]=useState(false),[notice,setNotice]=useState('');
+ const [form,setForm]=useState({username:'',password:'',full_name:'',phone:'',region:'',city:'',township:'',note:''}),[pin,setPin]=useState(null),[busy,setBusy]=useState(false),[notice,setNotice]=useState('');
  const set=k=>e=>setForm({...form,[k]:e.target.value});
- async function submit(e){e.preventDefault();setBusy(true);setNotice('');try{const r=await fetch('/v1/agent-applications',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...form,username:form.username.trim().toLowerCase(),note:form.note.trim()||null})});const data=await r.json().catch(()=>({}));if(!r.ok)throw Error(typeof data.detail==='string'?data.detail:Array.isArray(data.detail)?data.detail.map(x=>x.msg).join('; '):'Application failed');onDone(`Application received for ${data.username}. Sign in with it to see when it is approved.`)}catch(err){setNotice(err.message)}finally{setBusy(false)}}
+ async function submit(e){e.preventDefault();if(!pin){setNotice('Place your pin on the map, or type its coordinates.');return}setBusy(true);setNotice('');try{const r=await fetch('/v1/agent-applications',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...form,...pin,username:form.username.trim().toLowerCase(),note:form.note.trim()||null})});const data=await r.json().catch(()=>({}));if(!r.ok)throw Error(typeof data.detail==='string'?data.detail:Array.isArray(data.detail)?data.detail.map(x=>x.msg).join('; '):'Application failed');onDone(`Application received for ${data.username}. Sign in with it to see when it is approved.`)}catch(err){setNotice(err.message)}finally{setBusy(false)}}
  return <form onSubmit={submit}>
   <label className="field"><span>Username</span><input required minLength={3} maxLength={160} autoComplete="username" value={form.username} onChange={set('username')}/></label>
   <label className="field"><span>Password — at least 6 characters</span><input required type="password" minLength={6} maxLength={256} autoComplete="new-password" value={form.password} onChange={set('password')}/></label>
   <label className="field"><span>Full name</span><input required maxLength={160} value={form.full_name} onChange={set('full_name')}/></label>
   <label className="field"><span>Phone number</span><input required minLength={6} maxLength={40} inputMode="tel" value={form.phone} onChange={set('phone')}/></label>
+  <fieldset className="plainset"><legend>Where you work</legend><p className="muted">MikroMagic uses this only to review your application. Your location is not tracked. The map comes from OpenStreetMap.</p>
+   <label className="field"><span>State or region</span><select required value={form.region} onChange={set('region')}><option value="">Choose…</option>{REGIONS.map(r=><option key={r}>{r}</option>)}</select></label>
+   <div className="formgrid"><label className="field"><span>City</span><input required maxLength={80} value={form.city} onChange={set('city')}/></label><label className="field"><span>Township</span><input required maxLength={80} value={form.township} onChange={set('township')}/></label></div>
+   <LocationPin value={pin} onChange={setPin}/>
+  </fieldset>
   <label className="field"><span>About you — optional</span><textarea maxLength={1000} value={form.note} onChange={set('note')}/></label>
   <button className="button" disabled={busy}>Apply to become an Agent</button>
   {notice&&<p role="alert">{notice}</p>}

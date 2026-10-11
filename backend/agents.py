@@ -24,6 +24,9 @@ MIN_WITHDRAWAL=10_000
 WITHDRAWAL_CURRENCY='MMK'
 METHODS=('kbzpay','wavepay')
 RESERVED=('requested','approved')
+# Agent applications are for Myanmar (Q31–Q32): its 14 states and regions plus the Union Territory.
+REGIONS=('Ayeyarwady Region','Bago Region','Chin State','Kachin State','Kayah State','Kayin State','Magway Region','Mandalay Region','Mon State','Naypyidaw Union Territory','Rakhine State','Sagaing Region','Shan State','Tanintharyi Region','Yangon Region')
+MYANMAR={'south':9.4,'north':28.6,'west':92.1,'east':101.2}
 def agent_allowed(path):
  return path in ('/v1/me','/v1/auth/logout','/v1/auth/password') or path.startswith(('/v1/agent/','/v1/account/'))
 
@@ -52,9 +55,17 @@ class ApplicationIn(Strict):
  full_name:str=Field(min_length=1,max_length=160)
  phone:str=Field(min_length=6,max_length=40,pattern=r'^[0-9+ ()-]+$')
  note:str|None=Field(default=None,max_length=1000)
+ region:Literal[REGIONS]
+ city:str=Field(min_length=1,max_length=80)
+ township:str=Field(min_length=1,max_length=80)
+ latitude:float=Field(ge=MYANMAR['south'],le=MYANMAR['north'])
+ longitude:float=Field(ge=MYANMAR['west'],le=MYANMAR['east'])
  @field_validator('username',mode='before')
  @classmethod
  def lower(cls,v):return v.strip().lower() if isinstance(v,str) else v
+ @field_validator('latitude','longitude')
+ @classmethod
+ def pin(cls,v):return round(v,6)
 class AgentDecisionIn(Strict):
  expected_revision:int=Field(ge=1)
  status:Literal['approved','rejected','suspended']
@@ -88,7 +99,8 @@ class WithdrawalDecisionIn(Strict):
 TRANSITIONS={'pending':('approved','rejected'),'approved':('suspended',),'suspended':('approved',),'rejected':('approved',)}
 WITHDRAWAL_TRANSITIONS={'requested':('approved','rejected'),'approved':('paid','rejected')}
 def profile_json(p,u=None):
- return {'id':p.user_id,'username':u.username if u else None,'full_name':p.full_name,'phone':p.phone,'note':p.note,'status':p.status,'reason':p.reason,'revision':p.revision,'applied':p.applied,'decided':p.decided}
+ location={'region':p.region,'city':p.city,'township':p.township,'latitude':p.latitude,'longitude':p.longitude} if p.region else None
+ return {'id':p.user_id,'username':u.username if u else None,'full_name':p.full_name,'phone':p.phone,'note':p.note,'location':location,'status':p.status,'reason':p.reason,'revision':p.revision,'applied':p.applied,'decided':p.decided}
 def commission_json(c,name=None):
  return {'id':c.id,'business_id':c.tenant_id,'business':name,'invoice_id':c.invoice_id,'months':c.months,'rate_percent':c.rate_percent,'base_amount':c.base_amount,'amount':c.amount,'currency':c.currency,'state':c.state,'created':c.created,'reversed_at':c.reversed_at,'reversal_reason':c.reversal_reason}
 def withdrawal_json(w,u=None,p=None):
@@ -115,7 +127,7 @@ def register_agents(app,current,db,log,hasher,check,client_ip,digest):
   if s.scalar(select(User.id).where(User.username==b.username)):raise HTTPException(409,'Username unavailable; choose another username')
   u=User(username=b.username,password_hash=hasher.hash(b.password),role='agent',tenant_id=None,active=True);s.add(u)
   try:
-   s.flush();s.add(AgentProfile(user_id=u.id,full_name=b.full_name.strip(),phone=b.phone.strip(),note=(b.note or '').strip() or None,status='pending',revision=1,ledger_revision=0,applied=now));log(s,u,'agent_applied',u.id);s.commit()
+   s.flush();s.add(AgentProfile(user_id=u.id,full_name=b.full_name.strip(),phone=b.phone.strip(),note=(b.note or '').strip() or None,region=b.region,city=b.city,township=b.township,latitude=b.latitude,longitude=b.longitude,status='pending',revision=1,ledger_revision=0,applied=now));log(s,u,'agent_applied',u.id);s.commit()
   except IntegrityError:s.rollback();raise HTTPException(409,'Username unavailable; choose another username')
   return {'username':u.username,'status':'pending'}
 

@@ -1,7 +1,8 @@
 import unittest
 import test_backend
 from sqlalchemy import select
-from backend.models import User,Audit,AgentCommission,LoginAttempt
+from backend.models import User,Audit,AgentCommission,AgentProfile,LoginAttempt
+LOCATION={'region':'Yangon Region','city':'Yangon (test)','township':'Kamayut (test)','latitude':16.8235129,'longitude':96.1324}
 
 class AgentTests(unittest.TestCase):
  setUp=test_backend.AccountPaymentTests.setUp
@@ -11,7 +12,7 @@ class AgentTests(unittest.TestCase):
   with self.app.state.factory() as db:db.get(User,self.users['platform']).platform_owner=True;db.commit()
   return self.login('platform')
  def apply(self,username='agent.one',**kw):
-  return self.client.post('/v1/agent-applications',json={'username':username,'password':'agent-test-pass','full_name':'Agent One (test)','phone':'09 123 4567','note':'Test application'}|kw)
+  return self.client.post('/v1/agent-applications',json={'username':username,'password':'agent-test-pass','full_name':'Agent One (test)','phone':'09 123 4567','note':'Test application'}|LOCATION|kw)
  def agent_login(self,username='agent.one'):
   r=self.client.post('/v1/auth/login',json={'username':username,'password':'agent-test-pass'});self.assertEqual(r.status_code,200,r.text);return {'Authorization':'Bearer '+r.json()['access_token']}
  def decide(self,dev,agent_id,status,reason='',revision=None):
@@ -58,6 +59,26 @@ class AgentTests(unittest.TestCase):
   roles=self.client.get('/v1/developer/roles',headers=dev).json()['roles']
   self.assertEqual(next(r for r in roles if r['key']=='agent')['accounts'],[{'username':'agent.one','active':False,'status':'suspended'}])
   with self.app.state.factory() as db:self.assertEqual(sorted(db.scalars(select(Audit.action).where(Audit.action.like('agent_%'))).all()),['agent_applied','agent_approved','agent_suspended'])
+
+ def test_applications_require_a_myanmar_location_and_pin(self):
+  for k in LOCATION:
+   body={'username':'agent.loc','password':'agent-test-pass','full_name':'Agent Loc (test)','phone':'09 123 4567'}|{x:v for x,v in LOCATION.items() if x!=k}
+   self.assertEqual(self.client.post('/v1/agent-applications',json=body).status_code,422,k)
+  for bad in [{'region':'Yangon'},{'city':'  '},{'township':''},{'latitude':5.2},{'longitude':105.8},{'latitude':91},{'longitude':'east'}]:self.assertEqual(self.apply('agent.loc',**bad).status_code,422,bad)
+  self.assertEqual(self.apply('agent.loc',city='  Yangon  ').status_code,201)
+  dev=self.developer();a=next(a for a in self.client.get('/v1/developer/agents',headers=dev).json() if a['username']=='agent.loc')
+  self.assertEqual(a['location'],LOCATION|{'city':'Yangon','latitude':16.823513})
+  self.assertEqual(self.client.get('/v1/agent/profile',headers=self.agent_login('agent.loc')).json()['location']['township'],'Kamayut (test)')
+  with self.app.state.factory() as db:
+   p=db.get(AgentProfile,a['id']);p.region=p.city=p.township=p.latitude=p.longitude=None;db.commit()
+  self.assertIsNone(next(a for a in self.client.get('/v1/developer/agents',headers=dev).json() if a['username']=='agent.loc')['location'])
+
+ def test_application_form_offers_the_same_regions_and_bounds(self):
+  import re,pathlib
+  from backend.agents import REGIONS,MYANMAR
+  src=(pathlib.Path(__file__).resolve().parents[1]/'src/AgentLocation.jsx').read_text()
+  self.assertEqual(tuple(re.findall(r"'([^']+)'",re.search(r'REGIONS=\[(.*?)\]',src).group(1))),REGIONS)
+  self.assertEqual({k:float(v) for k,v in re.findall(r'(south|north|west|east):([\d.]+)',src)},MYANMAR)
 
  def test_applications_are_rate_limited_per_network(self):
   for i in range(5):self.assertEqual(self.apply('agent.rate'+str(i)).status_code,201)

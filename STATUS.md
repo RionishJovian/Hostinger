@@ -801,3 +801,11 @@ Verification: `tests/test_media_pass_rules.py` (3: category validation and guest
 - Owner decision: a Media Pass bought online starts at the guest's first use. Online-purchased passes now report `activation: starts_at_first_use` and state `not_started`, and the guest sees "Starts at your first use"; the owner's Media Pass rules panel and the guest package text say the same. No clock runs until playback (not yet connected) records the first use. No migration.
 
 Verification: `tests/test_media.py` asserts the online pass state; media UI check covers the new label; full suites green.
+
+## 2026-10-11 — Agent application location (owner decisions Q31–Q32)
+
+- New Agent applications must give a state or region (Myanmar's 14 states and regions plus Naypyidaw Union Territory), a city, a township and a map pin. The pin is placed by clicking a map (Leaflet with OpenStreetMap tiles, loaded only when the applicant opens it) or by typing coordinates; it must fall inside Myanmar's bounding box (an approximate check). The browser's location feature stays disabled and nothing is tracked.
+- The Developer Dashboard → Agents list shows the township, city and region with a link to the pin on OpenStreetMap. Applicants from before this change show "No location — applied before location was required".
+- Migration 049 `agent_location`: five nullable columns on `agent_profiles`; the SQLite downgrade restores the exact 048 schema.
+
+Verification: `tests/test_agents.py` (required fields, bounds, stored and returned location, legacy rows, region list parity with the form); `scripts/verify-agent-location-ui.mjs`; local browser run (apply with a map pin, Developer view and pin link); full suites green.
