@@ -27,7 +27,7 @@ Owner decisions:
 | Firewall | UFW active, allowing 22, 80, 443, 51820/udp and 51821/udp (IPv4 and IPv6) |
 | Reverse proxy | The `megamagic-landing-caddy-1` container binds `156.67.216.128:80/443` and routes `megamagic.tech` and `www` to `mikromagic-build21-public-test-web` over `megamagic-landing-net` |
 | Co-hosted stacks (untouched) | `megamagic-landing`, `mikromagic-build21-rc` (127.0.0.1:18081), `mikromagic-v8-acceptance` (127.0.0.1:8080/8443), `v8-auth-candidate`, `v8-auth-final-retest-20261009`, `v8-auth-pgtest` (exited), `voucher-pg-20261009` |
-| Deployment directories | `-20261010` = `4e78…` (first public test); `-hub-20261010T143844Z` = `6288…` (Hub release); `-20261010T150700Z` = `6514…`; `-20261010T171319Z` = `4092…`; `-20261010T180343Z` = `5f93…` (migration 037); `-20261010T182316Z` = `379f…` (migration 038); `-20261010T185246Z` = `379f…` (first scripted deploy); `-20261010T195352Z` = `601e…` (migration 039); `-20261010T201247Z` = `201e…` (migration 040); `-20261010T203831Z` = `4fba…` (current, migration 041); `-20261010T184257Z` and `-20261010T184809Z` never served traffic |
+| Deployment directories | `-20261010` = `4e78…` (first public test); `-hub-20261010T143844Z` = `6288…` (Hub release); `-20261010T150700Z` = `6514…`; `-20261010T171319Z` = `4092…`; `-20261010T180343Z` = `5f93…` (migration 037); `-20261010T182316Z` = `379f…` (migration 038); `-20261010T185246Z` = `379f…` (first scripted deploy); `-20261010T195352Z` = `601e…` (migration 039); `-20261010T201247Z` = `201e…` (migration 040); `-20261010T203831Z` = `4fba…` (migration 041); `-20261011T073612Z` = `0d55…` (current, daily voucher counts); `-20261010T184257Z` and `-20261010T184809Z` never served traffic |
 
 The `6514…` artifact (the guest access diagnosis) **was deployed** at 15:07 UTC,
 which no project document recorded. The `bfbe…` digest reported in Discrepancy 3
@@ -183,6 +183,21 @@ only adds a defaulted column, so the 040 code runs on it.
 - Set `platform_owner` on `nish@magic` only (audit `platform_owner_granted`). Before writing: `backups/pre-platform-owner-20261010T203954Z.dump` in `-20261010T203831Z` (414 entries).
 - Disabled `public-test-owner` (`active=false`, its sessions removed; it had none). Audit `platform_account_disabled`. Before writing: `backups/pre-disable-public-test-owner-20261010T204016Z.dump` (414 entries). Re-enable by setting `active=true` if ever needed.
 - Live state: `nish@magic` active, platform owner; `public-test-owner` inactive. Only `nish@magic` sees the Platform console.
+
+### Scripted redeploy — daily voucher counts per shop and for all shops (2026-10-11 07:36 UTC)
+
+| Item | Value |
+|---|---|
+| Source | Commit `60d4d0d` on `origin/main`; artifact `0d553aad26657143365f81824c37e0bd87b907b289f1f9be3e2695e76b2962af` (169 files); local checks: 513 backend (12 skipped), 53 frontend tests, build, manifest, revenue and voucher UI checks; browser walk-through on a scratch database |
+| Directory | `/opt/mikromagic-build21-public-test-20261011T073612Z`; previous `-20261010T203831Z` |
+| Infra / Hub files | Unchanged |
+| Pre-deploy dump | `backups/pre-deploy.dump` (399 restore-list entries) |
+| Migration | None (041 → 041); rehearsal skipped by the script |
+| Rollback images | `…-{api,web,magic-hub,migrate}:rollback-20261011T073612Z` |
+| Result | api and web recreated and healthy; db and Hub untouched (Hub key and UDP 51820 unchanged); HTTPS 200; `/v1/ready` 200; served bundle `index-XEZUB3ve.js` contains the new Revenue columns; `/v1/revenue` returns 401 without a session |
+
+**Rollback:** retag the `rollback-20261011T073612Z` images, then
+`up -d --no-deps --force-recreate api web` from `-20261010T203831Z`. No schema change.
 
 ### Credential rotation and access
 
