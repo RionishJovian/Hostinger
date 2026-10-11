@@ -27,7 +27,7 @@ Owner decisions:
 | Firewall | UFW active, allowing 22, 80, 443, 51820/udp and 51821/udp (IPv4 and IPv6) |
 | Reverse proxy | The `megamagic-landing-caddy-1` container binds `156.67.216.128:80/443` and routes `megamagic.tech` and `www` to `mikromagic-build21-public-test-web` over `megamagic-landing-net` |
 | Co-hosted stacks (untouched) | `megamagic-landing`, `mikromagic-build21-rc` (127.0.0.1:18081), `mikromagic-v8-acceptance` (127.0.0.1:8080/8443), `v8-auth-candidate`, `v8-auth-final-retest-20261009`, `v8-auth-pgtest` (exited), `voucher-pg-20261009` |
-| Deployment directories | `-20261010` = `4e78…` (first public test); `-hub-20261010T143844Z` = `6288…` (Hub release); `-20261010T150700Z` = `6514…`; `-20261010T171319Z` = `4092…`; `-20261010T180343Z` = `5f93…` (migration 037); `-20261010T182316Z` = `379f…` (migration 038); `-20261010T185246Z` = `379f…` (first scripted deploy); `-20261010T195352Z` = `601e…` (migration 039); `-20261010T201247Z` = `201e…` (migration 040); `-20261010T203831Z` = `4fba…` (migration 041); `-20261011T073612Z` = `0d55…` (daily voucher counts); `-20261011T075349Z` = `3d90…` (batch QR); `-20261011T082054Z` = `ae40…` (migration 042); `-20261011T084421Z` = `5098…` (current, migration 043); `-20261010T184257Z` and `-20261010T184809Z` never served traffic |
+| Deployment directories | `-20261010` = `4e78…` (first public test); `-hub-20261010T143844Z` = `6288…` (Hub release); `-20261010T150700Z` = `6514…`; `-20261010T171319Z` = `4092…`; `-20261010T180343Z` = `5f93…` (migration 037); `-20261010T182316Z` = `379f…` (migration 038); `-20261010T185246Z` = `379f…` (first scripted deploy); `-20261010T195352Z` = `601e…` (migration 039); `-20261010T201247Z` = `201e…` (migration 040); `-20261010T203831Z` = `4fba…` (migration 041); `-20261011T073612Z` = `0d55…` (daily voucher counts); `-20261011T075349Z` = `3d90…` (batch QR); `-20261011T082054Z` = `ae40…` (migration 042); `-20261011T084421Z` = `5098…` (migration 043); `-20261011T090702Z` = `7ce9…` (current, public Demo, migration 043); `-20261010T184257Z` and `-20261010T184809Z` never served traffic |
 
 The `6514…` artifact (the guest access diagnosis) **was deployed** at 15:07 UTC,
 which no project document recorded. The `bfbe…` digest reported in Discrepancy 3
@@ -285,12 +285,30 @@ only adds a defaulted column, so the 040 code runs on it.
 - A CAA record.
 - The legacy `mm-backup.timer` failures.
 - Old router tunnel `mmh-8adfeb441215`. Owner decision: during an approved router window, disable it first; delete it only after the new Hub connection is proven.
-- Next app work (as of 2026-10-11 15:20 UTC+6:30, live at migration 043, commit `82adb54`):
+### Scripted redeploy — public interactive Demo, no migration (2026-10-11 09:07 UTC)
+
+| Item | Value |
+|---|---|
+| Source | Commit `0f761db` on `origin/main`; artifact `7ce96761ca074e6782b68bfb9a60a247a118a1ee49de616d42030ed99085b29f` (179 files); local checks: 610 backend (12 skipped), 73 frontend tests, build, manifest, voucher and revenue UI checks; local browser walk-through of every demo page |
+| Directory | `/opt/mikromagic-build21-public-test-20261011T090702Z`; previous `-20261011T084421Z` |
+| Infra / Hub files | Unchanged |
+| Pre-deploy dump | `backups/pre-deploy.dump` (417 restore-list entries) |
+| Migration | 043 → 043 (none); rehearsal skipped by the script (no new migration) |
+| Rollback images | `…-{api,web,magic-hub,migrate}:rollback-20261011T090702Z` |
+| Result | api and web recreated and healthy; db and Hub untouched (Hub key and UDP 51820 unchanged); HTTPS 200; `/v1/ready` 200; `/v1/me` 401 without a session; served bundle `index-Dxqkfobc.js` contains **Try the demo** and the demo client, not the development prototype. Live browser check: Try the demo opened "Golden Cafe (demo)" with the eight demo pages, a quick voucher returned `DEMO-…`, and no `/v1/` request was made after entering the demo (only the sign-in page's `health` and `appearance/public`). Read-only SQL: `alembic_version` 043, `tenants` 0 rows |
+
+**Rollback:** retag the `rollback-20261011T090702Z` images, then
+`up -d --no-deps --force-recreate api web` from `-20261011T084421Z`. No database change to undo.
+
+- Next app work (as of 2026-10-11 15:40 UTC+6:30, live at migration 043, commit `0f761db`):
+  - Public interactive Demo is done (owner decisions Q16–Q19): **Try the demo** on the sign-in page or `https://megamagic.tech/?demo=1`; sample business in the browser only, reset on exit. Not built: guest-side demo and a guided training tour.
+  - Cash reconciliation save on Revenue was broken (422) and is fixed in the same release.
+  - Owner decisions synced into `MIKROMAGIC-REQUIREMENTS.md` and still to build: Developer Dashboard on `nish@magic` (four areas), SME subscription self-service with manual approval, 7-day warning, renewal-only login on expiry, renewal date rules.
   - Batch QR on sheets and thermal runs is done (owner-only, no codes). Guest QR on vouchers stays off until a verified guest portal destination exists on a router.
   - Magic Support Mode / Get help reports are done (migration 043): owner creates, platform reads shared reports on Operations.
   - Shop business/network hours and planned maintenance are done (migration 042). Still open in that area: automatic Opening Check, push-alert suppression and uptime, which need live monitoring and notifications.
-  - Developer role: none exists in the app; the tracker item (L32) awaits the owner's details. The owner works as `nish@magic` (platform role, platform owner, sole Platform console user).
-  - `scripts/verify-staff-subscriptions-ui.mjs` fails; this predates the voucher work and is not yet investigated.
+  - Developer role: not built yet; the owner has now specified it (owner-only view on `nish@magic`, no second login). The owner works as `nish@magic` (platform role, platform owner, sole Platform console user).
+  - `scripts/verify-staff-subscriptions-ui.mjs` fails and is paused by the owner. Owner decision Q9 (no SME staff accounts) means its staff expectations are likely outdated; to be reconciled when that work resumes.
 
 ## How to read this document
 
