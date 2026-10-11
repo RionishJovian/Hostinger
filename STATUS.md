@@ -743,3 +743,15 @@ Owner decisions: no SME staff accounts (Q9); SME Owners request subscriptions an
 
 Verification: `tests/test_subscription_renewal.py` (7: month clamping, warning and restriction days, early/late term rules, owner-only payment details, request validation/idempotency/one-open/owner-only approval/isolation, late renewal restores access from the approval date and cannot extend twice, early renewal keeps remaining days); migration head assertions moved to 044; SQLite upgrade/downgrade/upgrade round trip; full suites green (617 backend, 73 JavaScript; staff/subscriptions, billing, voucher and revenue UI checks). Local browser run with an expired test business: renewal-only menu, 3-month request (before terms were limited to monthly/annual), platform-owner approval set 11 Oct 2026 – 11 Jan 2027, owner regained the full menu; the 7-day banner rendered in Burmese.
 
+## 2026-10-11 — Developer Dashboard, first increment (owner decisions on the Developer role)
+
+Owner decisions: Developer capabilities belong to the owner's existing `nish@magic` account, in a separate Developer Dashboard (not a second login, not mixed into the Platform console), limited to application settings, SME owner accounts, the platform payment system, and platform roles and permissions.
+
+- Migration 045: `users.access_state` (`active`/`suspended`/`disabled`, existing inactive accounts become `disabled`), `access_reason`, `access_revision`, and `owner_access_events` (one row per change with the reason, sessions ended and revision).
+- `backend/developer.py` (platform owner only): `GET /v1/developer/owners`, `POST /v1/developer/owners/{id}/access` (revisioned; suspending or disabling ends every session and revokes delegated review credentials), `POST /v1/developer/businesses/{id}/name` (checked against the current name), `GET /v1/developer/owners/{id}/history`, `GET /v1/developer/roles`.
+- Sign-in: a suspended SME owner with the right password gets 403 with the suspension reason; a wrong password and disabled accounts keep the generic 401.
+- Frontend: `src/DeveloperDashboard.jsx` (four areas), `src/OwnerAccounts.jsx`. The platform owner's menu shows Developer Dashboard and no longer lists Businesses, Subscriptions and Appearance separately; other platform operators are unchanged. The subscription payment-details form is only in the dashboard.
+- UI checks: `verify-businesses-responsive-ui`, `verify-onboarding-ui`, `verify-portal-ui` and `verify-progress-ui` had stale text expectations from earlier deliberate changes (demo sign-out label, 6-character password minimum, local HotSpot package wording, "Signed-in devices"); updated so all 16 offline UI checks pass.
+
+Verification: `tests/test_developer.py` (5: owner-only access, suspension with reason and restore, disable with generic failure and isolation, rename conflict, roles); migration heads 045; SQLite 044 → 045 → 044 → 045 with an inactive account; full suites green (622 backend, 73 JavaScript, all offline UI checks). Local browser: suspended and restored an owner from the dashboard, suspended sign-in showed the reason, all four areas rendered.
+

@@ -32,7 +32,7 @@ class EnrollmentMigrationTests(unittest.TestCase):
                     ]);session.commit()
                 command.upgrade(cfg,'032');command.upgrade(cfg,'head')
                 with sqlite3.connect(database) as db:
-                    self.assertEqual(db.execute('SELECT version_num FROM alembic_version').fetchone()[0],'044')
+                    self.assertEqual(db.execute('SELECT version_num FROM alembic_version').fetchone()[0],'045')
                     self.assertEqual(db.execute('SELECT status FROM magic_connect_attempts').fetchone()[0],'approved')
                     self.assertEqual(db.execute('SELECT count(*) FROM users').fetchone()[0],1)
                 with Session(engine) as session:

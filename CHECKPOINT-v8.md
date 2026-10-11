@@ -282,3 +282,10 @@ limitations.
 - `src/SubscriptionRenewal.jsx`, `src/SubscriptionPaymentSettings.jsx`, banner and restricted mode in `src/AccountWorkspace.jsx`, `renewal` strings in `src/sme-localization.mjs`.
 - Staff UI removed (`src/StaffRecovery.jsx`, `src/CashierVouchers.jsx` deleted); `scripts/verify-staff-subscriptions-ui.mjs` rewritten.
 - Tests: `tests/test_subscription_renewal.py` (7); migration heads 044.
+
+## Developer Dashboard, first increment (2026-10-11)
+
+- Migration 045 `owner_access`; `User.access_state/access_reason/access_revision`, model `OwnerAccessEvent`.
+- New `backend/developer.py`; suspended-owner message in `backend/app.py` login.
+- `src/DeveloperDashboard.jsx`, `src/OwnerAccounts.jsx`; platform-owner menu in `src/AccountWorkspace.jsx`.
+- Tests: `tests/test_developer.py` (5); migration heads 045; four stale UI check expectations updated.

@@ -19,6 +19,10 @@ class User(Base):
  temporary_password_expires:Mapped[int|None]=mapped_column(BigInteger,nullable=True)
  # Set only by trusted server-side provisioning; honored only for the platform role.
  platform_owner:Mapped[bool]=mapped_column(Boolean,default=False,server_default='0',nullable=False)
+ # SME owner access set by the platform owner; `active` stays False whenever this is not 'active'.
+ access_state:Mapped[str]=mapped_column(String(20),default='active',server_default='active')
+ access_reason:Mapped[str|None]=mapped_column(String(1000),nullable=True)
+ access_revision:Mapped[int]=mapped_column(Integer,default=0,server_default='0')
  __table_args__=(CheckConstraint("role in ('platform','sme','guest')"),CheckConstraint("role = 'platform' OR tenant_id IS NOT NULL"))
 class SessionToken(Base):
  __tablename__='sessions'
@@ -368,6 +372,18 @@ class SupportReport(Base):
  report:Mapped[dict]=mapped_column(JSON)
  shared_at:Mapped[int|None]=mapped_column(BigInteger,nullable=True)
  shared_by:Mapped[str|None]=mapped_column(ForeignKey('users.id'),nullable=True)
+class OwnerAccessEvent(Base):
+ __tablename__='owner_access_events'
+ id:Mapped[str]=mapped_column(String(36),primary_key=True,default=uid)
+ user_id:Mapped[str]=mapped_column(ForeignKey('users.id'),index=True)
+ actor_id:Mapped[str]=mapped_column(ForeignKey('users.id'))
+ revision:Mapped[int]=mapped_column(Integer)
+ previous_state:Mapped[str]=mapped_column(String(20))
+ state:Mapped[str]=mapped_column(String(20))
+ reason:Mapped[str]=mapped_column(String(1000))
+ sessions_ended:Mapped[int]=mapped_column(Integer)
+ created:Mapped[int]=mapped_column(BigInteger)
+ __table_args__=(CheckConstraint("state in ('active','suspended','disabled')",name='ck_owner_access_events_state'),UniqueConstraint('user_id','revision',name='uq_owner_access_events_revision'))
 class PlatformSetting(Base):
  __tablename__='platform_settings'
  key:Mapped[str]=mapped_column(String(80),primary_key=True)

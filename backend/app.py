@@ -151,6 +151,8 @@ def make_app(url=None,initialize=False):
    raise
   try:ok=HASHER.verify(u.password_hash if u else DUMMY,body.password)
   except (VerifyMismatchError,VerificationError):ok=False
+  if u and ok and u.role=='sme' and u.access_state=='suspended':
+   record_history('failure');s.commit();raise HTTPException(403,'This MikroMagic account is suspended. Reason: '+(u.access_reason or 'not given')+'. Contact MikroMagic to restore access.')
   if not u or not u.active or not ok or (u.must_change_password and u.temporary_password_expires and u.temporary_password_expires<=now):
    account_bucket.failures+=1
    if account_bucket.failures>=ACCOUNT_FAILURE_LIMIT:account_bucket.locked_until=now+ACCOUNT_LOCK_SECONDS
@@ -248,6 +250,8 @@ def make_app(url=None,initialize=False):
  from .subscription_billing import register_subscription_billing
  register_subscription_billing(app,current,db,log)
  from .subscription_renewal import register_subscription_renewal
+ from .developer import register_developer
+ register_developer(app,current,db,log)
  register_subscription_renewal(app,current,db,log)
  from .staff import register_staff
  register_staff(app,current,db,owner,log,HASHER,digest)

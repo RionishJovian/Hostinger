@@ -17,7 +17,7 @@ import SubscriptionControls from './SubscriptionControls.jsx';
 import StaffControls from './StaffControls.jsx';
 import SubscriptionBilling from './SubscriptionBilling.jsx';
 import SubscriptionRenewal from './SubscriptionRenewal.jsx';
-import SubscriptionPaymentSettings from './SubscriptionPaymentSettings.jsx';
+import DeveloperDashboard from './DeveloperDashboard.jsx';
 import BusinessOnboarding,{PasswordChange} from './BusinessOnboarding.jsx';
 import ReviewIntegrations from './ReviewIntegrations.jsx';
 import ReceiptEvidence from './ReceiptEvidence.jsx';
@@ -47,6 +47,7 @@ function Field({label,children}){return <label className="field"><span>{label}</
 function Table({heads,rows}){return <div className="tablewrap"><table><thead><tr>{heads.map(h=><th key={h}>{h}</th>)}</tr></thead><tbody>{rows.length?rows.map((r,i)=><tr key={i}>{r.map((v,j)=><td key={j}>{v}</td>)}</tr>):<tr><td colSpan={heads.length}>No records yet.</td></tr>}</tbody></table></div>}
 function Metric({title,value}){return <div className="metric"><small>{title}</small><strong>{value}</strong></div>}
 const RENEWAL_PAGES=['Subscription','Account'];
+const DEVELOPER_PAGES=['Businesses','Subscriptions','Appearance'];
 const names={platform:['Operations','Businesses','Subscriptions','Magic Hubs','Routers','Integrations','Appearance','Guidance','Audit','Account'],sme:['Overview','Revenue','Sites','Network','Routers','Internet','Captive portal','Packages','Vouchers','Payments','Subscription','Integrations','Media','Did you know?','Get help','Audit','Account'],guest:['Guest portal','My access','Media','Account']};
 export default function AccountWorkspace(props){return <SMELocalizationProvider><AccountWorkspaceContent {...props}/></SMELocalizationProvider>}
 function AccountWorkspaceContent({onDemo,onPrototype,demo=false,onExitDemo}){
@@ -61,7 +62,7 @@ function AccountWorkspaceContent({onDemo,onPrototype,demo=false,onExitDemo}){
  const [user,setUser]=useState(null),[s,setS]=useState(empty),[page,setPage]=useState('Overview'),[notice,setNotice]=useState(''),[busy,setBusy]=useState(false),[menu,setMenu]=useState(false),[chat,setChat]=useState(false),[dark,setDark]=useState(false);
  const [billingVersion,setBillingVersion]=useState(0);
  const restricted=!demo&&user?.role==='sme'&&!user.staff_profile&&user.subscription_restricted;
- const navigation=demo&&user?DEMO_PAGES:restricted?RENEWAL_PAGES:user?.staff_profile?staffPages(user.staff_profile):user?.platform_owner?[...names.platform,'Platform console']:names[user?.role]||[];
+ const navigation=demo&&user?DEMO_PAGES:restricted?RENEWAL_PAGES:user?.staff_profile?staffPages(user.staff_profile):user?.platform_owner?[...names.platform.filter(p=>!DEVELOPER_PAGES.includes(p)),'Platform console','Developer Dashboard']:names[user?.role]||[];
  useEffect(()=>{if(user?.staff_profile&&!staffPages(user.staff_profile).includes(page))setPage(staffPages(user.staff_profile)[0])},[user,page]);
  useEffect(()=>{if(restricted&&!RENEWAL_PAGES.includes(page))setPage('Subscription')},[restricted,page]);
  const client=useRef(null);if(!client.current)client.current=demo?demoClient():accountClient(()=>{setUser(null);setS(empty);setNotice('Your session ended. Sign in again.')});const api=client.current;
@@ -88,7 +89,7 @@ function AccountWorkspaceContent({onDemo,onPrototype,demo=false,onExitDemo}){
  if(!user)return <div className="app accountsignin"><div className="brand"><img src="/assets/brand.png" alt="MikroMagic logo"/><strong>MikroMagic<small>Cloud & business management</small></strong></div><div className="title"><div><h1>Your network.<br/><em>Your business.</em></h1><p>Sign in to your account. Your assigned role and business determine what you can access.</p></div></div><Panel title="Account sign-in"><p role="status">{health===null?'Checking sign-in service…':health?'Sign-in service available':'Sign-in service unavailable. Try again later.'}</p>{entrySite?(entryPortal?<GuestEntry portal={entryPortal} busy={busy} onRegister={registerGuest} onLogin={signIn}/>:<p>Guest site unavailable or loading.</p>):<>{pendingBatch&&<p role="status">Sign in as the business owner to open the voucher batch you scanned.</p>}<Login busy={busy} unavailable={health!==true} signIn={signIn}/></>}{notice&&<p role="alert">{notice}</p>}<p className="muted">Business accounts are provisioned by the platform operator. Guest registration is available only through a published site link. Sign out to revoke the current session.</p></Panel><Panel title="New to MikroMagic?"><p>Try the business workspace with sample data. No account, sign-in or payment needed. Nothing you do in the demo affects real businesses, payments or routers.</p><button className="button" onClick={onDemo}>Try the demo</button>{import.meta.env.DEV&&<button className="button secondary" onClick={onPrototype}>Development prototype</button>}</Panel></div>;
  if(demo&&!user)return <div className="app accountsignin"><p role="status">{notice||'Opening the demo…'}</p></div>;
  if(user.must_change_password)return <div className="app accountsignin"><div className="brand"><strong>MikroMagic</strong></div>{notice&&<p role="alert">{notice}</p>}<PasswordChange user={user} busy={busy} forced onChangePassword={changePassword} onLogout={logout}/></div>;
- const implemented=[STAFF_ACCESS_CLOSED_PAGE,'Overview','Revenue','Packages','Payments','Guest portal','My access','Operations','Businesses','Audit','Captive portal','Vouchers','Sites','Routers','Magic Hubs','Appearance','Media','Guidance','Did you know?','Account','Internet','Network','Subscription','Subscriptions','Get help'].includes(page)||(page==='Platform console'&&user.platform_owner)||(page==='Integrations'&&user.role==='sme');
+ const implemented=[STAFF_ACCESS_CLOSED_PAGE,'Overview','Revenue','Packages','Payments','Guest portal','My access','Operations','Businesses','Audit','Captive portal','Vouchers','Sites','Routers','Magic Hubs','Appearance','Media','Guidance','Did you know?','Account','Internet','Network','Subscription','Subscriptions','Get help'].includes(page)||((page==='Platform console'||page==='Developer Dashboard')&&user.platform_owner)||(page==='Integrations'&&user.role==='sme');
  return <div className={'app '+(menu?'menuopen':'')} aria-busy={busy}>
   <aside>
    <div className="brand"><img src="/assets/brand.png" alt="MikroMagic logo"/><strong>MikroMagic<small>{user.role==='sme'?t('shell','businessWorkspace'):user.role==='guest'?'Guest access':'Cloud operations'}</small></strong></div>
@@ -132,7 +133,7 @@ function AccountWorkspaceContent({onDemo,onPrototype,demo=false,onExitDemo}){
  {page==='Vouchers'&&!demo&&user.role==='sme'&&!user.staff_profile&&<VoucherProduction api={api} sites={s.sites} packages={s.packages} business={business} refresh={()=>load(user).catch(e=>setNotice(e.message))} openBatch={pendingBatch} onBatchOpened={clearBatch}/>}
  {page==='Vouchers'&&!demo&&user.role==='sme'&&!user.staff_profile&&<Dealers api={api} refresh={()=>load(user).catch(e=>setNotice(e.message))}/>}
  {page==='Businesses'&&<BusinessOnboarding businesses={s.businesses} resets={s.passwordResets} act={act} busy={busy}/>}
- {page==='Subscriptions'&&user.platform_owner&&<SubscriptionPaymentSettings api={api}/>}
+ {page==='Developer Dashboard'&&user.platform_owner&&<DeveloperDashboard api={api} s={s} act={act} busy={busy}/>}
  {page==='Subscriptions'&&<SubscriptionControls api={api} businesses={s.businesses} platform={user.role==='platform'}/>}
  {page==='Subscription'&&user.role==='sme'&&!user.staff_profile&&<SubscriptionRenewal api={api} onChanged={reload}/>}
  {(page==='Subscriptions'||page==='Subscription')&&!user.staff_profile&&<SubscriptionBilling key={billingVersion} api={api} businesses={s.businesses} platform={user.role==='platform'}/>}
