@@ -289,3 +289,9 @@ limitations.
 - New `backend/developer.py`; suspended-owner message in `backend/app.py` login.
 - `src/DeveloperDashboard.jsx`, `src/OwnerAccounts.jsx`; platform-owner menu in `src/AccountWorkspace.jsx`.
 - Tests: `tests/test_developer.py` (5); migration heads 045; four stale UI check expectations updated.
+
+## Developer Dashboard Application settings (2026-10-11)
+
+- New `backend/branding.py` (stored in `platform_settings` keys `application` and `application_logo`; no migration); body limit 1 MiB for the logo upload in `backend/app.py`.
+- `src/ApplicationSettings.jsx`; branding, language offer and announcement banner in `src/AccountWorkspace.jsx`; `src/SMELocalization.jsx` and `src/sme-localization.mjs` take the platform language settings.
+- Tests: `tests/test_branding.py` (3); a language-selection test in `tests/sme-localization.test.mjs`.

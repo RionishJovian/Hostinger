@@ -1,5 +1,6 @@
 import React,{useEffect,useState} from 'react';
 import AppearanceSettings from './AppearanceSettings.jsx';
+import ApplicationSettings from './ApplicationSettings.jsx';
 import BusinessOnboarding from './BusinessOnboarding.jsx';
 import OwnerAccounts from './OwnerAccounts.jsx';
 import SubscriptionPaymentSettings from './SubscriptionPaymentSettings.jsx';
@@ -19,11 +20,11 @@ function Roles({api}){
   {data&&!data.custom_roles.available&&<p className="muted">Custom roles: {data.custom_roles.reason.toLowerCase()}.</p>}
  </section>
 }
-export default function DeveloperDashboard({api,s,act,busy}){
+export default function DeveloperDashboard({api,s,act,busy,onBranding}){
  const [area,setArea]=useState(DEVELOPER_AREAS[0]);
  return <>
   <div className="buttons" role="tablist" aria-label="Developer Dashboard areas">{DEVELOPER_AREAS.map(a=><button key={a} role="tab" aria-selected={a===area} className={'button '+(a===area?'':'secondary')} onClick={()=>setArea(a)}>{a}</button>)}</div>
-  {area==='Application settings'&&<>{s.appearance&&<AppearanceSettings key={s.appearance.revision} appearance={s.appearance} act={act} busy={busy}/>}<section className="panel"><h2>Application configuration</h2><p className="muted">App name, logo, languages and notification defaults are not built yet. SME-owned settings stay in each business's own workspace.</p></section></>}
+  {area==='Application settings'&&<><ApplicationSettings api={api} onBranding={onBranding}/>{s.appearance&&<AppearanceSettings key={s.appearance.revision} appearance={s.appearance} act={act} busy={busy}/>}</>}
   {area==='SME owner accounts'&&<><OwnerAccounts api={api}/><BusinessOnboarding businesses={s.businesses} resets={s.passwordResets} act={act} busy={busy}/></>}
   {area==='Payment system'&&<><SubscriptionPaymentSettings api={api}/><SubscriptionControls api={api} businesses={s.businesses} platform/><SubscriptionBilling api={api} businesses={s.businesses} platform/></>}
   {area==='Roles & permissions'&&<Roles api={api}/>}

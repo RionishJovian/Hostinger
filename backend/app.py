@@ -90,7 +90,7 @@ def make_app(url=None,initialize=False):
  app.state.trusted_proxy_networks=trusted_proxy_networks(os.environ.get('MIKROMAGIC_TRUSTED_PROXY_CIDRS',''))
  @app.middleware('http')
  async def safety(request,call_next):
-  limit=5*1024*1024 if request.method=='POST' and re.fullmatch(r'/v1/orders/[^/]+/receipts',request.url.path) else 64_000
+  limit=5*1024*1024 if request.method=='POST' and re.fullmatch(r'/v1/orders/[^/]+/receipts',request.url.path) else 1024*1024+1024 if request.method=='POST' and request.url.path=='/v1/developer/application/logo' else 64_000
   chunks=[];size=0
   async for chunk in request.stream():
    size+=len(chunk)
@@ -252,6 +252,8 @@ def make_app(url=None,initialize=False):
  from .subscription_renewal import register_subscription_renewal
  from .developer import register_developer
  register_developer(app,current,db,log)
+ from .branding import register_branding
+ register_branding(app,current,db,log)
  register_subscription_renewal(app,current,db,log)
  from .staff import register_staff
  register_staff(app,current,db,owner,log,HASHER,digest)

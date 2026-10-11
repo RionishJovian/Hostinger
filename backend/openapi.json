@@ -973,6 +973,197 @@
         ]
       }
     },
+    "/v1/branding": {
+      "get": {
+        "summary": "Branding",
+        "operationId": "branding_v1_branding_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/branding/logo": {
+      "get": {
+        "summary": "Logo",
+        "operationId": "logo_v1_branding_logo_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/announcement": {
+      "get": {
+        "summary": "Announcement",
+        "operationId": "announcement_v1_announcement_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/v1/developer/application": {
+      "get": {
+        "summary": "Settings",
+        "operationId": "settings_v1_developer_application_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      },
+      "post": {
+        "summary": "Save",
+        "operationId": "save_v1_developer_application_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApplicationIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/v1/developer/application/logo": {
+      "post": {
+        "summary": "Upload",
+        "operationId": "upload_v1_developer_application_logo_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Upload-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 16,
+              "maxLength": 80,
+              "pattern": "^[A-Za-z0-9-]+$",
+              "title": "X-Upload-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/octet-stream": {
+              "schema": {
+                "type": "string",
+                "contentMediaType": "application/octet-stream",
+                "title": "Data"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/developer/application/logo/remove": {
+      "post": {
+        "summary": "Remove",
+        "operationId": "remove_v1_developer_application_logo_remove_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
     "/v1/platform/subscription-payment": {
       "get": {
         "summary": "Payment",
@@ -7977,6 +8168,86 @@
           "request_key"
         ],
         "title": "AdjustmentIn"
+      },
+      "AnnouncementIn": {
+        "properties": {
+          "text": {
+            "type": "string",
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Text"
+          },
+          "level": {
+            "type": "string",
+            "enum": [
+              "info",
+              "warning"
+            ],
+            "title": "Level"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "text",
+          "level"
+        ],
+        "title": "AnnouncementIn"
+      },
+      "ApplicationIn": {
+        "properties": {
+          "expected_revision": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Expected Revision"
+          },
+          "app_name": {
+            "type": "string",
+            "maxLength": 40,
+            "minLength": 1,
+            "title": "App Name"
+          },
+          "default_language": {
+            "type": "string",
+            "enum": [
+              "my",
+              "en"
+            ],
+            "title": "Default Language"
+          },
+          "languages": {
+            "items": {
+              "type": "string",
+              "enum": [
+                "my",
+                "en"
+              ]
+            },
+            "type": "array",
+            "maxItems": 2,
+            "minItems": 1,
+            "title": "Languages"
+          },
+          "announcement": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AnnouncementIn"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "expected_revision",
+          "app_name",
+          "default_language",
+          "languages"
+        ],
+        "title": "ApplicationIn"
       },
       "AssignIn": {
         "properties": {

@@ -1,16 +1,18 @@
 import React,{createContext,useContext,useMemo,useState} from 'react';
-import {getSmeMessage,persistSmeLanguage,readSmeLanguage} from './sme-localization.mjs';
+import {chooseSmeLanguage,getSmeMessage,persistSmeLanguage,readStoredSmeLanguage} from './sme-localization.mjs';
 import './sme-localization.css';
 
 const SMELocalizationContext=createContext(null);
 
-export function SMELocalizationProvider({children}){
- const [language,setLanguageState]=useState(readSmeLanguage);
+export function SMELocalizationProvider({children,languages=['my','en'],defaultLanguage='my'}){
+ const [stored,setStored]=useState(readStoredSmeLanguage);
+ const language=chooseSmeLanguage(stored,languages,defaultLanguage);
  const setLanguage=value=>{
-  const selected=persistSmeLanguage(value);
-  setLanguageState(selected);
+  if(!languages.includes(value))return;
+  setStored(persistSmeLanguage(value));
  };
- const value=useMemo(()=>({language,setLanguage,t:(section,key)=>getSmeMessage(language,section,key)}),[language]);
+ const offered=languages.join(',');
+ const value=useMemo(()=>({language,languages,setLanguage,t:(section,key)=>getSmeMessage(language,section,key)}),[language,offered]);
  return <SMELocalizationContext.Provider value={value}>{children}</SMELocalizationContext.Provider>;
 }
 
@@ -20,10 +22,11 @@ export function useSMELocalization(){
  return context;
 }
 
+const LANGUAGE_LABELS={my:'မြန်မာ',en:'English'};
 export function LanguageToggle({className='language-toggle'}){
- const {language,setLanguage,t}=useSMELocalization();
+ const {language,languages,setLanguage,t}=useSMELocalization();
+ if(languages.length<2)return null;
  return <div className={className} role="group" aria-label={t('shell','language')}>
-  <button type="button" aria-pressed={language==='my'} onClick={()=>setLanguage('my')}>မြန်မာ</button>
-  <button type="button" aria-pressed={language==='en'} onClick={()=>setLanguage('en')}>English</button>
+  {languages.map(l=><button key={l} type="button" aria-pressed={language===l} onClick={()=>setLanguage(l)}>{LANGUAGE_LABELS[l]}</button>)}
  </div>;
 }

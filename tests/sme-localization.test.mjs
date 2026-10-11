@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {getSmeMessage,LEGACY_OVERVIEW_LANGUAGE_STORAGE_KEY,persistSmeLanguage,readSmeLanguage,SME_LANGUAGE_STORAGE_KEY} from '../src/sme-localization.mjs';
+import {chooseSmeLanguage,getSmeMessage,LEGACY_OVERVIEW_LANGUAGE_STORAGE_KEY,persistSmeLanguage,readSmeLanguage,readStoredSmeLanguage,SME_LANGUAGE_STORAGE_KEY} from '../src/sme-localization.mjs';
 
 function storage(values={}){
  const data=new Map(Object.entries(values));
@@ -26,4 +26,15 @@ test('message lookup supports navigation and Overview in both locales with Engli
  assert.equal(getSmeMessage('en','navigation','Overview'),'Overview');
  assert.equal(getSmeMessage('my','overview','question'),'လုပ်ငန်း၏ Wi-Fi အလုပ်လုပ်နေပါသလား။');
  assert.equal(getSmeMessage('my','navigation','Unknown page'),'Unknown page');
+});
+
+test('platform language settings pick the default until a device choice exists and drop languages no longer offered',()=>{
+ assert.equal(readStoredSmeLanguage(storage()),null);
+ assert.equal(readStoredSmeLanguage(storage({[SME_LANGUAGE_STORAGE_KEY]:'xx'})),null);
+ assert.equal(readStoredSmeLanguage(storage({[LEGACY_OVERVIEW_LANGUAGE_STORAGE_KEY]:'en'})),'en');
+ assert.equal(chooseSmeLanguage(null,['my','en'],'en'),'en');
+ assert.equal(chooseSmeLanguage('my',['my','en'],'en'),'my');
+ assert.equal(chooseSmeLanguage('my',['en'],'en'),'en');
+ assert.equal(chooseSmeLanguage(null,['en'],'my'),'en');
+ assert.equal(chooseSmeLanguage(null,[],'en'),'en');
 });
