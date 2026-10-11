@@ -50,7 +50,8 @@ function Table({heads,rows}){return <div className="tablewrap"><table><thead><tr
 function Metric({title,value}){return <div className="metric"><small>{title}</small><strong>{value}</strong></div>}
 const RENEWAL_PAGES=['Subscription','Account'];
 const DEVELOPER_PAGES=['Businesses','Subscriptions','Appearance'];
-const names={platform:['Operations','Businesses','Subscriptions','Magic Hubs','Routers','Integrations','Appearance','Guidance','Audit','Account'],sme:['Overview','Notifications','Revenue','Sites','Network','Routers','Internet','Captive portal','Packages','Vouchers','Payments','Subscription','Integrations','Media','Did you know?','Get help','Audit','Account'],guest:['Guest portal','My access','Media','Account'],agent:AGENT_PAGES};
+const SME_GROUPS=[['',['Overview','Notifications']],['sell',['Vouchers','Payments','Revenue','Packages','Media']],['network',['Sites','Routers','Network','Internet','Captive portal']],['business',['Subscription','Integrations','Audit','Account']],['help',['Get help','Did you know?']]];
+const names={platform:['Operations','Businesses','Subscriptions','Magic Hubs','Routers','Integrations','Appearance','Guidance','Audit','Account'],sme:SME_GROUPS.flatMap(([,pages])=>pages),guest:['Guest portal','My access','Media','Account'],agent:AGENT_PAGES};
 const DEFAULT_BRANDING={app_name:'MikroMagic',default_language:'my',languages:['my','en'],logo:null};
 const ANNOUNCEMENT_DISMISSED_KEY='mikromagic.announcement.dismissed';
 function Brand({branding,subtitle}){return <div className="brand"><img src={branding.logo||'/assets/brand.png'} alt={branding.app_name+' logo'}/><strong>{branding.app_name}{subtitle&&<small>{subtitle}</small>}</strong></div>}
@@ -108,7 +109,7 @@ function AccountWorkspaceContent({onDemo,onPrototype,demo=false,onExitDemo,brand
   <aside>
    <Brand branding={branding} subtitle={user.role==='sme'?t('shell','businessWorkspace'):user.role==='guest'?'Guest access':user.role==='agent'?'Agent workspace':'Cloud operations'}/>
    <div className="workspace">{business}<small>{user.username} · {user.staff_profile||user.role}</small></div>
-   <nav>{navigation.map(p=><button key={p} className={p===page?'selected':''} onClick={()=>go(p)}>{displayPage(p)}{p==='Payments'&&s.revenue?.pending_orders>0&&<b className="count">{s.revenue.pending_orders}</b>}{p==='Notifications'&&s.notifications?.unread>0&&<b className="count">{s.notifications.unread}</b>}</button>)}</nav>
+   <nav>{(user.role==='sme'?SME_GROUPS.map(([g,pages])=>[g,pages.filter(p=>navigation.includes(p))]).filter(([,pages])=>pages.length):[['',navigation]]).map(([g,pages])=><React.Fragment key={g||'main'}>{g&&<div className="navgroup">{t('navGroups',g)}</div>}{pages.map(p=><button key={p} className={p===page?'selected':''} onClick={()=>go(p)}>{displayPage(p)}{p==='Payments'&&s.revenue?.pending_orders>0&&<b className="count">{s.revenue.pending_orders}</b>}{p==='Notifications'&&s.notifications?.unread>0&&<b className="count">{s.notifications.unread}</b>}</button>)}</React.Fragment>)}</nav>
    {demo&&<div className="sidebarfoot"><span className="pill">{t('shell','sampleData')}</span></div>}
   </aside>
   <div className="shell">

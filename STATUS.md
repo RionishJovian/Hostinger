@@ -814,3 +814,8 @@ Verification: `tests/test_agents.py` (required fields, bounds, stored and return
 
 - Product-wide interface review recorded in `docs/UX-REVIEW-2026-10-11.md` (72 captures: SME owner, Developer, Agent, sign-in, demo; desktop and phone), with findings F1–F13 and the increment plan.
 - Increment 1: on phones the header fits (Refresh and Sign out become labelled icons), tables scroll inside their box instead of squeezing columns, and no page scrolls sideways at 390 px (was every SME page). Developer-facing texts removed for signed-in users: "Development build" footer, "account database · Your authorized workspace" subtitle, sidebar "Authenticated records" and adapters note, the page eyebrow. The Captive portal page no longer goes blank on an older draft. No migration.
+
+## 2026-10-12 — SME menu grouped, owner terms in the menu (P0a, increment 2)
+
+- Owner terminology decisions: Shop (not Site), Internet Pass / Media Pass with a "Passes" catalogue page (not Package), Router (Gateway only in technical details).
+- The SME owner menu is grouped: Overview and Notifications, then Sell, Shops & network, Business and Help, in English and Burmese. Labels: Shops, Passes, Guest Wi-Fi page (was Captive portal), Connected services (was Integrations), Activity history (was Audit). The menu scrolls inside the sidebar on short windows. No page removed; internal page names unchanged. No migration.

@@ -22,7 +22,7 @@ async function enter(page,username,password,landing){
  const login=await response;
  assert.equal(login.status(),200);
  const token=(await login.json()).access_token;
- if(landing==='owner')await page.getByRole('button',{name:'Sites',exact:true}).waitFor();
+ if(landing==='owner')await page.getByRole('button',{name:'Shops',exact:true}).waitFor();
  else await page.getByRole('heading',{name:landing,exact:true}).first().waitFor();
  return token;
 }
@@ -56,7 +56,7 @@ async function ownerPage(username,tempPassword){
  assert.equal(changed.status(),200);
  const token=(await changed.json()).access_token;
  await page.getByRole('button',{name:'English',exact:true}).click();
- try{await page.getByRole('button',{name:'Sites',exact:true}).waitFor({timeout:8000})}
+ try{await page.getByRole('button',{name:'Shops',exact:true}).waitFor({timeout:8000})}
  catch(error){result.failure_ui=(await page.locator('body').innerText()).slice(0,1600);throw error}
  return {page,token,password:next};
 }
@@ -80,7 +80,7 @@ try{
  const ownerB=await ownerPage(userB,temporaryB);
  result.workflows.owner_forced_password_changes='PASS';
  for(const [owner,label] of [[ownerA,'A'],[ownerB,'B']]){
-  await owner.page.getByRole('button',{name:'Sites',exact:true}).click();
+  await owner.page.getByRole('button',{name:'Shops',exact:true}).click();
   await owner.page.getByLabel('Site name').fill('RC Site '+label+' '+suffix);
   const response=owner.page.waitForResponse(r=>r.url().endsWith('/v1/sites')&&r.request().method()==='POST');
   await owner.page.getByRole('button',{name:'Create site'}).click();
@@ -96,7 +96,7 @@ try{
  assert.notEqual(siteA,siteB);
  result.http.owner_sites=[sitesA.status,sitesB.status];
 
- await ownerA.page.getByRole('button',{name:'Packages',exact:true}).click();
+ await ownerA.page.getByRole('button',{name:'Passes',exact:true}).click();
  await ownerA.page.getByLabel('Package name').fill('RC Internet '+suffix);
  const packageResponse=ownerA.page.waitForResponse(r=>r.url().endsWith('/v1/packages')&&r.request().method()==='POST');
  await ownerA.page.getByRole('button',{name:'Create package'}).click();
@@ -104,7 +104,7 @@ try{
  await ownerA.page.getByText('RC Internet '+suffix).first().waitFor();
  result.workflows.package_creation_in_browser='PASS';
 
- await ownerA.page.getByRole('button',{name:'Captive portal',exact:true}).click();
+ await ownerA.page.getByRole('button',{name:'Guest Wi-Fi page',exact:true}).click();
  const welcome='Welcome to RC Cafe A '+suffix;
  await ownerA.page.getByLabel('Welcome message').fill(welcome);
  const draftResponse=ownerA.page.waitForResponse(r=>r.url().endsWith('/v1/portal/draft')&&r.request().method()==='POST');
@@ -145,9 +145,9 @@ try{
  try{await ownerA.page.getByRole('heading',{name:'Account sign-in'}).waitFor({timeout:8000})}
  catch(error){result.failure_stage='after_refresh';result.failure_ui=(await ownerA.page.locator('body').innerText()).slice(0,1400);throw error}
  const relogin=await enter(ownerA.page,userA,ownerA.password,'owner');
- await ownerA.page.getByRole('button',{name:'Sites',exact:true}).click();
+ await ownerA.page.getByRole('button',{name:'Shops',exact:true}).click();
  await ownerA.page.getByText('RC Site A '+suffix).first().waitFor();
- await ownerA.page.getByRole('button',{name:'Packages',exact:true}).click();
+ await ownerA.page.getByRole('button',{name:'Passes',exact:true}).click();
  await ownerA.page.getByText('RC Internet '+suffix).first().waitFor();
  const after=await api(ownerA.page,relogin,'GET','portal');
  assert.equal(after.status,200);assert.equal(after.body.draft.welcome,welcome);

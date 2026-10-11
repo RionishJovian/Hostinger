@@ -328,3 +328,8 @@ limitations.
 
 - `docs/UX-REVIEW-2026-10-11.md` (findings and plan).
 - `src/AccountWorkspace.jsx` (header icon buttons, removed developer texts), `src/styles.css` (phone header and table rules), `src/PortalSettings.jsx` (older drafts), `src/sme-localization.mjs` (unused `authenticatedRecords` removed).
+
+## Interface increment 2, SME menu (2026-10-12)
+
+- `src/AccountWorkspace.jsx` (`SME_GROUPS`, grouped navigation), `src/sme-localization.mjs` (`navGroups`, renamed menu labels), `src/styles.css` (group headings, scrolling menu).
+- Checks updated for the new menu source and names: `scripts/verify-staff-subscriptions-ui.mjs`, `scripts/verify-release-candidate-browser.mjs`.

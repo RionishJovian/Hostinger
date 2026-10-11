@@ -888,3 +888,10 @@ _Clarification synced 2026-10-09 from the authoritative Notion tracker; frozen v
 ### Q74 answered by the owner (Cursor chat, 2026-10-11 23:10)
 
 - **Q74: Option A.** In the Network Topology / Magic Map, customer devices under each AP are collapsed into a client-count group by default and expand when the owner selects that group. Applies to both the Map and the Tree view; verified links only, unknown or stale links labelled honestly.
+
+### Standard terms answered by the owner (Cursor chat, 2026-10-12 00:10) — P0a terminology
+
+- **Place:** "Shop" everywhere owners and guests read (menus, forms, reports); matches the Burmese "ဆိုင်". "Site" remains only an internal/API name.
+- **What guests buy:** "Internet Pass" and "Media Pass"; the owner's catalogue page is "Passes" (replaces "Package").
+- **Device:** "Router" on owner screens; "Gateway" only in technical details.
+- Voucher states stay distinct as already required: Generated, Sold, Activated.
