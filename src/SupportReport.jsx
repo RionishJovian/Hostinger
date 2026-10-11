@@ -8,7 +8,7 @@ function download(report) {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
-function ReportView({ item, onShare, busy }) {
+function ReportView({ item, onShare, busy, demo }) {
   const report = item.report;
   return <div className="support-report">
     <ul className="support-causes">{report.likely_causes.map((cause, index) => <li key={index}><strong>{cause.text}</strong><small>Based on: {cause.evidence}</small></li>)}</ul>
@@ -16,14 +16,14 @@ function ReportView({ item, onShare, busy }) {
     <div className="actions">
       <button type="button" className="button secondary" onClick={() => navigator.clipboard?.writeText(reportText(report))}>Copy report</button>
       <button type="button" className="button secondary" onClick={() => download(report)}>Download .txt</button>
-      {onShare && (item.shared_at
+      {demo ? <span className="muted">Demo reports are never sent to MikroMagic support.</span> : onShare && (item.shared_at
         ? <span className="pill good">Shared with MikroMagic support {shopTime(item.shared_at, report.shop.timezone)}</span>
         : <button type="button" className="button" disabled={busy} onClick={() => onShare(item)}>Share with MikroMagic support</button>)}
     </div>
   </div>;
 }
 
-export default function SupportReport({ api, sites }) {
+export default function SupportReport({ api, sites, demo = false }) {
   const [site, setSite] = useState('');
   const [description, setDescription] = useState('');
   const [items, setItems] = useState([]);
@@ -66,7 +66,7 @@ export default function SupportReport({ api, sites }) {
       <button className="button" disabled={busy || !site}>Create help report</button>
     </form>
     {notice && <p className="notice" role="status">{notice}</p>}
-    {current && <ReportView item={current} busy={busy} onShare={share} />}
+    {current && <ReportView item={current} busy={busy} onShare={share} demo={demo} />}
     {items.length > 1 && <div className="tablewrap"><table>
       <thead><tr><th>Created</th><th>Likely cause</th><th>Support</th><th></th></tr></thead>
       <tbody>{items.map(item => <tr key={item.id} aria-current={item.id === open ? 'true' : undefined}>

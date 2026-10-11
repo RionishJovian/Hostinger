@@ -266,3 +266,11 @@ limitations.
 - `backend/support_report.py` (report builder, scrubbing, share, platform inbox).
 - Frontend: `src/SupportReport.jsx` (owner page and platform `SupportInbox`), `src/support-report.mjs` (text, file name, short cause); Get help menu item and Overview button; translations in `src/sme-localization.mjs`.
 - Tests: `test_support_report` (3), `support-report.test.mjs` (3); head assertions moved to 043.
+
+## Public interactive Demo (2026-10-11)
+
+- No migration, no backend change.
+- `src/demo-api.mjs` (in-memory demo client and sample business), demo mode in `src/AccountWorkspace.jsx` and `src/App.jsx`, demo note in `src/SupportReport.jsx`, banner strings in `src/sme-localization.mjs`, `.demo-banner` in `src/styles.css`.
+- Fix: Revenue cash reconciliation request body (`src/RevenueDashboard.jsx`), guarded in `scripts/verify-revenue-ui.mjs`.
+- Tests: `tests/demo-api.test.mjs` (8).
+

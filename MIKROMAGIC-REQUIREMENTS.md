@@ -273,7 +273,7 @@ _Clarification synced 2026-10-09 from the authoritative Notion tracker; frozen v
 - **Secure Owner Recovery** remains operator-assisted. Operator verifies identity and issues temporary recovery credentials; owner must set a new password. Operator never sees old/final passwords or device secrets.
 - After recovery, prompt **Review Signed-in Devices** and allow logout of selected sessions. Record recovery in security audit without unnecessarily disrupting customer Wi-Fi.
 ### v1.1 / Later — explicitly outside frozen v1
-- **Safe Demo / Training Mode** with a clearly marked simulated Demo Shop is **v1.1**, not v1.
+- **Safe Demo / Training Mode** with a clearly marked simulated Demo Shop is **v1.1**, not v1. *Superseded 2026-10-11 by owner decisions Q16–Q19 (see “Owner decisions — 2026-10-11” below): a public interactive Demo with sample data, no signup, reset on exit, is required.*
 - Advanced floor-plan Wi-Fi heatmaps, full automatic RF optimization, advanced load balancing, dealer portal/app, full remote-support control, NFC/asset-tag hardware integration, advanced AI fraud scoring and other non-launch-critical expansion remain later unless separately approved.
 ### Frozen implementation policy
 - **Do not restart or replace Build 21. Preserve existing working functionality and passing tests.**
@@ -482,3 +482,76 @@ _Clarification synced 2026-10-09 from the authoritative Notion tracker; frozen v
 - Extracted source to an isolated temporary workspace and inspected its README, deployment instructions, checkpoint and launch-readiness notes. These indicate React/Vite frontend, FastAPI backend, and PostgreSQL/Caddy deployment files; live MikroTik integration remains unverified.
 - Attempted local full Python regression suite, but execution timed out in this environment; do not report a pass. No source modification or public deployment was performed.
 - Reachability blocker: this chat has no connected Mac/Codex execution or Hostinger VPS management tool. Hostinger plugin discovery did not reveal a Hostinger VPS integration. To continue working on the live source/server, obtain an appropriate Work/computer-use session with authorized project/VPS access. Ask the owner promptly for access activation if needed, instead of implying background work continues.
+
+## Owner decisions — 2026-10-11 (Notion sync)
+
+> Copied verbatim from the Notion tracker, fetched 2026-10-11 after the owner's Developer Dashboard, SME staff, subscription and Demo Q&A. Execution checkpoints from Notion are recorded in `MIKROMAGIC-HOSTINGER-HANDOVER.md`, not here.
+
+### Owner-confirmed requirement — 2026-10-11 (Developer role identity)
+- Developer is a **platform-side role exclusively for the MikroMagic owner**, not for a separate employee, another person, or an SME business user. The owner chose option A with the explicit clarification: "not another person it's just me".
+- **Owner decision A (account):** Developer capabilities belong to the owner's existing platform account `nish@magic`, alongside existing Platform Owner access. **Do not create a second login, account, or another Developer user.** This is a confirmed product requirement, not yet evidence of code changes.
+- **Owner decision D (Developer capabilities):** Limit the owner-only Developer interface to (1) application settings management, (2) SME owner account management, (3) platform payment system management, and (4) platform roles **and permissions** management. These are the only four requested functional areas. Do not interpret "Developer" as permission to deploy code, manipulate VPS/router infrastructure, or expose developer diagnostics/logs/API activity through that interface by default. The existing Platform Owner account's separate established rights are not revoked by this UI scope decision.
+- **Owner decision A (interface):** Provide a **separate Developer Dashboard**, accessible only from the owner's existing `nish@magic` account, rather than mixing its four management sections into the existing Platform Console. This is a dedicated view, **not a separate login**, and it does not change the existing Platform Owner role.
+- **Owner decision B (SME Owner Accounts — full management):** Within the Developer Dashboard the platform owner can create, view, edit, enable/disable, suspend SME owner accounts; initiate secure password resets; manage account access; and review account history. Password reset must follow existing secure flow (platform cannot see the existing or final password; SME chooses a new password). Suspension/access changes must preserve auditability and apply appropriate session restrictions as designed. This scope choice is confirmed, but the exact UI/details remain subject to implementation.
+- **Owner decision C (Platform Payment System — complete management, with strict ownership separation):** The owner-only Developer Dashboard manages **the MikroMagic platform's own** receiving bank account(s), KBZPay/WavePay or other payment methods and payment instructions; platform payment settings, transactions, approval/rejection, refunds, payment history, subscription plans, prices, billing periods, and payment-related permissions. **Each SME Owner manages their own business's receiving bank accounts and payment methods in that SME's own settings.** Do not pool or substitute platform accounts for SME receipts, and do not let an SME access or edit another SME's or the platform's account details. Platform subscription payments to MikroMagic and SME business/customer payments are distinct flows; keep payment records scoped to the right owner. The owner explicitly said: "I need to manage for my own bank account and sme owner should manage their own". This does not authorize transfers or payouts; exact implementation and any payment-processor integrations still require validation.
+- **Owner decision C (Platform Roles & Permissions — default + custom):** Keep predefined platform roles with their established permissions, and allow the owner to create additional custom roles, name them, and configure their permissions. This is a platform-side role-management feature in the owner-only Developer Dashboard. Keep the owner's Developer Dashboard/Platform Owner privileges exclusively tied to the owner's existing account; custom roles must not be able to grant themselves or others this owner-only authority. Exact assignable permissions and role-assignment targets are still to be clarified, and existing SME owner security/tenant isolation must remain intact.
+- Actions and limits in **Application Settings** and the exact available role-permission catalogue remain pending the ongoing owner Q&A. These notes confirm requirements only; no implementation or deployment is claimed.
+
+### Owner decision — 2026-10-11: Developer Dashboard Application Settings
+- Chosen: **C (both A and B)**.
+- Developer Dashboard includes platform branding and appearance: logo, colors, themes, app name, interface customization.
+- It also includes application configuration: languages, notifications, defaults, and platform-wide preferences.
+- These controls belong to the owner's existing platform login only; SME-owned settings remain isolated.
+- This records requirements, not completed implementation.
+
+### Owner decision — 2026-10-11: SME Staff accounts
+- **Question 9: Option B (No SME employee/staff accounts).** Each SME has exactly one Owner/Admin account; do not create employee accounts, staff sign-ins, or staff-role management for SMEs.
+- The failing Staff / Subscriptions UI check must be investigated as a technical test failure. Do not treat the failure as authorization to introduce staff features. Preserve the separate **platform-side** default/custom role controls approved for the owner-only Developer Dashboard; those do not imply SME staff accounts.
+- No development, test result, or deployment is claimed by this requirements decision.
+
+### Owner decision — 2026-10-11: SME subscription self-service
+- **Question 10: Option A (self-service subscription requests, platform manual approval).** SME Owners can view platform subscription plans/prices, submit subscription or renewal requests, provide payment evidence, and view their subscription and payment history.
+- The MikroMagic Platform Owner checks incoming subscription payments and explicitly approves or rejects requests through the owner-only platform management interface; no automatic approval based solely on submitted evidence. This is separate from each SME's own customer-facing bank account and payment methods.
+- The selected option does not require adding SME staff accounts or allowing SME owners to alter platform plan pricing, approval rules, or others' subscriptions.
+- This is a requirements decision only; do not claim that the failing Staff/Subscriptions UI check has been fixed or that this is deployed.
+
+### Owner decision — 2026-10-11: Subscription expiry warning and login restriction
+- **Seven days before an SME subscription expires**, display a warning notification inside the MikroMagic platform to the affected SME Owner, stating the expiration date. The owner asked for an in-platform notification; no email, SMS, or push channel is assumed by this decision.
+- **On the subscription expiry date**, the SME account enters a **restricted-login state**; there is no post-expiration grace period. The owner specified: "restricted login at the expire day".
+- **Owner decision A (restricted login clarification, Question 12):** On and after expiration, the SME Owner **can still sign in only to a renewal-only screen** showing subscription status, available renewal plans/options, payment instructions or evidence submission, and relevant renewal/payment history. All other SME management screens and corresponding backend operations are locked until the subscription is reactivated. Do not block login entirely. Protect pre-existing local MikroTik guest internet operation as already specified.
+- Do not disconnect existing MikroTik guest internet service solely due to a cloud subscription expiry; this does not grant continued access to expired paid management features.
+- This is a requirements decision, not a claim that it is implemented or deployed.
+
+### Owner decision — 2026-10-11: Subscription reactivation after payment approval
+- **Question 13: Option A (automatic reactivation after manual payment approval).** When the MikroMagic Platform Owner approves an SME subscription/renewal payment, the system immediately activates or renews the SME subscription, updates its expiration date according to the selected plan, and restores the SME Owner's normal management access without a second manual activation step.
+- Payment evidence alone does not activate the subscription. Rejected/pending payments do not reactivate it. Approval and resulting entitlement change should be consistent and auditable, and duplicate approval must not extend it twice.
+- Exact handling of early renewals and renewal term start date remains to be clarified in the ongoing owner Q&A. This is a confirmed requirement only; no implementation or deployment is claimed.
+
+### Owner decision — 2026-10-11: Early subscription renewal date
+- **Question 14: Option A.** If an SME Owner renews while the current subscription is still active, add the full purchased renewal period to the **existing expiration date**, not the payment-approval date. Remaining paid time must be preserved.
+- Example: a one-month renewal approved with five days remaining retains those five days, followed by the full month. Determine calendar-month boundaries consistently per the subscription plan and configured subscription timezone.
+- Manual platform approval and immediate entitlement update are still required as confirmed in Question 13; payment evidence alone is insufficient.
+- Handling renewals after expiration remains the next open owner question. Requirements decision only; no code change/deployment claimed.
+
+### Owner decision — 2026-10-11: Renewal after subscription expiration
+- **Question 15: Option A (start on approval date).** If an SME's paid subscription has already expired when a renewal payment is approved, begin the new paid term on the **platform owner's payment-approval date**, not the prior expiration date; do not charge or subtract days from the period the account was restricted.
+- Approval must immediately restore normal SME management access and set the new expiration based on the approved plan duration. As previously confirmed, evidence submission or a pending payment alone must not activate access, and repeated approval must not cause duplicate extension.
+- This is requirements documentation, not implementation, test execution, or deployment.
+
+### Owner decision — 2026-10-11: Prepayment Demo access for new SME accounts
+- **Question 16 owner answer:** "Demo view is available before the payment." New prospective SME Owners must be able to see a MikroMagic **Demo view before paying**. Do not assume a paid production subscription is active until a payment has been manually approved by the platform owner, per the confirmed subscription approval rules.
+- **Owner decision B (Question 17 — Interactive Demo):** Prospective SME Owners can try application features in a demo environment using **sample/simulated data**, including creating sample vouchers and adjusting demo settings. Interactions must remain isolated: no effects on real SMEs, production data, real payment/subscriptions, or MikroTik routers, and no issuing live voucher credentials. The demo is not a free production trial.
+- Still to clarify: whether viewing/using the Demo requires account registration, or supports guest access.
+- Requirement only, not evidence of implementation or deployment.
+
+### Owner decision — 2026-10-11: Demo guest access
+- **Question 18: Option A.** Everyone can try the interactive MikroMagic Demo immediately without creating an account, signing in, or paying.
+- This supersedes the earlier open question about whether registration is required. No signup gate is allowed for demo visitors.
+- Interactive demo actions stay in isolated sample data and cannot affect production, real customer records, live payment or MikroTik routers.
+- Remaining implementation choice: whether a visitor's demo changes are reset each session or preserved temporarily.
+- Requirements confirmation only. No code, testing, or deployment is claimed.
+
+### Owner decision — 2026-10-11: Demo session reset
+- **Question 19: Option A (reset on exit).** Public interactive Demo changes are temporary. On exit/end of a Demo visit, discard all visitor-made changes; each new visit starts from fresh, preset sample data.
+- Do not persist visitor Demo edits into production or other visitors' demos. No account or payment required to enter; no effect on real MikroTik devices or real vouchers.
+- This is a confirmed requirement, not an implementation or deployment claim.

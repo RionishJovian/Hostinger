@@ -10,9 +10,12 @@ function Pill({children,warn=false}){return <span className={'pill '+(warn?'warn
 function Button({children,onClick,secondary=false,...props}){return <button className={secondary?'button secondary':'button'} onClick={onClick} {...props}>{children}</button>}
 function Panel({title,action,children}){return <section className="panel"><div className="panelhead"><h2>{title}</h2>{action}</div>{children}</section>}
 function Table({heads,rows}){return <div className="tablewrap"><table><thead><tr>{heads.map(h=><th key={h}>{h}</th>)}</tr></thead><tbody>{rows.length?rows.map((row,i)=><tr key={i}>{row.map((v,j)=><td key={j}>{v}</td>)}</tr>):<tr><td colSpan={heads.length} className="empty">No records yet. Complete a guest purchase or create a voucher to begin.</td></tr>}</tbody></table></div>}
+const demoLink=()=>new URLSearchParams(window.location.search).get('demo')==='1';
 export function App(){
- const [demo,setDemo]=useState(false);
- return demo?<DemoWorkspace onAccount={()=>setDemo(false)}/>:<AccountWorkspace onDemo={()=>setDemo(true)}/>;
+ const [mode,setMode]=useState(()=>demoLink()?'demo':'account'),[visit,setVisit]=useState(0);
+ function exitDemo(){if(demoLink()){const url=new URL(window.location.href);url.searchParams.delete('demo');window.history.replaceState(null,'',url)}setMode('account')}
+ if(mode==='prototype'&&import.meta.env.DEV)return <DemoWorkspace onAccount={()=>setMode('account')}/>;
+ return <AccountWorkspace key={mode+visit} demo={mode==='demo'} onDemo={()=>{setVisit(visit+1);setMode('demo')}} onExitDemo={exitDemo} onPrototype={()=>setMode('prototype')}/>;
 }
 function DemoWorkspace({onAccount}){
  const [role,setRole]=useState('sme'),[page,setPage]=useState('Overview'),[s,setS]=useState(null),[user,setUser]=useState(null),[mode,setMode]=useState('light'),[notice,setNotice]=useState(''),[chat,setChat]=useState(false),[messages,setMessages]=useState([{who:'assistant',text:'I’m Magic Dude. This preview uses guided demo responses; I cannot execute router changes.'}]),[input,setInput]=useState(''),[menu,setMenu]=useState(false);
