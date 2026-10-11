@@ -679,3 +679,16 @@ Frozen v1: "Daily revenue, voucher count and payment-method breakdown support pe
 - Revenue page: "Vouchers sold" and "Vouchers cancelled / refunded" metrics; both columns in the shop, payment-method and daily tables; a "Net by payment method" column per day; a **Today** button using the reporting timezone; a hint that the all-shops view combines shops.
 
 Verification: backend test with two shops, four payment methods, a cancelled sale, a refund and an unsold voucher (all-shops totals, per-shop, per-method, per-day methods, single-shop filter); 3 JavaScript tests (timezone-correct Today, method summary, combined returns); the revenue UI check covers the new columns and button. Local browser walk-through on a scratch database: Today for all shops (7 sold, 1 cancelled, per-shop split 4/3, methods Cash/KBZPay/WavePay) and for one shop (3 sold).
+
+## 2026-10-11 — Batch QR on voucher sheets and thermal runs (frozen v1)
+
+Frozen v1: "Batch QR opens the exact batch using only a safe reference and requires signed-in Owner for sensitive actions."
+
+- New print setting **Print a batch QR on each sheet**, on by default, saved with production jobs and My Templates (`print_settings.batch_qr`). No migration: print settings are stored as JSON.
+- Each A4 sheet header carries a 12 mm QR beside the business name; each 58/80 mm thermal run carries one before its run label. Caption: "Owner: scan to open this batch (sign-in required). No voucher codes inside."
+- The QR link is `https://<app>/?batch=<job id>&sheet=<n>`. It holds no codes, serials or tenant data, and is generated only on HTTPS (or local development).
+- Opening the link: signed out shows "Sign in as the business owner to open the voucher batch you scanned."; the Owner/Admin lands on Vouchers with that exact job open, the sheet row highlighted and the message "Nothing was changed". Another business sees "This batch QR does not belong to this business, or the batch no longer exists." and no data. Platform, guest and staff accounts are told batch QR codes open only for the business Owner/Admin. The link is removed from the address bar after use.
+- Guest QR on vouchers stays off until a verified guest portal destination exists on a router; the print preview says so.
+- The calibration page shows a dashed batch-QR slot so the test print matches the real header. With the QR on, the A4 header is 13 mm instead of 6 mm, so cards are slightly shorter.
+
+Verification: backend test (default on, off kept on job and detail, template keeps it, invalid value rejected, other business 404); 4 batch-link and 1 sheet JavaScript tests; full suites green (514 backend, 58 JavaScript, voucher and revenue UI checks). Local browser walk-through on a scratch database: signed-out hint, wrong business refused, owner opened the exact older job with sheet 1 highlighted, rendered 40-voucher Economy sheet shows the QR in the header. Scanning a printed sheet with a phone is unverified.

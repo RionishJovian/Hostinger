@@ -90,6 +90,16 @@ class VoucherProductionTests(unittest.TestCase):
   self.assertEqual(self.client.post(f"/v1/voucher-templates/{r.json()['id']}/archive",headers=self.owner).status_code,200)
   self.assertEqual(self.client.get('/v1/voucher-templates',headers=self.owner).json(),[])
 
+ def test_batch_qr_is_a_print_setting_on_by_default(self):
+  self.setup_voucher()
+  self.assertTrue(self.draft().json()['settings']['batch_qr'])
+  off=self.draft(batch_qr=False).json();self.assertFalse(off['settings']['batch_qr'])
+  self.assertFalse(self.client.get(f"/v1/voucher-jobs/{off['id']}",headers=self.owner).json()['settings']['batch_qr'])
+  t=self.client.post('/v1/voucher-templates',headers=self.owner,json={'name':'No QR sheet','settings':{'package_id':self.pkg,'quantity':60,'layout':'a4_ultra','batch_qr':False}})
+  self.assertFalse(t.json()['settings']['batch_qr'])
+  self.assertEqual(self.draft(batch_qr='yes please').status_code,422)
+  other=self.login('other');self.assertEqual(self.client.get(f"/v1/voucher-jobs/{off['id']}",headers=other).status_code,404)
+
  def test_other_business_and_guests_cannot_use_production_jobs(self):
   self.setup_voucher();job=self.draft().json();other=self.login('other')
   self.assertEqual(self.client.post('/v1/voucher-jobs',headers=other,json={'package_id':self.pkg,'quantity':5}).status_code,404)

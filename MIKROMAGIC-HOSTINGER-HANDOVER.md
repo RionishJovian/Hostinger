@@ -241,7 +241,7 @@ only adds a defaulted column, so the 040 code runs on it.
 - The legacy `mm-backup.timer` failures.
 - Old router tunnel `mmh-8adfeb441215`. Owner decision: during an approved router window, disable it first; delete it only after the new Hub connection is proven.
 - Next app work (as of 2026-10-11 03:10 UTC+6:30, live at migration 041, commit `2d8e238`):
-  - Batch voucher QR stays off until a verified guest portal destination exists.
+  - Batch QR on sheets and thermal runs is done (owner-only, no codes). Guest QR on vouchers stays off until a verified guest portal destination exists on a router.
   - Developer role: none exists in the app; the tracker item (L32) awaits the owner's details. The owner works as `nish@magic` (platform role, platform owner, sole Platform console user).
   - `scripts/verify-staff-subscriptions-ui.mjs` fails; this predates the voucher work and is not yet investigated.
 

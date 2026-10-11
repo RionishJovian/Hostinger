@@ -31,7 +31,7 @@ test('sheets carry batch, sheet and serial identity and escape text',()=>{
  const html=productionSheets({job,items,business:'Golden <Cafe>'});
  assert.match(html,/Batch PJ-0007 · Sheet 1\/2 · Serial 000001–000002/);assert.match(html,/Sheet 2\/2 · Serial 000003–000003/);
  assert.match(html,/Golden &lt;Cafe&gt;/);assert.match(html,/Cafe &lt;WiFi&gt;/);assert.doesNotMatch(html,/<WiFi>/);
- assert.match(html,/1000 MMK/);assert.match(html,/QR codes are off/);
+ assert.match(html,/1000 MMK/);assert.match(html,/Guest QR codes on vouchers are off/);assert.doesNotMatch(html,/class="page withqr"|opens this batch/);
  const reprint=productionSheets({job,items,business:'Cafe',only:[2],reprint:true});
  assert.doesNotMatch(reprint,/CAFE-AB1/);assert.match(reprint,/CAFE-AB3/);assert.match(reprint,/REPRINT 1/);assert.match(reprint,/destroy the failed copies/);
  const thermal=productionSheets({job:{...job,settings:{layout:'thermal_58',show_price:false},plan:{unit:'run',per_sheet:25,sheets:1,last_sheet_count:3}},items:items.map(v=>({...v,sheet_no:1})),business:'Cafe'});
@@ -44,3 +44,14 @@ test('calibration page uses sample cards that can never be redeemed',()=>{
  assert.doesNotMatch('NOT·A·CODE'.replace(/[\s-]+/g,''),/^[A-Z0-9]{6,40}$/);
  assert.match(calibrationSheet({settings:{layout:'thermal_80'},business:'Cafe'}),/should measure 40 mm/);
 });
+
+test('batch QR sits in the sheet or run header only when one was generated',()=>{
+ const svg='<svg data-test="qr"></svg>';
+ const html=productionSheets({job,items,business:'Cafe',qr:{1:svg}});
+ assert.equal((html.match(/data-test="qr"/g)||[]).length,1);assert.match(html,/class="page withqr"/);assert.match(html,/sign-in required/);assert.match(html,/opens this batch in MikroMagic for the signed-in owner only/);
+ const thermal=productionSheets({job:{...job,settings:{layout:'thermal_58'},plan:{unit:'run',per_sheet:25,sheets:1,last_sheet_count:3}},items:items.map(v=>({...v,sheet_no:1})),business:'Cafe',qr:{1:svg}});
+ assert.match(thermal,/class="runqr"><svg data-test="qr">/);
+ assert.match(calibrationSheet({settings:{layout:'a4_economy'},business:'Cafe'}),/class="page withqr"[\s\S]*batch QR/);
+ assert.doesNotMatch(calibrationSheet({settings:{layout:'a4_economy',batch_qr:false},business:'Cafe'}),/class="page withqr"|>batch QR</);
+});
+

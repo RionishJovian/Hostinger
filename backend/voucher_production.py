@@ -36,6 +36,7 @@ class ProductionSettings(Strict):
  rows:int|None=Field(default=None,ge=4,le=16)
  show_price:bool=True
  ssid:str|None=Field(default=None,max_length=32)
+ batch_qr:bool=True
  @model_validator(mode='after')
  def custom_grid(self):
   if self.layout=='a4_custom':
@@ -72,7 +73,7 @@ def plan(settings,quantity):
  return {'unit':unit,'per_sheet':per,'sheets':sheets,'last_sheet_count':quantity-(sheets-1)*per}
 
 def print_settings(b):
- return {'expires_days':b.expires_days,'prefix':normalize_prefix(b.prefix),'layout':b.layout,'columns':b.columns,'rows':b.rows,'show_price':b.show_price,'ssid':b.ssid or None}
+ return {'expires_days':b.expires_days,'prefix':normalize_prefix(b.prefix),'layout':b.layout,'columns':b.columns,'rows':b.rows,'show_price':b.show_price,'ssid':b.ssid or None,'batch_qr':b.batch_qr}
 
 def ref(job):return f'PJ-{job.number:04d}'
 

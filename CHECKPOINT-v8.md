@@ -246,3 +246,9 @@ limitations.
 - `backend/revenue.py`: voucher sold/cancelled/refunded counts overall and per day, shop and method; per-day net by method. No migration.
 - Frontend: `src/revenue-days.mjs` (Today in the reporting timezone, method summary), new metrics, columns and Today button in `src/RevenueDashboard.jsx`.
 - Tests: `test_voucher_sales` (+1), `revenue-days.test.mjs` (3), `scripts/verify-revenue-ui.mjs` extended.
+
+## Batch QR (2026-10-11)
+
+- `backend/voucher_production.py`: `ProductionSettings.batch_qr` (default true) in print settings. No migration.
+- Frontend: `src/batch-link.mjs` (build/read/strip the `?batch=&sheet=` link, QR per sheet), QR in sheet/run headers in `src/voucher-production.mjs`, setting and deep-link open in `src/VoucherProduction.jsx`, pending batch through sign-in in `src/AccountWorkspace.jsx`.
+- Tests: `test_voucher_production` (+1), `batch-link.test.mjs` (4), `voucher-production.test.mjs` (+1).

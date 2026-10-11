@@ -34,7 +34,7 @@ export function nextStep(job){
  return ({draft:'Generate',generated:'Verify',verified:'Distribute',distributed:'Distribute',cancelled:'Profile'})[job.status]||'Profile';
 }
 const PREFS_KEY='mikromagic.voucherPrintPrefs';
-const PREF_FIELDS=['layout','columns','rows','show_price','ssid'];
+const PREF_FIELDS=['layout','columns','rows','show_price','ssid','batch_qr'];
 export function loadPrintPrefs(storage=globalThis.localStorage){
  try{const saved=JSON.parse(storage?.getItem(PREFS_KEY)||'{}');return Object.fromEntries(PREF_FIELDS.filter(k=>k in saved).map(k=>[k,saved[k]]))}catch{return {}}
 }
@@ -64,12 +64,15 @@ const STYLE=`*{box-sizing:border-box}body{font:11px system-ui;color:#111;backgro
 .run{margin:0 auto;padding:2mm 0;page-break-after:always;break-after:page}
 .ticket{border:0;border-bottom:.3mm dashed #000;padding:3mm 1mm}.ticket strong{font-size:16px}
 .runlabel{font-size:9px;text-align:center;border-bottom:.3mm solid #000;padding-bottom:1mm}
+.page.withqr{grid-template-rows:13mm 1fr}.label .batchqr{display:flex;align-items:center;gap:1.5mm}.batchqr svg,.qrslot{width:12mm;height:12mm;display:block}.qrslot{border:.2mm dashed #777;font-size:6px;display:grid;place-items:center}
+.runqr{display:flex;flex-direction:column;align-items:center;font-size:8px;padding:1mm 0}.runqr svg{width:20mm;height:20mm}
 @media print{.screen{display:none}.page{margin:0}@page{size:A4;margin:8mm}}`;
 function htmlDocument(title,body,screenNote,thermal){
  const page=thermal?`@media print{@page{size:${thermal}mm auto;margin:0}}.run{width:${thermal-8}mm}`:'';
  return `<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(title)}</title><style>${STYLE}${page}</style><body><div class="screen">${screenNote}</div>${body}</body></html>`;
 }
-export function productionSheets({job,items,business,siteName='Business-wide',only=null,reprint=false,dealerCode=''}){
+const QR_CAPTION='Owner: scan to open this batch (sign-in required). No voucher codes inside.';
+export function productionSheets({job,items,business,siteName='Business-wide',only=null,reprint=false,dealerCode='',qr={}}){
  const mark=dealerCode?` · Dealer ${esc(dealerCode)}`:'';
  const p=job.plan,level=density(p),settings=job.settings,thermal=LAYOUTS[settings.layout]?.thermal;
  const [c,r]=settings.layout==='a4_custom'?[settings.columns,settings.rows]:LAYOUTS[settings.layout]?.grid||[1,1];
@@ -78,10 +81,11 @@ export function productionSheets({job,items,business,siteName='Business-wide',on
  const pages=numbers.map(n=>{
   const list=bySheet.get(n).sort((a,b)=>a.serial_no-b.serial_no),range=`${serial(list[0].serial_no)}–${serial(list.at(-1).serial_no)}`;
   const copy=(reprint?` · REPRINT ${esc(job.sheets?.[n]?.reprints||'')}`:'')+mark;
-  if(thermal)return `<section class="run"><div class="runlabel">Print run ${esc(job.ref)}-R${n} · ${n}/${p.sheets} · Seq ${range}${copy}</div>${list.map(v=>card(v,{business,siteName,settings,level}).replace('class="card thermal"','class="card thermal ticket"')).join('')}<div class="runlabel">End of run ${esc(job.ref)}-R${n}</div></section>`;
-  return `<section class="page"><div class="label"><span>Batch ${esc(job.ref)} · Sheet ${n}/${p.sheets} · Serial ${range}${copy}</span><span>${esc(business)}</span></div><div class="grid" style="grid-template-columns:repeat(${c},1fr);grid-template-rows:repeat(${r},1fr)">${list.map(v=>card(v,{business,siteName,settings,level})).join('')}</div></section>`;
+  const code=qr[n]||'';
+  if(thermal)return `<section class="run">${code?`<div class="runqr">${code}<span>${QR_CAPTION}</span></div>`:''}<div class="runlabel">Print run ${esc(job.ref)}-R${n} · ${n}/${p.sheets} · Seq ${range}${copy}</div>${list.map(v=>card(v,{business,siteName,settings,level}).replace('class="card thermal"','class="card thermal ticket"')).join('')}<div class="runlabel">End of run ${esc(job.ref)}-R${n}</div></section>`;
+  return `<section class="page${code?' withqr':''}"><div class="label"><span>Batch ${esc(job.ref)} · Sheet ${n}/${p.sheets} · Serial ${range}${copy}</span>${code?`<span class="batchqr"><span>${esc(business)}<br>${QR_CAPTION}</span>${code}</span>`:`<span>${esc(business)}</span>`}</div><div class="grid" style="grid-template-columns:repeat(${c},1fr);grid-template-rows:repeat(${r},1fr)">${list.map(v=>card(v,{business,siteName,settings,level})).join('')}</div></section>`;
  }).join('');
- const note=`<p><strong>Private voucher ${thermal?'runs':'sheets'} · ${esc(job.ref)}</strong></p><p>Contains redeemable codes. Keep private. Print with your browser at 100% scale (no “fit to page”).</p><p>After printing, return to MikroMagic and mark each ${thermal?'run':'sheet'} as printed or failed. Opening the print dialog does not prove printing worked.</p>${reprint?'<p><strong>Reprint:</strong> destroy the failed copies first; this prints the same codes again.</p>':''}<p>QR codes are off: no verified guest portal address exists yet.</p>`;
+ const note=`<p><strong>Private voucher ${thermal?'runs':'sheets'} · ${esc(job.ref)}</strong></p><p>Contains redeemable codes. Keep private. Print with your browser at 100% scale (no “fit to page”).</p><p>After printing, return to MikroMagic and mark each ${thermal?'run':'sheet'} as printed or failed. Opening the print dialog does not prove printing worked.</p>${reprint?'<p><strong>Reprint:</strong> destroy the failed copies first; this prints the same codes again.</p>':''}${Object.keys(qr).length?'<p>The small QR on each '+(thermal?'run':'sheet')+' opens this batch in MikroMagic for the signed-in owner only. It holds no voucher codes.</p>':''}<p>Guest QR codes on vouchers are off: no verified guest portal address exists yet.</p>`;
  return htmlDocument(`${job.ref} voucher ${thermal?'runs':'sheets'}`,pages,note,thermal);
 }
 export function calibrationSheet({settings,business}){
@@ -91,6 +95,7 @@ export function calibrationSheet({settings,business}){
  const sample=Array.from({length:count},(_,i)=>({code:'NOT·A·CODE',serial_no:i+1,expires:0,policy:{name:'SAMPLE · not a voucher',price:0}}));
  const cards=sample.map(v=>card(v,{business,siteName:'Calibration',settings:{...settings,show_price:false},level})).join('');
  const ruler=`<div style="width:${thermal?40:100}mm;border-top:.4mm solid #000;margin:2mm auto;text-align:center;font-size:8px">This line should measure ${thermal?40:100} mm</div>`;
- const body=thermal?`<section class="run"><div class="runlabel">PRINT TEST &amp; CALIBRATION · not vouchers</div>${ruler}${cards}</section>`:`<section class="page"><div class="label"><span>PRINT TEST &amp; CALIBRATION · not vouchers</span><span>${esc(business)}</span></div><div class="grid" style="grid-template-columns:repeat(${c},1fr);grid-template-rows:repeat(${r},1fr)">${cards}</div></section>${ruler}`;
+ const slot=settings.batch_qr!==false;
+ const body=thermal?`<section class="run">${slot?'<div class="runqr"><span class="qrslot" style="width:20mm;height:20mm">batch QR</span></div>':''}<div class="runlabel">PRINT TEST &amp; CALIBRATION · not vouchers</div>${ruler}${cards}</section>`:`<section class="page${slot?' withqr':''}"><div class="label"><span>PRINT TEST &amp; CALIBRATION · not vouchers</span>${slot?`<span class="batchqr"><span>${esc(business)}</span><span class="qrslot">batch QR</span></span>`:`<span>${esc(business)}</span>`}</div><div class="grid" style="grid-template-columns:repeat(${c},1fr);grid-template-rows:repeat(${r},1fr)">${cards}</div></section>${ruler}`;
  return htmlDocument('Print test & calibration',body,'<p><strong>Print test &amp; calibration</strong> — sample cards only; none of these codes work.</p><p>Print at 100% scale. Check that the ruler measures correctly, every card fits inside its cut guides, and text is readable. Then confirm in MikroMagic.</p>',thermal);
 }
