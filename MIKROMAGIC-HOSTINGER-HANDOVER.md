@@ -27,7 +27,7 @@ Owner decisions:
 | Firewall | UFW active, allowing 22, 80, 443, 51820/udp and 51821/udp (IPv4 and IPv6) |
 | Reverse proxy | The `megamagic-landing-caddy-1` container binds `156.67.216.128:80/443` and routes `megamagic.tech` and `www` to `mikromagic-build21-public-test-web` over `megamagic-landing-net` |
 | Co-hosted stacks (untouched) | `megamagic-landing`, `mikromagic-build21-rc` (127.0.0.1:18081), `mikromagic-v8-acceptance` (127.0.0.1:8080/8443), `v8-auth-candidate`, `v8-auth-final-retest-20261009`, `v8-auth-pgtest` (exited), `voucher-pg-20261009` |
-| Deployment directories | `-20261010` = `4e78…` (first public test); `-hub-20261010T143844Z` = `6288…` (Hub release); `-20261010T150700Z` = `6514…`; `-20261010T171319Z` = `4092…`; `-20261010T180343Z` = `5f93…` (migration 037); `-20261010T182316Z` = `379f…` (migration 038); `-20261010T185246Z` = `379f…` (first scripted deploy); `-20261010T195352Z` = `601e…` (migration 039); `-20261010T201247Z` = `201e…` (migration 040); `-20261010T203831Z` = `4fba…` (migration 041); `-20261011T073612Z` = `0d55…` (daily voucher counts); `-20261011T075349Z` = `3d90…` (batch QR); `-20261011T082054Z` = `ae40…` (migration 042); `-20261011T084421Z` = `5098…` (migration 043); `-20261011T090702Z` = `7ce9…` (public Demo, migration 043); `-20261011T093325Z` and `-20261011T093659Z` = `7fbb…` (subscription renewal, migration 044; the same artifact deployed twice); `-20261011T095239Z` = `c46f…` (Developer Dashboard, migration 045); `-20261011T100858Z` = `cf02…` (Application settings, no migration); `-20261011T103908Z` = `ac75…` (Referral Agents, migration 046); `-20261011T112427Z` = `e6ae…` (Smart Notification Center, migration 047); `-20261011T115314Z` = `2efc…` (Media Pass rules, migration 048); `-20261011T120900Z` = `e5f0…` (current, online Media Pass starts at first use, no migration); `-20261010T184257Z` and `-20261010T184809Z` never served traffic; `-20261011T165850Z` = `2c1f…` (migration 049); `-20261011T172647Z` = `a050…` (interface increment 1) |
+| Deployment directories | `-20261010` = `4e78…` (first public test); `-hub-20261010T143844Z` = `6288…` (Hub release); `-20261010T150700Z` = `6514…`; `-20261010T171319Z` = `4092…`; `-20261010T180343Z` = `5f93…` (migration 037); `-20261010T182316Z` = `379f…` (migration 038); `-20261010T185246Z` = `379f…` (first scripted deploy); `-20261010T195352Z` = `601e…` (migration 039); `-20261010T201247Z` = `201e…` (migration 040); `-20261010T203831Z` = `4fba…` (migration 041); `-20261011T073612Z` = `0d55…` (daily voucher counts); `-20261011T075349Z` = `3d90…` (batch QR); `-20261011T082054Z` = `ae40…` (migration 042); `-20261011T084421Z` = `5098…` (migration 043); `-20261011T090702Z` = `7ce9…` (public Demo, migration 043); `-20261011T093325Z` and `-20261011T093659Z` = `7fbb…` (subscription renewal, migration 044; the same artifact deployed twice); `-20261011T095239Z` = `c46f…` (Developer Dashboard, migration 045); `-20261011T100858Z` = `cf02…` (Application settings, no migration); `-20261011T103908Z` = `ac75…` (Referral Agents, migration 046); `-20261011T112427Z` = `e6ae…` (Smart Notification Center, migration 047); `-20261011T115314Z` = `2efc…` (Media Pass rules, migration 048); `-20261011T120900Z` = `e5f0…` (current, online Media Pass starts at first use, no migration); `-20261010T184257Z` and `-20261010T184809Z` never served traffic; `-20261011T165850Z` = `2c1f…` (migration 049); `-20261011T172647Z` = `a050…` (interface increment 1); `-20261011T174246Z` = `bdc8…` (interface increment 2) |
 
 The `6514…` artifact (the guest access diagnosis) **was deployed** at 15:07 UTC,
 which no project document recorded. The `bfbe…` digest reported in Discrepancy 3
@@ -435,7 +435,23 @@ only adds a defaulted column, so the 040 code runs on it.
 **Rollback:** retag the `rollback-20261011T172647Z` images, then
 `up -d --no-deps --force-recreate api web` from `-20261011T165850Z`. No schema change.
 
-- Next app work (as of 2026-10-12 00:00 UTC+6:30, live at migration 049, commit `a050e2e`):
+### Scripted redeploy — interface increment 2 (SME menu grouped), no migration (2026-10-11 17:42 UTC)
+
+| Item | Value |
+|---|---|
+| Source | Commit `bdc8331` on `origin/main`; artifact `a64e07bab4f2604c6333593b471476f2cdc6d52c8384309ac4e2983ad084992d` (197 files); local checks: full backend suite (12 skipped), 76 frontend tests, build, manifest, all 17 offline UI checks |
+| Directory | `/opt/mikromagic-build21-public-test-20261011T174246Z`; previous `-20261011T172647Z`. Single run behind the lock directory. |
+| Infra / Hub files | Unchanged |
+| Pre-deploy dump | `backups/pre-deploy.dump` (at 049, 472 entries) |
+| Migration | none (049 → 049; rehearsal skipped) |
+| Rollback images | `…-{api,web,magic-hub,migrate}:rollback-20261011T174246Z` |
+| Result | api and web recreated and healthy; db and Hub untouched; `/v1/health` 200; served bundle `index-CR4ZPSZn.js` contains the grouped menu ("Shops & network", "Guest Wi-Fi page", "Connected services", "Activity history") |
+
+**Rollback:** retag the `rollback-20261011T174246Z` images, then
+`up -d --no-deps --force-recreate api web` from `-20261011T172647Z`. No schema change.
+
+- Next app work (as of 2026-10-12 00:20 UTC+6:30, live at migration 049, commit `bdc8331`):
+  - Owner terms decided: Shop, Internet Pass / Media Pass ("Passes"), Router. The SME menu is grouped and uses them; page contents still use the old words until the terminology increment.
   - Interface review (P0a) recorded in `docs/UX-REVIEW-2026-10-11.md`; increment 1 (page frame) is live. Next increments: SME menu grouping, Vouchers task-first, Overview, Routers guided + advanced, terminology and Burmese, Developer Dashboard, guest portal.
   - Agent applications now require a state or region, city, township and a map pin (owner Q31–Q32); the map (OpenStreetMap) loads only when the applicant opens it, coordinates can be typed instead, and the browser location feature stays off. The Developer Agents list shows the place and a link to the pin.
   - Next: the P0a product-wide interface review and simplification (owner directive, Hybrid UX), in small deployed steps. Known item: on phone widths the Developer Agents table squeezes the Agent column.
