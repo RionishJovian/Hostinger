@@ -66,6 +66,22 @@ class VoucherSaleTests(unittest.TestCase):
   with self.app.state.factory() as s:self.assertEqual(len(list(s.scalars(select(VoucherSale)))),1)
   self.assertEqual(self.client.get('/v1/revenue',headers=self.owner).json()['net_collections'],3000)
 
+ def test_daily_voucher_counts_per_shop_and_all_shops(self):
+  self.setup_voucher();shops=[self.client.post('/v1/sites',headers=self.owner,json={'name':name,'timezone':'Asia/Yangon'}).json()['id'] for name in ['North','South']]
+  issued=[self.client.post('/v1/vouchers',headers=self.owner,json={**self.body,'site_id':site,'request_key':'daily-count-key-'+str(i).zfill(4)}).json() for i,site in enumerate([shops[0],shops[0],shops[0],shops[1]])]
+  self.payment(issued[0]['id']);self.payment(issued[1]['id'],method='KBZPay',reference='KBZ-1');self.payment(issued[2]['id']);self.payment(issued[3]['id'],method='WavePay',reference='WP-1')
+  self.cancel(issued[1]['id'])
+  self.assertEqual(self.refund(issued[2]['id']).status_code,200)
+  self.client.post('/v1/vouchers',headers=self.owner,json={**self.body,'site_id':shops[1],'request_key':'daily-count-key-unsold'})
+  r=self.client.get('/v1/revenue',headers=self.owner).json()
+  self.assertEqual((r['vouchers_sold'],r['vouchers_cancelled'],r['vouchers_refunded']),(4,1,1))
+  day=r['by_day'][-1];self.assertEqual((day['vouchers_sold'],day['vouchers_cancelled'],day['vouchers_refunded']),(4,1,1))
+  self.assertEqual(day['methods'],{'Cash':3000,'KBZPay':0,'WavePay':3000})
+  per_shop={x['site_name']:(x['vouchers_sold'],x['vouchers_cancelled'],x['vouchers_refunded']) for x in r['by_site']}
+  self.assertEqual(per_shop,{'North':(3,1,1),'South':(1,0,0)})
+  self.assertEqual({m['method']:m['vouchers_sold'] for m in r['by_method']},{'Cash':2,'KBZPay':1,'WavePay':1})
+  south=self.client.get('/v1/revenue',headers=self.owner,params={'site_id':shops[1]}).json()
+  self.assertEqual((south['vouchers_sold'],south['net_collections']),(1,3000));self.assertEqual(south['by_day'][-1]['methods'],{'WavePay':3000})
  def test_guest_order_and_voucher_sale_are_counted_separately(self):
   v=self.setup_voucher();self.payment(v['id'])
   order=self.client.post('/v1/orders',headers=self.guest,json={'package_id':self.pkg,'portal_revision':3,'method':'Cash','reference':'guest-payment','evidence':'Test guest receipt','request_key':'separate-guest-order-001'}).json()

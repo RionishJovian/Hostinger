@@ -240,3 +240,9 @@ limitations.
 - Login history now also records platform accounts (Platform console only; the Owner/Admin endpoint is unchanged).
 - Frontend: `src/PlatformConsole.jsx`; the tab appears only when `/v1/me` returns `platform_owner`.
 - Tests: `test_platform_console` (4); head assertions moved to 041; `test_enrollment_migration` inserts its user with SQL.
+
+## Daily voucher counts per shop and for all shops (2026-10-11)
+
+- `backend/revenue.py`: voucher sold/cancelled/refunded counts overall and per day, shop and method; per-day net by method. No migration.
+- Frontend: `src/revenue-days.mjs` (Today in the reporting timezone, method summary), new metrics, columns and Today button in `src/RevenueDashboard.jsx`.
+- Tests: `test_voucher_sales` (+1), `revenue-days.test.mjs` (3), `scripts/verify-revenue-ui.mjs` extended.

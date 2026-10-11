@@ -670,3 +670,12 @@ The owner asked for a "Platform console" tab, visible only on their own platform
 - `/v1/me` returns `platform_owner`; the workspace adds the Platform console tab only when it is true. Both endpoints return 403 for every other account, including other platform accounts.
 
 Verification: `test_platform_console` (4 cases: access limited to the flagged platform account, cross-account session listing without tokens, platform sign-ins/failures/sign-outs with device details and no secrets, 7-day retention), migration 041 up/down on SQLite. Local browser walk-through on a scratch database: a second platform account has no tab; the owner account sees the tab, all active sessions and its own failed and successful sign-ins.
+
+## 2026-10-11 — Daily voucher counts per shop and for all shops (frozen v1)
+
+Frozen v1: "Daily revenue, voucher count and payment-method breakdown support per-shop/all-shops views." Revenue already had daily money, a payment-method table and a shop filter; voucher counts and a per-day method split were missing.
+
+- `GET /v1/revenue` adds `vouchers_sold`, `vouchers_cancelled` and `vouchers_refunded` overall and in every `by_day`, `by_site` and `by_method` row, plus `methods` (net per payment method) in each `by_day` row. Counts come from counter-sale financial events only: generated, unsold or redeemed vouchers are never counted as sold. A Cancel Sale and a refund are counted separately on the day they were recorded.
+- Revenue page: "Vouchers sold" and "Vouchers cancelled / refunded" metrics; both columns in the shop, payment-method and daily tables; a "Net by payment method" column per day; a **Today** button using the reporting timezone; a hint that the all-shops view combines shops.
+
+Verification: backend test with two shops, four payment methods, a cancelled sale, a refund and an unsold voucher (all-shops totals, per-shop, per-method, per-day methods, single-shop filter); 3 JavaScript tests (timezone-correct Today, method summary, combined returns); the revenue UI check covers the new columns and button. Local browser walk-through on a scratch database: Today for all shops (7 sold, 1 cancelled, per-shop split 4/3, methods Cash/KBZPay/WavePay) and for one shop (3 sold).

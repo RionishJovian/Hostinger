@@ -49,14 +49,21 @@ def register_revenue(app,current,db,owner):
   def signed(e):return e.amount if e.kind=='collection' else -e.amount
   def net_source(source):return sum(signed(e) for e in events if e.source==source)
   def count_source(source):return max(0,sum(1 if e.kind=='collection' else -1 for e in events if e.source==source))
-  days={};methods={};sites={}
+  days={};methods={};sites={};cancelled=cancelled_sales(s,refund)
   site_names={x.id:x.name for x in s.scalars(select(Site).where(Site.tenant_id==u.tenant_id))}
+  # Counter-sale counts only: generated or redeemed vouchers are never counted as sold.
+  def voucher_count(e):
+   if e.source!='voucher_sale':return None
+   return 'vouchers_sold' if e.kind=='collection' else 'vouchers_cancelled' if e.source_id in cancelled else 'vouchers_refunded'
   for e in events:
-   day=datetime.fromtimestamp(e.occurred_at,tz).date().isoformat()
+   day=datetime.fromtimestamp(e.occurred_at,tz).date().isoformat();counted=voucher_count(e)
    for group,key in [(days,day),(methods,e.method),(sites,e.site_id or 'unassigned')]:
-    bucket=group.setdefault(key,{'gross_collections':0,'refunds':0,'net_collections':0,'collection_count':0,'refund_count':0})
+    bucket=group.setdefault(key,{'gross_collections':0,'refunds':0,'net_collections':0,'collection_count':0,'refund_count':0,'vouchers_sold':0,'vouchers_cancelled':0,'vouchers_refunded':0})
     bucket['gross_collections' if e.kind=='collection' else 'refunds']+=e.amount;bucket['collection_count' if e.kind=='collection' else 'refund_count']+=1;bucket['net_collections']+=signed(e)
-  return {'currency':'MMK','filters':applied,'net_collections':net,'gross_collections':gross,'refunds':returned,'collection_count':len(collect),'refund_count':len(refund),'cancelled_sales':len(cancelled_sales(s,refund)),'average_receipt':round(gross/len(collect),2) if collect else 0,'approved_orders':count_source('guest_order'),'confirmed_payments':max(0,len(collect)-len(refund)),'voucher_sales':count_source('voucher_sale'),'pending_orders':len(pending),'pending_amount':sum(o.amount for o in pending),'pending_over_24h':sum(o.created<int(time.time())-86400 for o in pending),'estimated_timestamp_events':sum(e.timestamp_basis=='legacy_submission_estimate' for e in events),'by_source':{'guest_orders':net_source('guest_order'),'voucher_counter_sales':net_source('voucher_sale')},'by_service':{k:sum(signed(e) for e in events if e.service==k) for k in sorted({'internet','media','combined'}|{e.service for e in events})},'by_day':[{'date':day,**days[day]} for day in sorted(days)],'by_method':[{'method':method,**methods[method]} for method in sorted(methods)],'by_site':[{'site_id':id if id!='unassigned' else None,'site_name':site_names.get(id,'Business-wide / unassigned'),**sites[id]} for id in sorted(sites)]}
+    if counted:bucket[counted]+=1
+   by_method=days[day].setdefault('methods',{});by_method[e.method]=by_method.get(e.method,0)+signed(e)
+  counts={k:sum(voucher_count(e)==k for e in events) for k in ['vouchers_sold','vouchers_cancelled','vouchers_refunded']}
+  return {'currency':'MMK',**counts,'filters':applied,'net_collections':net,'gross_collections':gross,'refunds':returned,'collection_count':len(collect),'refund_count':len(refund),'cancelled_sales':len(cancelled),'average_receipt':round(gross/len(collect),2) if collect else 0,'approved_orders':count_source('guest_order'),'confirmed_payments':max(0,len(collect)-len(refund)),'voucher_sales':count_source('voucher_sale'),'pending_orders':len(pending),'pending_amount':sum(o.amount for o in pending),'pending_over_24h':sum(o.created<int(time.time())-86400 for o in pending),'estimated_timestamp_events':sum(e.timestamp_basis=='legacy_submission_estimate' for e in events),'by_source':{'guest_orders':net_source('guest_order'),'voucher_counter_sales':net_source('voucher_sale')},'by_service':{k:sum(signed(e) for e in events if e.service==k) for k in sorted({'internet','media','combined'}|{e.service for e in events})},'by_day':[{'date':day,**days[day]} for day in sorted(days)],'by_method':[{'method':method,**methods[method]} for method in sorted(methods)],'by_site':[{'site_id':id if id!='unassigned' else None,'site_name':site_names.get(id,'Business-wide / unassigned'),**sites[id]} for id in sorted(sites)]}
  @app.get('/v1/revenue/ledger')
  def ledger(params=Depends(inputs),limit:int=Query(default=100,ge=1,le=10000),offset:int=Query(default=0,ge=0,le=1000000),u=Depends(current),s=Depends(db)):
   tz,restrict,applied=filters(s,u,*params);q=restrict(select(FinancialEvent),FinancialEvent,FinancialEvent.occurred_at);total=s.scalar(select(func.count()).select_from(q.subquery()));rows=list(s.scalars(q.order_by(FinancialEvent.occurred_at.desc(),FinancialEvent.id.desc()).limit(limit+1).offset(offset)))
