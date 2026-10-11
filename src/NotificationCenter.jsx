@@ -47,7 +47,7 @@ export function DailySummary({api,go}){
  if(!d?.shown)return null;
  return <Panel title={n('summaryTitle')(d.date)}>
   {d.important&&<p><span className="pill warn">{n('importantDay')}</span> {d.reasons.map(r=>n('reasons')[r]||r).join(' · ')}</p>}
-  <div className="metrics">
+  <div className="metrics metrics-4">
    <Metric title={n('revenue')} value={d.revenue.length?d.revenue.map(m=>money(m.net,m.currency)).join(' · '):n('noRevenue')}/>
    <Metric title={n('payments')} value={d.revenue.reduce((a,m)=>a+m.payments,0)}/>
    <Metric title={n('sold')} value={d.vouchers.sold}/>

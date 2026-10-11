@@ -338,3 +338,8 @@ limitations.
 
 - `src/VoucherTabs.jsx` (new, accessible tabs whose hidden panels stay mounted), `src/Vouchers.jsx` (`VoucherInventory` `view` of `issue`, `list` or `all`), `src/AccountWorkspace.jsx` (Vouchers page as tabs), `src/sme-localization.mjs` (`voucherTabs`), `src/styles.css` (wrapping tabs).
 - `scripts/verify-voucher-ui.mjs` covers the split views, tab markup, hidden panels and the fallback tab.
+
+## Interface increment 4, Overview (2026-10-12)
+
+- `src/OverviewHealth.jsx` (health card owns the router message and action; `OverviewNetwork` split out with a collections card), `src/AccountWorkspace.jsx` (Overview order, revenue panels removed, unused `Metric` removed), `src/NotificationCenter.jsx` and `src/styles.css` (four-figure daily summary row), `src/sme-localization.mjs` (new `noKnown`, `netCollections`, `revenueNote` in English and Burmese).
+- New `scripts/verify-overview-ui.mjs`.

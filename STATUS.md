@@ -824,3 +824,8 @@ Verification: `tests/test_agents.py` (required fields, bounds, stored and return
 
 - The Vouchers page opens on Issue a voucher. All vouchers (metrics, inventory, sale review), Find stock, Batches & printing (batch sheets, production jobs) and Dealers are tabs, in English and Burmese. Dealers and production jobs remain owner/admin only and hidden in the demo, as before.
 - Inactive tabs stay mounted but hidden, so a code shown only once survives switching tabs; a batch QR link opens Batches & printing. No behaviour or API change; no migration.
+
+## 2026-10-12 — Overview simplified (P0a, increment 4)
+
+- The router state is shown once, in the Wi-Fi health card, with its action next to Get help; Needs your attention no longer repeats it. Order: health, attention, Quick Voucher, daily summary, network summary.
+- Revenue detail stays on Revenue: the Overview's revenue figures, Revenue by service (which still listed the retired "combined" service) and Business actions are removed; a Net confirmed collections card opens Revenue. No API change; no migration.
