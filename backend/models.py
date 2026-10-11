@@ -23,7 +23,7 @@ class User(Base):
  access_state:Mapped[str]=mapped_column(String(20),default='active',server_default='active')
  access_reason:Mapped[str|None]=mapped_column(String(1000),nullable=True)
  access_revision:Mapped[int]=mapped_column(Integer,default=0,server_default='0')
- __table_args__=(CheckConstraint("role in ('platform','sme','guest')"),CheckConstraint("role = 'platform' OR tenant_id IS NOT NULL"))
+ __table_args__=(CheckConstraint("role in ('platform','sme','guest','agent')",name='users_role_check'),CheckConstraint("role in ('platform','agent') OR tenant_id IS NOT NULL",name='users_check'))
 class SessionToken(Base):
  __tablename__='sessions'
  token_hash:Mapped[str]=mapped_column(String(64),primary_key=True)
@@ -384,6 +384,68 @@ class OwnerAccessEvent(Base):
  sessions_ended:Mapped[int]=mapped_column(Integer)
  created:Mapped[int]=mapped_column(BigInteger)
  __table_args__=(CheckConstraint("state in ('active','suspended','disabled')",name='ck_owner_access_events_state'),UniqueConstraint('user_id','revision',name='uq_owner_access_events_revision'))
+class AgentProfile(Base):
+ __tablename__='agent_profiles'
+ user_id:Mapped[str]=mapped_column(ForeignKey('users.id'),primary_key=True)
+ full_name:Mapped[str]=mapped_column(String(160))
+ phone:Mapped[str]=mapped_column(String(40))
+ note:Mapped[str|None]=mapped_column(String(1000),nullable=True)
+ status:Mapped[str]=mapped_column(String(20))
+ reason:Mapped[str|None]=mapped_column(String(1000),nullable=True)
+ revision:Mapped[int]=mapped_column(Integer)
+ # Bumped inside every withdrawal request so concurrent requests serialize on this row.
+ ledger_revision:Mapped[int]=mapped_column(Integer,default=0,server_default='0')
+ applied:Mapped[int]=mapped_column(BigInteger)
+ decided:Mapped[int|None]=mapped_column(BigInteger,nullable=True)
+ decided_by:Mapped[str|None]=mapped_column(ForeignKey('users.id'),nullable=True)
+ __table_args__=(CheckConstraint("status in ('pending','approved','rejected','suspended')",name='ck_agent_profiles_status'),)
+class AgentReferral(Base):
+ __tablename__='agent_referrals'
+ tenant_id:Mapped[str]=mapped_column(ForeignKey('tenants.id'),primary_key=True)
+ agent_id:Mapped[str]=mapped_column(ForeignKey('users.id'),index=True)
+ created:Mapped[int]=mapped_column(BigInteger)
+class AgentCommission(Base):
+ __tablename__='agent_commissions'
+ id:Mapped[str]=mapped_column(String(36),primary_key=True,default=uid)
+ agent_id:Mapped[str]=mapped_column(ForeignKey('users.id'),index=True)
+ tenant_id:Mapped[str]=mapped_column(ForeignKey('tenants.id'))
+ invoice_id:Mapped[str]=mapped_column(ForeignKey('subscription_invoices.id'),unique=True)
+ months:Mapped[int]=mapped_column(Integer)
+ rate_percent:Mapped[int]=mapped_column(Integer)
+ base_amount:Mapped[int]=mapped_column(BigInteger)
+ amount:Mapped[int]=mapped_column(BigInteger)
+ currency:Mapped[str]=mapped_column(String(3))
+ state:Mapped[str]=mapped_column(String(20))
+ created:Mapped[int]=mapped_column(BigInteger)
+ reversed_at:Mapped[int|None]=mapped_column(BigInteger,nullable=True)
+ reversal_reason:Mapped[str|None]=mapped_column(String(1000),nullable=True)
+ __table_args__=(CheckConstraint("state in ('earned','reversed')",name='ck_agent_commissions_state'),CheckConstraint('amount >= 0',name='ck_agent_commissions_amount'))
+class AgentWallet(Base):
+ __tablename__='agent_wallets'
+ agent_id:Mapped[str]=mapped_column(ForeignKey('users.id'),primary_key=True)
+ method:Mapped[str]=mapped_column(String(20),primary_key=True)
+ account_name:Mapped[str]=mapped_column(String(160))
+ account_number:Mapped[str]=mapped_column(String(40))
+ updated:Mapped[int]=mapped_column(BigInteger)
+ __table_args__=(CheckConstraint("method in ('kbzpay','wavepay')",name='ck_agent_wallets_method'),)
+class AgentWithdrawal(Base):
+ __tablename__='agent_withdrawals'
+ id:Mapped[str]=mapped_column(String(36),primary_key=True,default=uid)
+ agent_id:Mapped[str]=mapped_column(ForeignKey('users.id'),index=True)
+ amount:Mapped[int]=mapped_column(BigInteger)
+ currency:Mapped[str]=mapped_column(String(3))
+ method:Mapped[str]=mapped_column(String(20))
+ wallet:Mapped[dict]=mapped_column(JSON)
+ status:Mapped[str]=mapped_column(String(20))
+ revision:Mapped[int]=mapped_column(Integer)
+ reason:Mapped[str|None]=mapped_column(String(1000),nullable=True)
+ payout_reference:Mapped[str|None]=mapped_column(String(160),nullable=True)
+ request_key:Mapped[str]=mapped_column(String(80))
+ requested:Mapped[int]=mapped_column(BigInteger)
+ decided:Mapped[int|None]=mapped_column(BigInteger,nullable=True)
+ decided_by:Mapped[str|None]=mapped_column(ForeignKey('users.id'),nullable=True)
+ paid_at:Mapped[int|None]=mapped_column(BigInteger,nullable=True)
+ __table_args__=(UniqueConstraint('agent_id','request_key',name='uq_agent_withdrawals_request'),CheckConstraint('amount > 0',name='ck_agent_withdrawals_amount'),CheckConstraint("method in ('kbzpay','wavepay')",name='ck_agent_withdrawals_method'),CheckConstraint("status in ('requested','approved','rejected','paid','cancelled')",name='ck_agent_withdrawals_status'))
 class PlatformSetting(Base):
  __tablename__='platform_settings'
  key:Mapped[str]=mapped_column(String(80),primary_key=True)
@@ -820,7 +882,7 @@ class SubscriptionInvoice(Base):
  request_hash:Mapped[str]=mapped_column(String(64))
  created:Mapped[int]=mapped_column(BigInteger)
  updated:Mapped[int]=mapped_column(BigInteger)
- __table_args__=(UniqueConstraint('created_by','request_key'),CheckConstraint('amount > 0'),CheckConstraint('period_end > period_start'),CheckConstraint("status in ('unpaid','pending','needs_evidence','paid','rejected','void')"))
+ __table_args__=(UniqueConstraint('created_by','request_key'),CheckConstraint('amount > 0'),CheckConstraint('period_end > period_start'),CheckConstraint("status in ('unpaid','pending','needs_evidence','paid','rejected','void','refunded')",name='subscription_invoices_status_check'))
 class BillingEvent(Base):
  __tablename__='billing_events'
  id:Mapped[str]=mapped_column(String(36),primary_key=True,default=uid)

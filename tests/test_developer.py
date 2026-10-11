@@ -57,7 +57,7 @@ class DeveloperDashboardTests(unittest.TestCase):
 
  def test_roles_overview_lists_the_developer_and_does_not_offer_custom_roles_yet(self):
   dev=self.developer();roles={r['key']:r for r in self.client.get('/v1/developer/roles',headers=dev).json()['roles']}
-  self.assertEqual(roles['developer']['accounts'],[{'username':'platform','active':True}]);self.assertEqual(roles['user']['count'],2);self.assertFalse(roles['agent']['built'])
+  self.assertEqual(roles['developer']['accounts'],[{'username':'platform','active':True}]);self.assertEqual(roles['user']['count'],2);self.assertEqual(roles['agent']['accounts'],[])
   self.assertFalse(self.client.get('/v1/developer/roles',headers=dev).json()['custom_roles']['available'])
 
 if __name__=='__main__':unittest.main()

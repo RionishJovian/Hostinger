@@ -8,6 +8,7 @@ from sqlalchemy.exc import IntegrityError
 from .schemas import Strict
 from .models import SubscriptionInvoice,BillingEvent,SubscriptionPlan,TenantSubscription,Tenant,StaffGrant
 from .subscriptions import plan_json,subscription_json,renewal_term
+from .agents import record_commission,reverse_commission
 def fingerprint(data):return hashlib.sha256(json.dumps(data,sort_keys=True).encode()).hexdigest()
 class InvoiceIn(Strict):
  tenant_id:str
@@ -33,6 +34,10 @@ class ReviewIn(Strict):
  decision:Literal['approved','needs_evidence','rejected','void']
  reason:str=Field(min_length=1,max_length=1000)
  confirmed_received:bool=False
+class RefundIn(Strict):
+ expected_revision:int=Field(ge=1)
+ reason:str=Field(min_length=1,max_length=1000)
+ confirmed_returned:bool
 def invoice_json(v):
  return {k:getattr(v,k) for k in ['id','tenant_id','plan_id','snapshot','amount','currency','period_start','period_end','subscription_revision','revision','status','destination','instructions','method','reference','evidence','reviewed_by','reason','created','updated']}|{'settlement_verified':False,'automatic_renewal':False}
 def apply_request(s,v,now):
@@ -110,7 +115,19 @@ def register_subscription_billing(app,current,db,log):
    if sub:
     if not s.execute(update(TenantSubscription).where(TenantSubscription.tenant_id==v.tenant_id,TenantSubscription.revision==v.subscription_revision).values(**values)).rowcount:raise HTTPException(409,'Subscription changed; refresh')
    else:s.add(TenantSubscription(tenant_id=v.tenant_id,**values))
+  if status=='paid':record_commission(s,v,int(time.time()))
   history(s,u,v,'invoice_'+status,b.model_dump())
   try:s.commit()
   except IntegrityError:s.rollback();raise HTTPException(409,'Subscription changed concurrently; refresh')
   s.refresh(v);return invoice_json(v)|{'replayed':False}
+ @app.post('/v1/platform/subscription-invoices/{id}/refund')
+ def refund(id:str,b:RefundIn,u=Depends(current),s=Depends(db)):
+  platform(u)
+  if not u.platform_owner:raise HTTPException(403,'Only the platform owner records subscription refunds')
+  if not b.confirmed_returned:raise HTTPException(422,'Confirm the money was returned before recording the refund')
+  v=scoped(s,u,id);now=int(time.time())
+  if v.status=='refunded' and v.revision==b.expected_revision+1 and v.reason==b.reason:return invoice_json(v)|{'replayed':True,'commission_reversed':False}
+  if not s.execute(update(SubscriptionInvoice).where(SubscriptionInvoice.id==id,SubscriptionInvoice.revision==b.expected_revision,SubscriptionInvoice.status=='paid').values(status='refunded',revision=b.expected_revision+1,reviewed_by=u.id,reason=b.reason,updated=now)).rowcount:raise HTTPException(409,'Only a paid invoice can be refunded; refresh')
+  reversed_count=reverse_commission(s,id,b.reason,now)
+  history(s,u,v,'invoice_refunded',b.model_dump()|{'commission_reversed':bool(reversed_count)})
+  s.commit();s.refresh(v);return invoice_json(v)|{'replayed':False,'commission_reversed':bool(reversed_count)}

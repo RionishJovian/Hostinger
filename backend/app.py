@@ -16,6 +16,7 @@ from .staff import staff_allowed,LEGACY_STAFF_CLOSED
 from .models import TenantSubscription
 from .subscriptions import is_restricted
 from .subscription_renewal import renewal_allowed,RESTRICTED_MESSAGE
+from .agents import agent_allowed
 from .auth_metadata import client_labels,approximate_source
 HASHER=PasswordHasher();DUMMY=HASHER.hash(secrets.token_urlsafe(24));auth=HTTPBearer(auto_error=False)
 def digest(value):return hashlib.sha256(value.encode()).hexdigest()
@@ -115,6 +116,7 @@ def make_app(url=None,initialize=False):
    check(staff_allowed(grant.profile,request.method,request.url.path),LEGACY_STAFF_CLOSED)
   u.subscription_restricted=u.role=='sme' and is_restricted(s.get(TenantSubscription,u.tenant_id),now)
   if u.subscription_restricted:check(renewal_allowed(request.url.path),RESTRICTED_MESSAGE)
+  if u.role=='agent':check(agent_allowed(request.url.path),'Agent accounts can only use the Agent workspace')
   return u
  def log(s,u,action,target):s.add(Audit(actor_id=u.id,tenant_id=u.tenant_id,action=action,target=target,created=int(time.time())))
  def tenant(u,t):check(u.tenant_id==t,'Different business',404)
@@ -254,6 +256,8 @@ def make_app(url=None,initialize=False):
  register_developer(app,current,db,log)
  from .branding import register_branding
  register_branding(app,current,db,log)
+ from .agents import register_agents
+ register_agents(app,current,db,log,HASHER,check,lambda request:resolve_client_ip(request,app.state.trusted_proxy_networks),digest)
  register_subscription_renewal(app,current,db,log)
  from .staff import register_staff
  register_staff(app,current,db,owner,log,HASHER,digest)

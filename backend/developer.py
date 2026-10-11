@@ -11,7 +11,7 @@ from fastapi import Depends,HTTPException
 from pydantic import Field
 from sqlalchemy import select,update,delete,func,or_
 from .schemas import Strict
-from .models import User,Tenant,StaffGrant,SessionToken,LoginHistory,Audit,OwnerAccessEvent,ReviewCredential,PasswordResetRecord,TenantSubscription
+from .models import AgentProfile,User,Tenant,StaffGrant,SessionToken,LoginHistory,Audit,OwnerAccessEvent,ReviewCredential,PasswordResetRecord,TenantSubscription
 from .subscriptions import subscription_json
 
 class AccessIn(Strict):
@@ -82,5 +82,5 @@ def register_developer(app,current,db,log):
    {'key':'developer','accounts':[{'username':x.username,'active':x.active} for x in platform if x.platform_owner]},
    {'key':'platform','accounts':[{'username':x.username,'active':x.active} for x in platform if not x.platform_owner]},
    {'key':'user','count':owners},
-   {'key':'agent','count':0,'built':False}],
+   {'key':'agent','accounts':[{'username':x.username,'active':p.status=='approved','status':p.status} for x,p in s.execute(select(User,AgentProfile).join(AgentProfile,AgentProfile.user_id==User.id).order_by(User.username))]}],
    'custom_roles':{'available':False,'reason':'Waiting for the owner to confirm the permission catalogue'}}

@@ -785,6 +785,58 @@
         }
       }
     },
+    "/v1/platform/subscription-invoices/{id}/refund": {
+      "post": {
+        "summary": "Refund",
+        "operationId": "refund_v1_platform_subscription_invoices__id__refund_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RefundIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/developer/owners": {
       "get": {
         "summary": "Owners",
@@ -1053,7 +1105,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/ApplicationIn"
+                "$ref": "#/components/schemas/backend__branding__ApplicationIn"
               }
             }
           },
@@ -1162,6 +1214,475 @@
             "HTTPBearer": []
           }
         ]
+      }
+    },
+    "/v1/agent-applications": {
+      "post": {
+        "summary": "Apply",
+        "operationId": "apply_v1_agent_applications_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/backend__agents__ApplicationIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/agent/profile": {
+      "get": {
+        "summary": "Profile",
+        "operationId": "profile_v1_agent_profile_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/v1/agent/businesses": {
+      "get": {
+        "summary": "Businesses",
+        "operationId": "businesses_v1_agent_businesses_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      },
+      "post": {
+        "summary": "Register Business",
+        "operationId": "register_business_v1_agent_businesses_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BusinessIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/v1/agent/commissions": {
+      "get": {
+        "summary": "Commissions",
+        "operationId": "commissions_v1_agent_commissions_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/v1/agent/wallets": {
+      "post": {
+        "summary": "Save Wallet",
+        "operationId": "save_wallet_v1_agent_wallets_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WalletIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/v1/agent/withdrawals": {
+      "get": {
+        "summary": "Withdrawals",
+        "operationId": "withdrawals_v1_agent_withdrawals_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      },
+      "post": {
+        "summary": "Request Withdrawal",
+        "operationId": "request_withdrawal_v1_agent_withdrawals_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WithdrawalIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/v1/agent/withdrawals/{id}/cancel": {
+      "post": {
+        "summary": "Cancel Withdrawal",
+        "operationId": "cancel_withdrawal_v1_agent_withdrawals__id__cancel_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/developer/agents": {
+      "get": {
+        "summary": "Agents",
+        "operationId": "agents_v1_developer_agents_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/v1/developer/agents/{id}/decision": {
+      "post": {
+        "summary": "Decide Agent",
+        "operationId": "decide_agent_v1_developer_agents__id__decision_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgentDecisionIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/developer/agent-businesses": {
+      "get": {
+        "summary": "Agent Businesses",
+        "operationId": "agent_businesses_v1_developer_agent_businesses_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/v1/developer/agent-commissions": {
+      "get": {
+        "summary": "All Commissions",
+        "operationId": "all_commissions_v1_developer_agent_commissions_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/v1/developer/agent-withdrawals": {
+      "get": {
+        "summary": "All Withdrawals",
+        "operationId": "all_withdrawals_v1_developer_agent_withdrawals_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/v1/developer/agent-withdrawals/{id}/decision": {
+      "post": {
+        "summary": "Decide Withdrawal",
+        "operationId": "decide_withdrawal_v1_developer_agent_withdrawals__id__decision_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WithdrawalDecisionIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/v1/platform/subscription-payment": {
@@ -8169,6 +8690,37 @@
         ],
         "title": "AdjustmentIn"
       },
+      "AgentDecisionIn": {
+        "properties": {
+          "expected_revision": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Expected Revision"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "approved",
+              "rejected",
+              "suspended"
+            ],
+            "title": "Status"
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 1000,
+            "title": "Reason",
+            "default": ""
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "expected_revision",
+          "status"
+        ],
+        "title": "AgentDecisionIn"
+      },
       "AnnouncementIn": {
         "properties": {
           "text": {
@@ -8193,61 +8745,6 @@
           "level"
         ],
         "title": "AnnouncementIn"
-      },
-      "ApplicationIn": {
-        "properties": {
-          "expected_revision": {
-            "type": "integer",
-            "minimum": 0.0,
-            "title": "Expected Revision"
-          },
-          "app_name": {
-            "type": "string",
-            "maxLength": 40,
-            "minLength": 1,
-            "title": "App Name"
-          },
-          "default_language": {
-            "type": "string",
-            "enum": [
-              "my",
-              "en"
-            ],
-            "title": "Default Language"
-          },
-          "languages": {
-            "items": {
-              "type": "string",
-              "enum": [
-                "my",
-                "en"
-              ]
-            },
-            "type": "array",
-            "maxItems": 2,
-            "minItems": 1,
-            "title": "Languages"
-          },
-          "announcement": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/AnnouncementIn"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          }
-        },
-        "additionalProperties": false,
-        "type": "object",
-        "required": [
-          "expected_revision",
-          "app_name",
-          "default_language",
-          "languages"
-        ],
-        "title": "ApplicationIn"
       },
       "AssignIn": {
         "properties": {
@@ -10889,6 +11386,33 @@
         ],
         "title": "Refund"
       },
+      "RefundIn": {
+        "properties": {
+          "expected_revision": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Expected Revision"
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 1000,
+            "minLength": 1,
+            "title": "Reason"
+          },
+          "confirmed_returned": {
+            "type": "boolean",
+            "title": "Confirmed Returned"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "expected_revision",
+          "reason",
+          "confirmed_returned"
+        ],
+        "title": "RefundIn"
+      },
       "RenameIn": {
         "properties": {
           "expected_name": {
@@ -12119,6 +12643,39 @@
         ],
         "title": "VoucherSaleRefund"
       },
+      "WalletIn": {
+        "properties": {
+          "method": {
+            "type": "string",
+            "enum": [
+              "kbzpay",
+              "wavepay"
+            ],
+            "title": "Method"
+          },
+          "account_name": {
+            "type": "string",
+            "maxLength": 160,
+            "minLength": 1,
+            "title": "Account Name"
+          },
+          "account_number": {
+            "type": "string",
+            "maxLength": 40,
+            "minLength": 6,
+            "pattern": "^[0-9+ -]+$",
+            "title": "Account Number"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "method",
+          "account_name",
+          "account_number"
+        ],
+        "title": "WalletIn"
+      },
       "WeekHours": {
         "properties": {
           "mon": {
@@ -12204,6 +12761,187 @@
           "sun"
         ],
         "title": "WeekHours"
+      },
+      "WithdrawalDecisionIn": {
+        "properties": {
+          "expected_revision": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Expected Revision"
+          },
+          "decision": {
+            "type": "string",
+            "enum": [
+              "approved",
+              "rejected",
+              "paid"
+            ],
+            "title": "Decision"
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 1000,
+            "title": "Reason",
+            "default": ""
+          },
+          "payout_reference": {
+            "type": "string",
+            "maxLength": 160,
+            "title": "Payout Reference",
+            "default": ""
+          },
+          "confirmed_paid": {
+            "type": "boolean",
+            "title": "Confirmed Paid",
+            "default": false
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "expected_revision",
+          "decision"
+        ],
+        "title": "WithdrawalDecisionIn"
+      },
+      "WithdrawalIn": {
+        "properties": {
+          "amount": {
+            "type": "integer",
+            "maximum": 1000000000000.0,
+            "minimum": 10000.0,
+            "title": "Amount"
+          },
+          "method": {
+            "type": "string",
+            "enum": [
+              "kbzpay",
+              "wavepay"
+            ],
+            "title": "Method"
+          },
+          "request_key": {
+            "type": "string",
+            "maxLength": 80,
+            "minLength": 16,
+            "pattern": "^[A-Za-z0-9-]+$",
+            "title": "Request Key"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "amount",
+          "method",
+          "request_key"
+        ],
+        "title": "WithdrawalIn"
+      },
+      "backend__agents__ApplicationIn": {
+        "properties": {
+          "username": {
+            "type": "string",
+            "maxLength": 160,
+            "minLength": 3,
+            "pattern": "^[a-z0-9][a-z0-9_.@+-]{2,159}$",
+            "title": "Username"
+          },
+          "password": {
+            "type": "string",
+            "maxLength": 256,
+            "minLength": 6,
+            "title": "Password"
+          },
+          "full_name": {
+            "type": "string",
+            "maxLength": 160,
+            "minLength": 1,
+            "title": "Full Name"
+          },
+          "phone": {
+            "type": "string",
+            "maxLength": 40,
+            "minLength": 6,
+            "pattern": "^[0-9+ ()-]+$",
+            "title": "Phone"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 1000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "username",
+          "password",
+          "full_name",
+          "phone"
+        ],
+        "title": "ApplicationIn"
+      },
+      "backend__branding__ApplicationIn": {
+        "properties": {
+          "expected_revision": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Expected Revision"
+          },
+          "app_name": {
+            "type": "string",
+            "maxLength": 40,
+            "minLength": 1,
+            "title": "App Name"
+          },
+          "default_language": {
+            "type": "string",
+            "enum": [
+              "my",
+              "en"
+            ],
+            "title": "Default Language"
+          },
+          "languages": {
+            "items": {
+              "type": "string",
+              "enum": [
+                "my",
+                "en"
+              ]
+            },
+            "type": "array",
+            "maxItems": 2,
+            "minItems": 1,
+            "title": "Languages"
+          },
+          "announcement": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AnnouncementIn"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "expected_revision",
+          "app_name",
+          "default_language",
+          "languages"
+        ],
+        "title": "ApplicationIn"
       },
       "backend__deliveries__SubscriptionIn": {
         "properties": {

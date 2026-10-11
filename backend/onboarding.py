@@ -28,6 +28,21 @@ class PasswordIn(Strict):
  new_password:str=Field(min_length=6,max_length=256)
 
 def owner_json(u):return {k:getattr(u,k) for k in ['id','username','active','must_change_password','temporary_password_expires']}
+def provision_business(s,u,b,hasher,log,check,attribute=None):
+ """Create a business and its Owner/Admin with a one-time temporary password; replays return no password."""
+ fingerprint=hashlib.sha256(json.dumps({'name':b.name,'owner_username':b.owner_username},sort_keys=True).encode()).hexdigest()
+ existing=s.scalar(select(BusinessProvisioning).where(BusinessProvisioning.created_by==u.id,BusinessProvisioning.request_key==b.request_key))
+ if existing:
+  check(existing.request_hash==fingerprint,'Request key reused for another business',409);t=s.get(Tenant,existing.tenant_id);a=s.get(User,existing.owner_id);return {'id':t.id,'name':t.name,'owner':owner_json(a),'replayed':True,'shown_once':False}
+ check(not s.scalar(select(User.id).where(User.username==b.owner_username)),'Username is already in use',409)
+ try:
+  raw=secrets.token_urlsafe(18);now=int(time.time());t=Tenant(name=b.name);s.add(t);s.flush();a=User(username=b.owner_username,role='sme',tenant_id=t.id,password_hash=hasher.hash(raw),active=True,must_change_password=True,temporary_password_expires=now+86400);s.add(a);s.flush()
+  cfg=PortalConfig(business_name=b.name[:120],direct_purchase=False,voucher_login=False).model_dump();s.add(PortalSettings(tenant_id=t.id,revision=1,draft=cfg,published=None,published_revision=None,updated=now))
+  s.add(BusinessProvisioning(tenant_id=t.id,owner_id=a.id,created_by=u.id,request_key=b.request_key,request_hash=fingerprint,created=now));log(s,u,'business_created',t.id);log(s,u,'business_owner_created',a.id)
+  if attribute:attribute(s,t,now)
+  s.commit()
+ except IntegrityError:s.rollback();raise HTTPException(409,'Business or username created concurrently; retry with the same request key')
+ return {'id':t.id,'name':t.name,'owner':owner_json(a),'temporary_password':raw,'shown_once':True,'replayed':False}
 def register_onboarding(app,current,db,log,hasher,digest,check):
  def platform(u):check(u.role=='platform','Platform operator permission required')
  @app.get('/v1/platform/businesses')
@@ -40,18 +55,7 @@ def register_onboarding(app,current,db,log,hasher,digest,check):
   return [{'id':r.id,'user_id':r.user_id,'tenant_id':a.tenant_id,'username':a.username,'actor_id':r.actor_id,'reason':r.reason,'created':r.created} for r,a in s.execute(q)]
  @app.post('/v1/platform/businesses',status_code=201)
  def create(b:BusinessIn,u=Depends(current),s=Depends(db)):
-  platform(u);fingerprint=hashlib.sha256(json.dumps({'name':b.name,'owner_username':b.owner_username},sort_keys=True).encode()).hexdigest()
-  existing=s.scalar(select(BusinessProvisioning).where(BusinessProvisioning.created_by==u.id,BusinessProvisioning.request_key==b.request_key))
-  if existing:
-   check(existing.request_hash==fingerprint,'Request key reused for another business',409);t=s.get(Tenant,existing.tenant_id);a=s.get(User,existing.owner_id);return {'id':t.id,'name':t.name,'owner':owner_json(a),'replayed':True,'shown_once':False}
-  check(not s.scalar(select(User.id).where(User.username==b.owner_username)),'Username is already in use',409)
-  try:
-   raw=secrets.token_urlsafe(18);now=int(time.time());t=Tenant(name=b.name);s.add(t);s.flush();a=User(username=b.owner_username,role='sme',tenant_id=t.id,password_hash=hasher.hash(raw),active=True,must_change_password=True,temporary_password_expires=now+86400);s.add(a);s.flush()
-   cfg=PortalConfig(business_name=b.name[:120],direct_purchase=False,voucher_login=False).model_dump();s.add(PortalSettings(tenant_id=t.id,revision=1,draft=cfg,published=None,published_revision=None,updated=now))
-   s.add(BusinessProvisioning(tenant_id=t.id,owner_id=a.id,created_by=u.id,request_key=b.request_key,request_hash=fingerprint,created=now));log(s,u,'business_created',t.id);log(s,u,'business_owner_created',a.id)
-   s.commit()
-  except IntegrityError:s.rollback();raise HTTPException(409,'Business or username created concurrently; retry with the same request key')
-  return {'id':t.id,'name':t.name,'owner':owner_json(a),'temporary_password':raw,'shown_once':True,'replayed':False}
+  platform(u);return provision_business(s,u,b,hasher,log,check)
  @app.post('/v1/platform/businesses/{id}/owners/{owner_id}/reset-password')
  def reset(id:str,owner_id:str,b:ResetIn,u=Depends(current),s=Depends(db)):
   platform(u);a=s.get(User,owner_id);check(a and a.role=='sme' and a.tenant_id==id and not s.get(StaffGrant,owner_id),'Business owner not found',404)

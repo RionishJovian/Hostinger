@@ -295,3 +295,10 @@ limitations.
 - New `backend/branding.py` (stored in `platform_settings` keys `application` and `application_logo`; no migration); body limit 1 MiB for the logo upload in `backend/app.py`.
 - `src/ApplicationSettings.jsx`; branding, language offer and announcement banner in `src/AccountWorkspace.jsx`; `src/SMELocalization.jsx` and `src/sme-localization.mjs` take the platform language settings.
 - Tests: `tests/test_branding.py` (3); a language-selection test in `tests/sme-localization.test.mjs`.
+
+## Referral Agents (2026-10-11)
+
+- Migration 046 `agents`: role `agent` (no business), invoice status `refunded`, tables `agent_profiles`, `agent_referrals`, `agent_commissions`, `agent_wallets`, `agent_withdrawals`.
+- New `backend/agents.py`; `provision_business` extracted in `backend/onboarding.py`; commission on approval and owner-only refund in `backend/subscription_billing.py`; Agent path guard in `backend/app.py`.
+- `src/AgentWorkspace.jsx` (application form and four Agent pages), `src/AgentManagement.jsx` (Developer Dashboard → Agents), refund step in `src/SubscriptionBilling.jsx`.
+- Tests: `tests/test_agents.py` (5); migration heads 046; roles test and the staff/subscriptions UI check updated for the Agents area.
