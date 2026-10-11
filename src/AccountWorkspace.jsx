@@ -33,6 +33,7 @@ import SupportReport,{SupportInbox} from './SupportReport.jsx';
 import FirstSiteAcceptance from './FirstSiteAcceptance.jsx';
 import {SafeRouterChanges} from './SafeRouterChanges.jsx';
 import {VoucherInventory} from './Vouchers.jsx';
+import VoucherTabs from './VoucherTabs.jsx';
 import QuickVoucher from './QuickVoucher.jsx';
 import OverviewHealth from './OverviewHealth.jsx';
 import {NotificationCenter,DailySummary} from './NotificationCenter.jsx';
@@ -146,10 +147,12 @@ function AccountWorkspaceContent({onDemo,onPrototype,demo=false,onExitDemo,brand
  {page==='Internet'&&user.role==='sme'&&<InternetPlanning api={api} sites={s.sites}/>}
  {page==='Network'&&user.role==='sme'&&<NetworkPlanning api={api} sites={s.sites}/>}
  {page==='Captive portal'&&s.portal&&<PortalExport key={selectedSite} api={api} portal={s.portal} siteId={selectedSite} busy={busy}/>}
- {page==='Vouchers'&&<VoucherStock sites={s.sites} vouchers={s.vouchers}/>}
- {page==='Vouchers'&&<VoucherBatch sites={s.sites} packages={s.packages} business={business} act={act} busy={busy}/>}
- {page==='Vouchers'&&!demo&&user.role==='sme'&&!user.staff_profile&&<VoucherProduction api={api} sites={s.sites} packages={s.packages} business={business} refresh={()=>load(user).catch(e=>setNotice(e.message))} openBatch={pendingBatch} onBatchOpened={clearBatch}/>}
- {page==='Vouchers'&&!demo&&user.role==='sme'&&!user.staff_profile&&<Dealers api={api} refresh={()=>load(user).catch(e=>setNotice(e.message))}/>}
+ {page==='Vouchers'&&<VoucherTabs label={displayPage('Vouchers')} initial={pendingBatch?'batches':'issue'} tabs={[
+  ['issue',t('voucherTabs','issue'),<VoucherInventory view="issue" sites={s.sites} packages={s.packages} vouchers={s.vouchers} act={act} busy={busy}/>],
+  ['list',t('voucherTabs','list'),<VoucherInventory view="list" sites={s.sites} packages={s.packages} vouchers={s.vouchers} act={act} busy={busy}/>],
+  ['stock',t('voucherTabs','stock'),<VoucherStock sites={s.sites} vouchers={s.vouchers}/>],
+  ['batches',t('voucherTabs','batches'),<><VoucherBatch sites={s.sites} packages={s.packages} business={business} act={act} busy={busy}/>{!demo&&user.role==='sme'&&!user.staff_profile&&<VoucherProduction api={api} sites={s.sites} packages={s.packages} business={business} refresh={()=>load(user).catch(e=>setNotice(e.message))} openBatch={pendingBatch} onBatchOpened={clearBatch}/>}</>],
+  !demo&&user.role==='sme'&&!user.staff_profile&&['dealers',t('voucherTabs','dealers'),<Dealers api={api} refresh={()=>load(user).catch(e=>setNotice(e.message))}/>]]}/>}
  {page==='Businesses'&&<BusinessOnboarding businesses={s.businesses} resets={s.passwordResets} act={act} busy={busy}/>}
  {page==='Developer Dashboard'&&user.platform_owner&&<DeveloperDashboard api={api} s={s} act={act} busy={busy} onBranding={onBranding}/>}
  {page==='Subscriptions'&&<SubscriptionControls api={api} businesses={s.businesses} platform={user.role==='platform'}/>}
@@ -163,7 +166,6 @@ function AccountWorkspaceContent({onDemo,onPrototype,demo=false,onExitDemo,brand
  {page==='Sites'&&<><SiteRegistry sites={s.sites} act={act} busy={busy}/>{user.role==='sme'&&!user.staff_profile&&s.sites.length>0&&<SiteHours api={api} sites={s.sites} refresh={()=>load(user).catch(e=>setNotice(e.message))}/>}{!demo&&user.role==='sme'&&!user.staff_profile&&<FirstSiteAcceptance api={api} sites={s.sites} routers={s.routers}/>}</>}
  {page==='Magic Hubs'&&<MagicHubs hubs={s.hubs} tenants={s.tenants} assignments={s.hubAssignments} act={act} busy={busy} platform/>}
  {page==='Routers'&&<><RouterRegistry sites={s.sites} routers={s.routers} act={act} busy={busy} platform={user.role==='platform'}/>{demo&&<Panel title="Connecting a real router"><p>After you sign up, you connect your MikroTik router to MikroMagic through a Magic Hub. The demo has no real router, so connection, onboarding and router changes are not shown here.</p></Panel>}{!demo&&<>{user.role==='sme'&&<MagicHubs hubs={s.hubs}/ >}{user.role==='sme'&&!user.staff_profile&&<MagicConnectOwner sites={s.sites} api={api} busy={busy}/>}<RouterOnboarding hubs={s.hubs} routers={s.routers} plans={s.routerPlans} act={act} busy={busy} platform={user.role==='platform'}/>{user.role==='sme'&&!user.staff_profile&&<SafeRouterChanges routers={s.routers} plans={s.routerPlans} changes={s.routerChanges} act={act} busy={busy}/>}</>}</>}
- {page==='Vouchers'&&<VoucherInventory sites={s.sites} packages={s.packages} vouchers={s.vouchers} act={act} busy={busy}/>}
  {page==='Payments'&&<Payments orders={s.orders} act={act} busy={busy} api={api} canRefund={user.staff_profile!=='cashier'}/>}
  {page==='Guest portal'&&<><Field label="Guest site"><select disabled={busy} value={selectedSite} onChange={e=>selectSite(e.target.value)}><option value="">Business-wide portal</option>{s.guestSites.map(x=><option key={x.id} value={x.id}>{x.name}</option>)}</select></Field><GuestPurchase packages={s.packages} portal={s.guestPortal} act={act} busy={busy} go={go}/></>}
  {page==='Captive portal'&&s.portal&&<><Field label="Configure portal for"><select value={selectedSite} disabled={busy} onChange={e=>selectSite(e.target.value)}><option value="">Existing business-wide portal</option>{s.sites.map(x=><option key={x.id} value={x.id}>{x.name}</option>)}</select></Field><p>{selectedSite&&s.portal.published_revision&&<>Guest link: <a href={'?guest_site='+encodeURIComponent(selectedSite)} target="_blank" rel="noreferrer">Open published guest page ↗</a></>}</p><PortalEditor key={selectedSite+':'+s.portal.revision} portal={s.portal} act={(path,body)=>act(selectedSite?'sites/'+selectedSite+'/'+path:path,body)} busy={busy}/></>}

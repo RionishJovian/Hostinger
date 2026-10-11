@@ -333,3 +333,8 @@ limitations.
 
 - `src/AccountWorkspace.jsx` (`SME_GROUPS`, grouped navigation), `src/sme-localization.mjs` (`navGroups`, renamed menu labels), `src/styles.css` (group headings, scrolling menu).
 - Checks updated for the new menu source and names: `scripts/verify-staff-subscriptions-ui.mjs`, `scripts/verify-release-candidate-browser.mjs`.
+
+## Interface increment 3, Vouchers task-first (2026-10-12)
+
+- `src/VoucherTabs.jsx` (new, accessible tabs whose hidden panels stay mounted), `src/Vouchers.jsx` (`VoucherInventory` `view` of `issue`, `list` or `all`), `src/AccountWorkspace.jsx` (Vouchers page as tabs), `src/sme-localization.mjs` (`voucherTabs`), `src/styles.css` (wrapping tabs).
+- `scripts/verify-voucher-ui.mjs` covers the split views, tab markup, hidden panels and the fallback tab.

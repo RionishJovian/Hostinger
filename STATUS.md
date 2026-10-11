@@ -819,3 +819,8 @@ Verification: `tests/test_agents.py` (required fields, bounds, stored and return
 
 - Owner terminology decisions: Shop (not Site), Internet Pass / Media Pass with a "Passes" catalogue page (not Package), Router (Gateway only in technical details).
 - The SME owner menu is grouped: Overview and Notifications, then Sell, Shops & network, Business and Help, in English and Burmese. Labels: Shops, Passes, Guest Wi-Fi page (was Captive portal), Connected services (was Integrations), Activity history (was Audit). The menu scrolls inside the sidebar on short windows. No page removed; internal page names unchanged. No migration.
+
+## 2026-10-12 — Vouchers page task-first (P0a, increment 3)
+
+- The Vouchers page opens on Issue a voucher. All vouchers (metrics, inventory, sale review), Find stock, Batches & printing (batch sheets, production jobs) and Dealers are tabs, in English and Burmese. Dealers and production jobs remain owner/admin only and hidden in the demo, as before.
+- Inactive tabs stay mounted but hidden, so a code shown only once survives switching tabs; a batch QR link opens Batches & printing. No behaviour or API change; no migration.
