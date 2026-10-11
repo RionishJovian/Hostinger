@@ -618,3 +618,56 @@ _Clarification synced 2026-10-09 from the authoritative Notion tracker; frozen v
 - Q29 A: Commission becomes withdrawable immediately after the platform approves the qualifying subscription payment. No waiting period.
 - Q30 B: Anyone can apply for an Agent account, but the platform owner must approve the application before the Agent can recruit/register SME users.
 - These are confirmed requirements for Cursor, not completed features.
+
+## Media Server — owner decisions Q34–Q49 (synced from Notion 2026-10-11)
+
+### Media Server requirements — owner decision Q34 (2026-10-11)
+- **Q34: Option A — SME-owned local media server.** Each SME Owner operates and connects their own local media server for media access on that business's local Wi-Fi network. This is not a central MikroMagic-hosted content library or streaming server.
+- Historical Magic Media references describe a possible Jellyfin local connector, media libraries and Internet/Media passes, but those are reference designs, **not** evidence of a working integration or confirmation that Jellyfin is mandatory.
+- Keep media libraries, storage, access control and business ownership separated per SME. Do not assume external public streaming, paid media entitlements, or new VPS hosting from this architecture decision alone.
+- **Owner decision Q35:** Support **Jellyfin and Plex** as the two local media server integrations for SME-owned media servers (owner wrote 'Jellyfix + plex'; 'Jellyfix' interpreted as Jellyfin in context). Emby is not requested. No existing connector implementation is claimed. Next clarify guest media access/authentication.
+- This is a product requirements entry for Cursor (the lead developer), not an implementation or deployment claim. ChatGPT's role remains Notion documentation and owner Q&A only.
+### Media Server — owner decision Q36: Paid Media Pass (2026-10-11)
+- Q36: **Option B, Paid Media Pass**. SME Wi-Fi guests must have a valid paid Media Pass to browse or stream the SME's local Jellyfin/Plex media library. Merely connecting to Wi-Fi does not grant free media-library access.
+- Each SME owns its media server, media content, and customer-facing Media Pass sales. This is distinct from the SME's MikroMagic platform subscription and from any Internet/Wi-Fi voucher; do not assume a combined pass without further owner confirmation.
+- Exact Media Pass activation/access verification, packages/prices and duration remain to be clarified. Guest playback must be protected by actual entitlement checks, not just hiding UI links. Do not assume unrestricted public exposure of the media server.
+- Requirements only for Cursor, the lead developer. No implementation or deployment is claimed.
+### Media Server — owner decision Q37: Media Pass packages (2026-10-11)
+- **Q37: Option C — both time-based and content-based Media Passes.** SME Owners can sell time-limited access (e.g. hour/day/month) and passes granting access to selected titles, categories, or media libraries on that SME's own Jellyfin/Plex server.
+- Access rules must enforce both the purchased scope and any purchased duration when applicable. SME Owners configure their own pass offerings and prices; no shared platform media library is implied.
+- **Still undecided:** whether customers can purchase Internet/Wi-Fi vouchers bundled with Media Passes, and how such combined access should be presented. Ask in Q38. No implementation or deployment claimed; Cursor remains lead developer.
+### Media Server Q38-Q39 owner decisions
+- Q38: A. Internet and Media passes are purchased separately. No combined package.
+- Q39: A. Customer activates a purchased Media Pass by entering its voucher code in the guest portal. Scanning a QR code is not requested.
+- The media voucher must only unlock its purchased media entitlement on the SME local Jellyfin or Plex server, and not internet access. No implementation is claimed.
+### Media Server Q40 — owner decision (2026-10-11)
+- **Option A: first activation.** A time-based Media Pass duration begins when the customer first successfully redeems its Media Pass voucher code in the guest portal, not at purchase or at first playback.
+- Activation is recorded only once per voucher. Subsequent use does not restart the countdown. Entitlement expires based on the original activation timestamp and purchased duration.
+- This applies to the SME's locally hosted Jellyfin/Plex media access, separate from an Internet Pass. Requirements only, not implementation confirmation.
+### Media Server owner choices Q41–Q44
+- Q41 A: Media Pass works on one device only.
+- Q42 A: No device transfer until expiry.
+- Q43 C: Discover Jellyfin/Plex on local network, or connect manually.
+- Q44 C: Any compatible hosting hardware, including computers, NAS, mini PCs, and other devices supporting Jellyfin or Plex.
+- These are product requirements; implementation has not been verified.
+### Media Server owner decision Q45 — Offline streaming (2026-10-11)
+- Q45 **Option A: Continue Streaming**. If the SME internet/WAN connection fails but local Wi-Fi, the local Jellyfin or Plex server, and media access enforcement remain operational, guests with valid Media Passes must be able to continue playing the SME's locally hosted content without internet access.
+- Media Pass scope, expiry and one-device restriction remain applicable offline; an outage must not grant free access or bypass validation. The system needs an offline-capable, trustworthy entitlement validation path on the local network, without depending on cloud requests for each playback.
+- Q45 does not explicitly decide whether brand-new vouchers may be activated for the first time while offline. Clarify separately with the owner in Q46.
+- Product requirement for Cursor only; no implementation or deployment is asserted.
+### Media Q46
+- Owner chose A: new Media Pass vouchers can be activated locally while the internet is offline. Existing local streaming also continues, subject to voucher validity, device limit, and expiry rules.
+- This is a requirement, not a claim of implementation.
+### Media Server — owner decision Q47: Local-network-only playback (2026-10-11)
+- **Q47: Option A — local Wi-Fi only.** Guests may access the SME's Jellyfin or Plex media library using a valid Media Pass only while connected to that SME's local Wi-Fi network. Remote playback over the public internet is not supported, even if a pass is otherwise valid.
+- The local network restriction applies to library browsing and actual media streams, not merely to portal navigation. Keep SME media services off the public internet by default; prevent direct access paths from bypassing Media Pass restrictions.
+- Preserve earlier decisions: separate Internet/Media vouchers, time- and content-based Media Passes, first-redemption activation, one device with no transfer, and offline activation/playback on the local network.
+- **Open question Q48:** whether customers play media directly inside the guest web portal, in Jellyfin/Plex apps, or both. This is a product requirement for Cursor and does not assert implementation.
+### Media Q48
+- Owner chose A: customers browse and play Jellyfin or Plex content directly in MikroMagic's guest portal using a browser. A separate media app is not required.
+- Keep the existing local-network-only, valid-voucher and offline-operation rules.
+- This is a product requirement, not confirmed implementation.
+### Media Server Q49 — Owner-defined catalog preview setting
+- The SME Owner chooses between **A: Full Catalog Preview** (guests may browse all titles, posters, descriptions and categories before buying a Media Pass; playback is locked) and **B: Featured Content Only** (guests see only the SME Owner's chosen featured/promotional titles before purchase).
+- This is a per-SME setting, controlled by its SME Owner. It does not make media playback free; a valid Media Pass remains necessary to stream content.
+- This records the owner's Q49 preference; it is a requirement for Cursor and not an implementation claim.
