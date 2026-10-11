@@ -27,7 +27,7 @@ Owner decisions:
 | Firewall | UFW active, allowing 22, 80, 443, 51820/udp and 51821/udp (IPv4 and IPv6) |
 | Reverse proxy | The `megamagic-landing-caddy-1` container binds `156.67.216.128:80/443` and routes `megamagic.tech` and `www` to `mikromagic-build21-public-test-web` over `megamagic-landing-net` |
 | Co-hosted stacks (untouched) | `megamagic-landing`, `mikromagic-build21-rc` (127.0.0.1:18081), `mikromagic-v8-acceptance` (127.0.0.1:8080/8443), `v8-auth-candidate`, `v8-auth-final-retest-20261009`, `v8-auth-pgtest` (exited), `voucher-pg-20261009` |
-| Deployment directories | `-20261010` = `4e78…` (first public test); `-hub-20261010T143844Z` = `6288…` (Hub release); `-20261010T150700Z` = `6514…`; `-20261010T171319Z` = `4092…`; `-20261010T180343Z` = `5f93…` (migration 037); `-20261010T182316Z` = `379f…` (migration 038); `-20261010T185246Z` = `379f…` (first scripted deploy); `-20261010T195352Z` = `601e…` (migration 039); `-20261010T201247Z` = `201e…` (migration 040); `-20261010T203831Z` = `4fba…` (migration 041); `-20261011T073612Z` = `0d55…` (daily voucher counts); `-20261011T075349Z` = `3d90…` (batch QR); `-20261011T082054Z` = `ae40…` (migration 042); `-20261011T084421Z` = `5098…` (migration 043); `-20261011T090702Z` = `7ce9…` (public Demo, migration 043); `-20261011T093325Z` and `-20261011T093659Z` = `7fbb…` (subscription renewal, migration 044; the same artifact deployed twice); `-20261011T095239Z` = `c46f…` (current, Developer Dashboard, migration 045); `-20261010T184257Z` and `-20261010T184809Z` never served traffic |
+| Deployment directories | `-20261010` = `4e78…` (first public test); `-hub-20261010T143844Z` = `6288…` (Hub release); `-20261010T150700Z` = `6514…`; `-20261010T171319Z` = `4092…`; `-20261010T180343Z` = `5f93…` (migration 037); `-20261010T182316Z` = `379f…` (migration 038); `-20261010T185246Z` = `379f…` (first scripted deploy); `-20261010T195352Z` = `601e…` (migration 039); `-20261010T201247Z` = `201e…` (migration 040); `-20261010T203831Z` = `4fba…` (migration 041); `-20261011T073612Z` = `0d55…` (daily voucher counts); `-20261011T075349Z` = `3d90…` (batch QR); `-20261011T082054Z` = `ae40…` (migration 042); `-20261011T084421Z` = `5098…` (migration 043); `-20261011T090702Z` = `7ce9…` (public Demo, migration 043); `-20261011T093325Z` and `-20261011T093659Z` = `7fbb…` (subscription renewal, migration 044; the same artifact deployed twice); `-20261011T095239Z` = `c46f…` (Developer Dashboard, migration 045); `-20261011T100858Z` = `cf02…` (current, Application settings, no migration); `-20261010T184257Z` and `-20261010T184809Z` never served traffic |
 
 The `6514…` artifact (the guest access diagnosis) **was deployed** at 15:07 UTC,
 which no project document recorded. The `bfbe…` digest reported in Discrepancy 3
@@ -330,17 +330,32 @@ only adds a defaulted column, so the 040 code runs on it.
 **Rollback:** retag the `rollback-20261011T095239Z` images, then
 `up -d --no-deps --force-recreate api web` from `-20261011T093659Z`. Migration 045 adds three columns with defaults and an empty table, so the 044 code runs on it; restore `backups/pre-deploy.dump` only if the migration itself is at fault.
 
-- Next app work (as of 2026-10-11 16:25 UTC+6:30, live at migration 045, commit `f8dc277`):
-  - Developer Dashboard first increment is live for `nish@magic`: SME owner accounts (suspend/disable/restore with reason, rename, history, create and reset), payment system, appearance, read-only roles overview. Still to build: app name/logo/languages/notification defaults, custom roles (needs the owner's permission catalogue), owner-only server checks for plans and payment review, Agent accounts and commissions (Q20–Q26).
+### Scripted redeploy — Developer Dashboard Application settings (2026-10-11 10:08 UTC)
+
+| Item | Value |
+|---|---|
+| Source | Commit `b653bc5` on `origin/main`; artifact `cf028f7efc8795f600c4d1398540f41f9a8ee1725c278f774e23d8f121969422` (187 files); local checks: 625 backend (12 skipped), 74 frontend tests, build, manifest, all 16 offline UI checks; local browser test of name, logo, languages and announcement |
+| Directory | `/opt/mikromagic-build21-public-test-20261011T100858Z`; previous `-20261011T095239Z`. Single run behind the lock directory. |
+| Infra / Hub files | Unchanged |
+| Pre-deploy dump | `backups/pre-deploy.dump` (at 045, 428 entries) |
+| Migration | None (045 → 045); rehearsal skipped by the script because there was no new migration |
+| Rollback images | `…-{api,web,magic-hub,migrate}:rollback-20261011T100858Z` |
+| Result | api and web recreated and healthy; db and Hub untouched (Hub key and UDP 51820 unchanged); `GET /v1/branding` returns the MikroMagic defaults; `/v1/branding/logo` 404 (no custom logo); `/v1/developer/application`, `/v1/announcement` and the logo upload 401 without a session; served bundle `index-DSKV7Let.js`; the live sign-in page shows the default brand and "Sign-in service available". Read-only SQL: `platform_settings` 0 rows |
+
+**Rollback:** retag the `rollback-20261011T100858Z` images, then
+`up -d --no-deps --force-recreate api web` from `-20261011T095239Z`. No schema change; settings saved by this release sit in `platform_settings` rows `application` and `application_logo`, which the older code ignores.
+
+- Next app work (as of 2026-10-11 16:40 UTC+6:30, live at migration 045, commit `b653bc5`):
+  - Developer Dashboard Application settings are live: app name and logo (sign-in page, sidebar, browser tab), languages offered to SME owners and the default language, and an in-app announcement banner for SME owners. No email, SMS or push. Platform and guest screens stay English.
+  - Developer Dashboard first increment is live for `nish@magic`: SME owner accounts (suspend/disable/restore with reason, rename, history, create and reset), payment system, appearance, read-only roles overview. Still to build: custom roles (needs the owner's permission catalogue), owner-only server checks for plans and payment review, Agent accounts and commissions (Q20–Q26).
   - Subscription self-service is done (owner Q10–Q15): SME Owners request a monthly or annual term with payment evidence; only the platform owner approves; early renewal adds to the current expiry, late renewal starts on the approval date; 7-day warning; renewal-only sign-in from the expiry date. **Owner action:** as `nish@magic`, open Subscriptions and save the subscription payment details (receiving account, instructions, methods) and create the paid plans; until then SME Owners see "payment details not published".
   - Agent accounts and referral commissions (Q20–Q22, 20% monthly / 30% annual on list price) are synced into the requirements and not built; refund/reversal, payout timing and registration flow are still open with the owner.
   - Public interactive Demo is done (owner decisions Q16–Q19): **Try the demo** on the sign-in page or `https://megamagic.tech/?demo=1`; sample business in the browser only, reset on exit. Not built: guest-side demo and a guided training tour.
   - Cash reconciliation save on Revenue was broken (422) and is fixed in the same release.
-  - Still to build: Developer Dashboard on `nish@magic` (four areas); subscription plans and payment details move there when it exists.
   - Batch QR on sheets and thermal runs is done (owner-only, no codes). Guest QR on vouchers stays off until a verified guest portal destination exists on a router.
   - Magic Support Mode / Get help reports are done (migration 043): owner creates, platform reads shared reports on Operations.
   - Shop business/network hours and planned maintenance are done (migration 042). Still open in that area: automatic Opening Check, push-alert suppression and uptime, which need live monitoring and notifications.
-  - Developer role: not built yet; the owner has now specified it (owner-only view on `nish@magic`, no second login). The owner works as `nish@magic` (platform role, platform owner, sole Platform console user).
+  - The owner works as `nish@magic` (platform role, platform owner, sole Platform console user, sole Developer Dashboard user).
   - The staff/subscriptions UI check passes again: reconciled with owner decision Q9 (no SME staff accounts); the SME Staff page is removed.
 
 ## How to read this document
