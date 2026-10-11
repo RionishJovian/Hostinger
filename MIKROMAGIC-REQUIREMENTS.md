@@ -599,3 +599,22 @@ _Clarification synced 2026-10-09 from the authoritative Notion tracker; frozen v
 - Question 26: Option A. Minimum withdrawal request is **10,000 MMK**.
 - Agent payout options remain KBZPay and WavePay, subject to platform owner manual approval, as documented in Questions 24–25.
 - This is a requirements note for Cursor, not an implementation or deployment claim.
+
+> Copied verbatim from the Notion tracker, fetched 2026-10-11 10:04 UTC (owner Q27–Q30).
+
+### Owner decision — 2026-10-11: Agent direct SME registration (Question 27)
+- **Selected A: Direct Registration.** Referral Agents create/register new SME Owner (User) accounts for recruited customers through the Agent Dashboard. No referral link/code is required as the primary registration mechanism.
+- Preserve durable Agent→SME attribution at account creation, allowing the recruiting Agent to receive recurring monthly (20%) or annual (30%) subscription commissions when qualifying payments are approved, with commission calculated on original list price and reversed on refund, as previously confirmed.
+- Each new SME still has exactly one Owner/Admin account, without SME staff roles. The Agent must not acquire the SME Owner's login privileges, manage the SME's business or payment receiving accounts, or view their passwords merely by registering them.
+- **Open:** How the new SME Owner securely receives and activates login credentials; this is the next owner question. No password-sharing mechanism is assumed.
+- Cursor remains lead developer. This is requirements documentation only, not code or deployment.
+### Owner decision — 2026-10-11: Agent-created SME Owner credentials (Question 28)
+- **Selected A: system-generated temporary password.** When an Agent directly registers a new SME Owner account, MikroMagic generates a temporary initial password for that new SME Owner.
+- The SME Owner must **change the temporary password on first login** before accessing business management (subject to any separate paid-subscription restrictions). The temporary password must be one-time/expiring according to the secure onboarding flow and cannot serve as a permanent shared credential.
+- Keep Agent registration and recurring Agent attribution as previously approved. This choice does not grant the Agent continued access to the SME account or visibility into the SME Owner's replacement password.
+- Exact secure delivery/display of the initial temporary password to the new SME Owner remains an implementation/security detail requiring an appropriate protected handoff; do not expose passwords in routine reports or audit logs.
+- This is a confirmed Notion requirement for Cursor, the sole lead developer, not a claim that implementation or deployment is complete.
+### Agent requirements Q29 and Q30
+- Q29 A: Commission becomes withdrawable immediately after the platform approves the qualifying subscription payment. No waiting period.
+- Q30 B: Anyone can apply for an Agent account, but the platform owner must approve the application before the Agent can recruit/register SME users.
+- These are confirmed requirements for Cursor, not completed features.
