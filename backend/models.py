@@ -719,9 +719,18 @@ class MediaTitle(Base):
  release_year:Mapped[int|None]=mapped_column(Integer,nullable=True)
  published:Mapped[bool]=mapped_column(Boolean,default=False)
  archived:Mapped[bool]=mapped_column(Boolean,default=False)
+ featured:Mapped[bool]=mapped_column(Boolean,default=False,server_default='0')
  revision:Mapped[int]=mapped_column(Integer,default=1)
  updated:Mapped[int]=mapped_column(BigInteger)
  __table_args__=(CheckConstraint('runtime_minutes > 0'),CheckConstraint('revision > 0'))
+
+class MediaSettings(Base):
+ __tablename__='media_settings'
+ tenant_id:Mapped[str]=mapped_column(ForeignKey('tenants.id'),primary_key=True)
+ catalog_preview:Mapped[str]=mapped_column(String(12),default='full')
+ revision:Mapped[int]=mapped_column(Integer,default=1)
+ updated:Mapped[int]=mapped_column(BigInteger)
+ __table_args__=(CheckConstraint("catalog_preview in ('full','featured')",name='ck_media_settings_preview'),)
 
 class KnowledgeCard(Base):
  __tablename__='knowledge_cards'

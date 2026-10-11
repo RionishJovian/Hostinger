@@ -1,7 +1,7 @@
 import unittest
 from sqlalchemy import select
 import test_backend as fixture
-from backend.models import Order,Entitlement
+from backend.models import Order,Entitlement,Package
 class MediaTests(unittest.TestCase):
  setUp=fixture.AccountPaymentTests.setUp
  tearDown=fixture.AccountPaymentTests.tearDown
@@ -54,14 +54,23 @@ class MediaTests(unittest.TestCase):
   v=self.client.post('/v1/vouchers',headers=owner,json={'package_id':p['id'],'expires_days':1,'request_key':'hybrid-media-voucher-001'});self.assertEqual(v.status_code,201,v.text);v=v.json();self.state(owner,t,'archive')
   redeemed=self.client.post('/v1/vouchers/redeem',headers=guest,json={'code':v['code']});self.assertEqual(redeemed.status_code,200,redeemed.text)
   pass_=self.client.get('/v1/entitlements',headers=guest).json()[0];self.assertEqual(pass_['media_policy']['mode'],'hybrid');self.assertEqual(pass_['media_policy']['title_hours'],48);self.assertEqual(pass_['source'],'voucher');self.assertEqual(self.client.get('/v1/revenue',headers=owner).json()['net_collections'],0)
- def test_library_and_combined_windows(self):
+ def test_library_window_and_legacy_combined_packages(self):
   owner=self.login('owner');guest=self.login('guest')
   self.state(owner,self.title(owner),'publish')
   p=self.client.post('/v1/packages',headers=owner,json={'name':'Library','service':'media','mode':'library','hours':24,'price':1000}).json();o=self.order(guest,p['id']).json();self.client.post('/v1/orders/'+o['id']+'/decision',headers=owner,json={'decision':'approved'})
   e=self.client.get('/v1/entitlements',headers=guest).json()[0];self.assertEqual(e['media_policy']['library_hours'],24);self.assertIsNone(e['media_policy']['title_hours']);self.assertIsNone(e['media_policy']['title'])
 
-  p=self.client.post('/v1/packages',headers=owner,json={'name':'Combined','service':'combined','mode':'both','hours':3,'gb':5,'media_hours':72,'price':3000}).json();o=self.order(guest,p['id'],'combined-media-order-001').json();self.client.post('/v1/orders/'+o['id']+'/decision',headers=owner,json={'decision':'approved'})
-  e=next(e for e in self.client.get('/v1/entitlements',headers=guest).json() if e['policy']['name']=='Combined');self.assertEqual(e['media_policy']['library_hours'],72);self.assertEqual(e['policy']['hours'],3)
+  r=self.client.post('/v1/packages',headers=owner,json={'name':'Combined','service':'combined','mode':'both','hours':3,'gb':5,'media_hours':72,'price':3000});self.assertEqual(r.status_code,422);self.assertIn('sold separately',r.text)
+  policy={'name':'Combined','service':'combined','mode':'both','price':3000,'gb':5,'hours':3,'media_hours':72,'clock':'elapsed','devices':1,'speed':10,'title':None,'title_hours':48,'vip':False}
+  with self.app.state.factory() as s:
+   tenant=s.get(Order,o['id']).tenant_id;legacy=Package(tenant_id=tenant,policy=policy,active=True);s.add(legacy);s.flush()
+   s.add(Order(tenant_id=tenant,guest_id=s.get(Order,o['id']).guest_id,package_id=legacy.id,snapshot=policy,amount=3000,method='Cash',reference='legacy-ref',evidence='legacy',status='pending',created=1,request_key='legacy-combined-order'));s.commit();legacy_id=legacy.id
+  self.assertNotIn(legacy_id,[x['id'] for x in self.client.get('/v1/packages',headers=guest).json()])
+  self.assertEqual(self.order(guest,legacy_id,'combined-media-order-001').status_code,409)
+  self.assertEqual(self.client.post('/v1/vouchers',headers=owner,json={'package_id':legacy_id,'expires_days':7,'request_key':'legacy-combined-voucher'}).status_code,409)
+  pending=next(x for x in self.client.get('/v1/orders',headers=owner).json() if x['snapshot']['name']=='Combined')
+  self.assertEqual(self.client.post('/v1/orders/'+pending['id']+'/decision',headers=owner,json={'decision':'approved'}).status_code,200)
+  e=next(e for e in self.client.get('/v1/entitlements',headers=guest).json() if e['policy']['name']=='Combined');self.assertEqual((e['media_policy']['library_hours'],e['media_policy']['legacy_combined']),(72,True));self.assertEqual(e['policy']['hours'],3)
  def test_empty_library_cannot_sell_media_only_pass(self):
   owner=self.login('owner');guest=self.login('guest');p=self.client.post('/v1/packages',headers=owner,json={'name':'Library','service':'media','mode':'library','hours':24,'price':1000}).json()
   self.assertEqual(self.client.get('/v1/packages',headers=guest).json(),[]);self.assertEqual(self.order(guest,p['id']).status_code,409)

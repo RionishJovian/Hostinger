@@ -23,7 +23,7 @@ class AccountPaymentTests(unittest.TestCase):
  def login(self,name):
   r=self.client.post('/v1/auth/login',json={'username':name,'password':'test-password-only'});self.assertEqual(r.status_code,200);return {'Authorization':'Bearer '+r.json()['access_token']}
  def package(self,owner):
-  r=self.client.post('/v1/packages',headers=owner,json={'name':'Combo','service':'combined','mode':'both','price':3000,'gb':5,'hours':3});self.assertEqual(r.status_code,201);return r.json()['id']
+  r=self.client.post('/v1/packages',headers=owner,json={'name':'Combo','service':'internet','mode':'both','price':3000,'gb':5,'hours':3});self.assertEqual(r.status_code,201);return r.json()['id']
  def order(self,guest,p):
   return self.client.post('/v1/orders',headers=guest,json={'portal_revision':1,'package_id':p,'method':'Cash','reference':'receipt-test','evidence':'received at counter','request_key':'unique-test-request-001'})
  def test_auth_revocation_and_account_disable(self):

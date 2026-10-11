@@ -131,7 +131,7 @@ class MigrationTests(unittest.TestCase):
     command.upgrade(cfg,'008');command.upgrade(cfg,'head')
     with sqlite3.connect(file) as db:
      db.execute("INSERT INTO tenants VALUES ('t','Cafe')")
-     db.execute("INSERT INTO media_titles VALUES ('m','t','Film','Description','Drama',90,2020,1,0,2,1)")
+     db.execute("INSERT INTO media_titles (id,tenant_id,name,description,genre,runtime_minutes,release_year,published,archived,revision,updated) VALUES ('m','t','Film','Description','Drama',90,2020,1,0,2,1)")
      with self.assertRaises(sqlite3.IntegrityError):db.execute('UPDATE media_titles SET runtime_minutes=0')
     with self.assertRaisesRegex(RuntimeError,'Media catalogue records exist'):command.downgrade(cfg,'008')
     with sqlite3.connect(file) as db:self.assertEqual(db.execute('SELECT name,published FROM media_titles').fetchone(),('Film',1));self.assertEqual(db.execute('PRAGMA foreign_key_check').fetchall(),[])

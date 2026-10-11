@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field, ConfigDict, model_validator
-from typing import Literal
+from typing import Literal,Annotated
 class Strict(BaseModel):model_config=ConfigDict(extra='forbid',str_strip_whitespace=True)
 class Login(Strict):
  model_config=ConfigDict(extra="forbid",str_strip_whitespace=False)
@@ -8,7 +8,7 @@ class Login(Strict):
 class PackageIn(Strict):
  name:str=Field(min_length=1,max_length=120)
  service:Literal['internet','media','combined']
- mode:Literal['data','time','both','library','title','hybrid']
+ mode:Literal['data','time','both','library','title','hybrid','category']
  price:int=Field(gt=0,le=1_000_000_000)
  gb:float=Field(default=0,ge=0,le=100000)
  hours:float=Field(default=0,ge=0,le=8760)
@@ -18,12 +18,17 @@ class PackageIn(Strict):
  speed:int=Field(default=10,ge=1,le=10000)
  title:str|None=Field(default=None,max_length=160)
  title_hours:float=Field(default=48,gt=0,le=8760)
+ categories:list[Annotated[str,Field(min_length=1,max_length=80)]]=Field(default_factory=list,max_length=10)
  vip:bool=False
  @model_validator(mode='after')
  def validate_policy(self):
+  if self.service=='combined':raise ValueError('Internet and Media passes are sold separately. Create one Internet package and one Media package.')
+  if self.mode!='category' and self.categories:raise ValueError('Categories apply only to category passes')
   if self.service=='media':
-   if self.mode not in ['library','title','hybrid'] or self.clock!='elapsed' or self.hours<=0:raise ValueError('Media needs a timed viewing window and library/title/hybrid mode')
+   if self.mode not in ['library','title','hybrid','category'] or self.clock!='elapsed' or self.hours<=0:raise ValueError('Media needs a timed viewing window and library/title/hybrid/category mode')
    if self.mode in ['title','hybrid'] and not self.title:raise ValueError('Select the purchased title')
+   if self.mode=='category' and not self.categories:raise ValueError('Select at least one category')
+   if len({c.casefold() for c in self.categories})!=len(self.categories):raise ValueError('Each category can be selected once')
   else:
    if self.mode not in ['data','time','both']:raise ValueError('Internet needs data/time/both mode')
    if self.mode in ['data','both'] and self.gb<=0:raise ValueError('Positive data quota required')

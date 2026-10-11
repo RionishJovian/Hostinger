@@ -4,7 +4,7 @@ from fastapi import Depends,HTTPException
 from sqlalchemy import select,update
 from sqlalchemy.exc import IntegrityError
 from .models import Voucher,Package,Entitlement,PortalSettings,LoginAttempt,VoucherSale
-from .media import ensure_media_offer
+from .media import ensure_media_offer,ensure_sold_separately
 from .schemas import VoucherIssue,VoucherRedeem,VoucherRevoke
 from .voucher_codes import new_code,find_voucher,normalize_prefix,normalize_custom,display
 
@@ -35,7 +35,7 @@ def register_vouchers(app,current,db,owner,log):
   p=s.get(Package,b.package_id)
   if not p or p.tenant_id!=u.tenant_id or not p.active:raise HTTPException(404,'Package not available')
   if custom and not p.policy.get('vip'):raise HTTPException(422,'Custom codes are available only for VIP packages')
-  ensure_media_offer(s,u.tenant_id,p.policy)
+  ensure_sold_separately(p.policy);ensure_media_offer(s,u.tenant_id,p.policy)
   code,code_hash,hint=new_code(s,u.tenant_id,prefix,custom);now=int(time.time())
   v=Voucher(site_id=b.site_id,tenant_id=u.tenant_id,package_id=p.id,policy=p.policy.copy(),code_hash=code_hash,code_hint=hint,code_format='custom' if custom else 'prefixed' if prefix else 'standard',code_prefix=prefix,issued_by=u.id,request_key=b.request_key,created=now,expires=now+b.expires_days*86400);s.add(v)
   try:s.flush();log(s,u,'voucher_issued',v.id);s.commit()
@@ -63,10 +63,10 @@ def register_vouchers(app,current,db,owner,log):
    s.execute(update(LoginAttempt).where(LoginAttempt.key==key).values(failures=LoginAttempt.failures+1));s.commit();raise HTTPException(400,'Voucher unavailable. Check the code or contact the owner.')
   result=s.execute(update(Voucher).where(Voucher.id==v.id,Voucher.redeemed_by.is_(None),Voucher.revoked==False,Voucher.disabled_at.is_(None),Voucher.deleted_at.is_(None),Voucher.expires>now).values(redeemed_by=u.id,redeemed_at=now))
   if result.rowcount!=1:raise HTTPException(409,'Voucher already processed. Check your passes before retrying.')
-  e=Entitlement(site_id=v.site_id,voucher_id=v.id,tenant_id=u.tenant_id,guest_id=u.id,policy=v.policy.copy());s.add(e);bucket.failures=0
+  e=Entitlement(site_id=v.site_id,voucher_id=v.id,tenant_id=u.tenant_id,guest_id=u.id,policy=v.policy.copy(),activated=now if v.policy.get('service')=='media' else None);s.add(e);bucket.failures=0
   try:s.flush();log(s,u,'voucher_redeemed',v.id);s.commit()
   except IntegrityError:s.rollback();raise HTTPException(409,'Voucher already processed. Check your passes before retrying.')
-  return {'id':e.id,'voucher_id':v.id,'revoked':False,'fulfillment':'pending_adapter','replayed':False}
+  return {'id':e.id,'voucher_id':v.id,'revoked':False,'fulfillment':'pending_adapter','replayed':False,'media_activated_at':e.activated}
  @app.post('/v1/vouchers/{id}/revoke')
  def revoke(id:str,b:VoucherRevoke,u=Depends(current),s=Depends(db)):
   owner(u);v=s.get(Voucher,id)

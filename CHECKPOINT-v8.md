@@ -309,3 +309,10 @@ limitations.
 - New `backend/notifications.py` (derived feed with root-cause grouping, instability aggregation and in-place updates; preferences; read markers; daily summary), registered in `backend/app.py`.
 - `src/NotificationCenter.jsx` (Notifications page, settings, Daily Owner Summary card); header bell, navigation entry and Overview card in `src/AccountWorkspace.jsx`; English and Burmese messages in `src/sme-localization.mjs`.
 - Tests: `tests/test_notifications.py` (4), `tests/notification-messages.test.mjs` (2); migration heads 047.
+
+## Media Pass rules (2026-10-11)
+
+- Migration 048 `media_pass_rules`: column `media_titles.featured`, table `media_settings`.
+- `backend/schemas.py` (no new combined packages, category mode), `backend/media.py` (category passes, `ensure_sold_separately`, activation windows and pass state, featured preview, settings endpoints), first-redemption activation in `backend/vouchers.py`, sale checks in `backend/app.py`, `backend/voucher_batch.py`, `backend/voucher_production.py`.
+- `src/MediaCatalogue.jsx` (featured, preview setting, rules panel, pass status), package form in `src/AccountWorkspace.jsx`.
+- Tests: `tests/test_media_pass_rules.py` (3); shared test package helper now an Internet package; migration heads 048.

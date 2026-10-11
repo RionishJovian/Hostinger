@@ -13,7 +13,7 @@ class VoucherSaleTests(unittest.TestCase):
  def refund(self,id,**overrides):return self.client.post('/v1/vouchers/'+id+'/sale/refund',headers=self.owner,json={'reason':'Returned at counter','reference':'refund-01','confirmed_returned':True,**overrides})
  def test_sale_retries_count_once_and_redemption_does_not_add_revenue(self):
   v=self.setup_voucher();self.assertEqual(self.payment(v['id']).status_code,200);self.assertTrue(self.payment(v['id']).json()['replayed'])
-  self.redeem(v['code']);r=self.client.get('/v1/revenue',headers=self.owner).json();self.assertEqual(r['net_collections'],3000);self.assertEqual(r['voucher_sales'],1);self.assertEqual(r['approved_orders'],0);self.assertEqual(r['by_service']['combined'],3000)
+  self.redeem(v['code']);r=self.client.get('/v1/revenue',headers=self.owner).json();self.assertEqual(r['net_collections'],3000);self.assertEqual(r['voucher_sales'],1);self.assertEqual(r['approved_orders'],0);self.assertEqual(r['by_service']['internet'],3000)
   self.assertEqual(self.payment(v['id'],reference='different').status_code,409)
   with self.app.state.factory() as s:self.assertEqual(len(list(s.scalars(select(VoucherSale)))),1);self.assertEqual(len(list(s.scalars(select(Entitlement)))),1)
  def test_refund_reduces_collections_and_revokes_redeemed_pass(self):
@@ -86,6 +86,6 @@ class VoucherSaleTests(unittest.TestCase):
   v=self.setup_voucher();self.payment(v['id'])
   order=self.client.post('/v1/orders',headers=self.guest,json={'package_id':self.pkg,'portal_revision':3,'method':'Cash','reference':'guest-payment','evidence':'Test guest receipt','request_key':'separate-guest-order-001'}).json()
   self.client.post('/v1/orders/'+order['id']+'/decision',headers=self.owner,json={'decision':'approved'})
-  r=self.client.get('/v1/revenue',headers=self.owner).json();self.assertEqual(r['net_collections'],6000);self.assertEqual(r['by_source'],{'guest_orders':3000,'voucher_counter_sales':3000});self.assertEqual(r['by_service']['combined'],6000)
+  r=self.client.get('/v1/revenue',headers=self.owner).json();self.assertEqual(r['net_collections'],6000);self.assertEqual(r['by_source'],{'guest_orders':3000,'voucher_counter_sales':3000});self.assertEqual(r['by_service']['internet'],6000)
   self.client.post('/v1/orders/'+order['id']+'/refund',headers=self.owner,json={'reason':'Test manual return'})
   r=self.client.get('/v1/revenue',headers=self.owner).json();self.assertEqual(r['net_collections'],3000);self.assertEqual(r['refunds'],3000);self.assertEqual(r['voucher_sales'],1)

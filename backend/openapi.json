@@ -8636,6 +8636,66 @@
         ]
       }
     },
+    "/v1/media/settings": {
+      "get": {
+        "summary": "Media Settings",
+        "operationId": "media_settings_v1_media_settings_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      },
+      "post": {
+        "summary": "Save Media Settings",
+        "operationId": "save_media_settings_v1_media_settings_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MediaSettingsIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
     "/v1/media/titles/{id}": {
       "post": {
         "summary": "Edit",
@@ -10549,6 +10609,30 @@
         ],
         "title": "MediaIn"
       },
+      "MediaSettingsIn": {
+        "properties": {
+          "expected_revision": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Expected Revision"
+          },
+          "catalog_preview": {
+            "type": "string",
+            "enum": [
+              "full",
+              "featured"
+            ],
+            "title": "Catalog Preview"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "expected_revision",
+          "catalog_preview"
+        ],
+        "title": "MediaSettingsIn"
+      },
       "MediaState": {
         "properties": {
           "expected_revision": {
@@ -10562,7 +10646,9 @@
               "publish",
               "unpublish",
               "archive",
-              "restore"
+              "restore",
+              "feature",
+              "unfeature"
             ],
             "title": "Operation"
           }
@@ -10783,7 +10869,8 @@
               "both",
               "library",
               "title",
-              "hybrid"
+              "hybrid",
+              "category"
             ],
             "title": "Mode"
           },
@@ -10855,6 +10942,16 @@
             "exclusiveMinimum": 0.0,
             "title": "Title Hours",
             "default": 48
+          },
+          "categories": {
+            "items": {
+              "type": "string",
+              "maxLength": 80,
+              "minLength": 1
+            },
+            "type": "array",
+            "maxItems": 10,
+            "title": "Categories"
           },
           "vip": {
             "type": "boolean",

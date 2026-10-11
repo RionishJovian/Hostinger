@@ -8,7 +8,7 @@ from argon2 import PasswordHasher
 from argon2.exceptions import VerifyMismatchError,VerificationError
 from .models import Base,Tenant,User,SessionToken,LoginAttempt,LoginHistory,Package,Order,Entitlement,Audit,Outbox,PortalSettings,VoucherSale
 from .schemas import Login,PackageIn,OrderIn,Decision,EvidenceIn,Refund
-from .media import package_snapshot,media_offer_available,ensure_media_offer,media_policy
+from .media import package_snapshot,media_offer_available,ensure_media_offer,ensure_sold_separately,media_policy
 from .revenue import record_event
 from .deliveries import emit_payment_event
 from .models import StaffGrant
@@ -187,7 +187,7 @@ def make_app(url=None,initialize=False):
   if existing:
    check(existing.site_id==b.site_id and existing.package_id==b.package_id and existing.reference==b.reference and existing.evidence==b.evidence and existing.method==b.method and existing.payment_context and existing.payment_context['portal_revision']==b.portal_revision,'Request key reused with different order',409);return order_json(existing)
   p=s.get(Package,b.package_id);check(p and p.tenant_id==u.tenant_id and p.active,'Package not available',404)
-  ensure_media_offer(s,u.tenant_id,p.policy)
+  ensure_sold_separately(p.policy);ensure_media_offer(s,u.tenant_id,p.policy)
   from .site_portal import selected_portal
   portal=selected_portal(s,u,b.site_id)
   check(portal and portal.published and portal.published['direct_purchase'],'Purchases are not enabled for this business',409)
@@ -230,7 +230,7 @@ def make_app(url=None,initialize=False):
  def entitlements(u:User=Depends(current),s:Session=Depends(db)):
   check(u.role in ['guest','sme'],'Business context required');q=select(Entitlement).where(Entitlement.tenant_id==u.tenant_id)
   if u.role=='guest':q=q.where(Entitlement.guest_id==u.id)
-  return [{'id':e.id,'order_id':e.order_id,'site_id':e.site_id,'voucher_id':e.voucher_id,'source':'voucher' if e.voucher_id else 'order','policy':e.policy,'revoked':e.revoked,'activation':e.activated,'enforcement':'not_connected','media_policy':media_policy(e.policy)} for e in s.scalars(q)]
+  return [{'id':e.id,'order_id':e.order_id,'site_id':e.site_id,'voucher_id':e.voucher_id,'source':'voucher' if e.voucher_id else 'order','policy':e.policy,'revoked':e.revoked,'activation':e.activated,'enforcement':'not_connected','media_policy':media_policy(e.policy,e.activated,e.revoked)} for e in s.scalars(q)]
  from .access_diagnostics import register_access_diagnostics
  register_access_diagnostics(app,current,db)
  @app.get('/v1/audit')

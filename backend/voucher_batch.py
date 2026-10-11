@@ -9,7 +9,7 @@ from .models import Voucher,Package
 from .vouchers import digest,voucher_json
 from .voucher_codes import new_code,normalize_prefix,display
 from .sites import allowed_site
-from .media import ensure_media_offer
+from .media import ensure_media_offer,ensure_sold_separately
 class BatchIn(VoucherIssue):
  count:int=Field(ge=1,le=100)
 def register_voucher_batch(app,current,db,owner,log):
@@ -25,7 +25,7 @@ def register_voucher_batch(app,current,db,owner,log):
   if b.site_id:allowed_site(s,u,b.site_id)
   package=s.get(Package,b.package_id)
   if not package or package.tenant_id!=u.tenant_id or not package.active:raise HTTPException(404,'Package not available')
-  ensure_media_offer(s,u.tenant_id,package.policy);now=int(time.time());items=[];codes=set()
+  ensure_sold_separately(package.policy);ensure_media_offer(s,u.tenant_id,package.policy);now=int(time.time());items=[];codes=set()
   for i in range(b.count):
    code,code_hash,hint=new_code(s,u.tenant_id,code_prefix,exclude=codes);codes.add(code)
    v=Voucher(site_id=b.site_id,tenant_id=u.tenant_id,package_id=package.id,policy=package.policy.copy(),code_hash=code_hash,code_hint=hint,code_format='prefixed' if code_prefix else 'standard',code_prefix=code_prefix,issued_by=u.id,request_key=prefix+str(i).zfill(3),created=now,expires=now+b.expires_days*86400);s.add(v);items.append((v,display(code,code_prefix)))

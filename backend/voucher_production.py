@@ -15,7 +15,7 @@ from sqlalchemy.exc import IntegrityError
 from .models import Voucher,Package,VoucherProductionJob,VoucherTemplate,VoucherSale,Dealer
 from .schemas import Strict
 from .sites import allowed_site
-from .media import ensure_media_offer
+from .media import ensure_media_offer,ensure_sold_separately
 from .voucher_codes import new_code,normalize_prefix,display
 from .vouchers import voucher_json
 
@@ -86,7 +86,7 @@ def register_voucher_production(app,current,db,owner,log):
   if site_id:allowed_site(s,u,site_id)
   p=s.get(Package,package_id)
   if not p or p.tenant_id!=u.tenant_id or not p.active:raise HTTPException(404,'Package not available')
-  return p
+  ensure_sold_separately(p.policy);return p
  def dealer_for(s,u,id,lock=False):
   d=s.get(Dealer,id,with_for_update=lock)
   if not d or d.tenant_id!=u.tenant_id or d.archived_at:raise HTTPException(404,'Dealer not available')
