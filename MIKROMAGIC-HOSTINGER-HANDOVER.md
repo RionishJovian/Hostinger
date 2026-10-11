@@ -27,7 +27,7 @@ Owner decisions:
 | Firewall | UFW active, allowing 22, 80, 443, 51820/udp and 51821/udp (IPv4 and IPv6) |
 | Reverse proxy | The `megamagic-landing-caddy-1` container binds `156.67.216.128:80/443` and routes `megamagic.tech` and `www` to `mikromagic-build21-public-test-web` over `megamagic-landing-net` |
 | Co-hosted stacks (untouched) | `megamagic-landing`, `mikromagic-build21-rc` (127.0.0.1:18081), `mikromagic-v8-acceptance` (127.0.0.1:8080/8443), `v8-auth-candidate`, `v8-auth-final-retest-20261009`, `v8-auth-pgtest` (exited), `voucher-pg-20261009` |
-| Deployment directories | `-20261010` = `4e78…` (first public test); `-hub-20261010T143844Z` = `6288…` (Hub release); `-20261010T150700Z` = `6514…`; `-20261010T171319Z` = `4092…`; `-20261010T180343Z` = `5f93…` (migration 037); `-20261010T182316Z` = `379f…` (migration 038); `-20261010T185246Z` = `379f…` (first scripted deploy); `-20261010T195352Z` = `601e…` (migration 039); `-20261010T201247Z` = `201e…` (migration 040); `-20261010T203831Z` = `4fba…` (migration 041); `-20261011T073612Z` = `0d55…` (daily voucher counts); `-20261011T075349Z` = `3d90…` (current, batch QR); `-20261010T184257Z` and `-20261010T184809Z` never served traffic |
+| Deployment directories | `-20261010` = `4e78…` (first public test); `-hub-20261010T143844Z` = `6288…` (Hub release); `-20261010T150700Z` = `6514…`; `-20261010T171319Z` = `4092…`; `-20261010T180343Z` = `5f93…` (migration 037); `-20261010T182316Z` = `379f…` (migration 038); `-20261010T185246Z` = `379f…` (first scripted deploy); `-20261010T195352Z` = `601e…` (migration 039); `-20261010T201247Z` = `201e…` (migration 040); `-20261010T203831Z` = `4fba…` (migration 041); `-20261011T073612Z` = `0d55…` (daily voucher counts); `-20261011T075349Z` = `3d90…` (batch QR); `-20261011T082054Z` = `ae40…` (current, migration 042); `-20261010T184257Z` and `-20261010T184809Z` never served traffic |
 
 The `6514…` artifact (the guest access diagnosis) **was deployed** at 15:07 UTC,
 which no project document recorded. The `bfbe…` digest reported in Discrepancy 3
@@ -214,6 +214,21 @@ only adds a defaulted column, so the 040 code runs on it.
 **Rollback:** retag the `rollback-20261011T075349Z` images, then
 `up -d --no-deps --force-recreate api web` from `-20261011T073612Z`. No schema change.
 
+### Scripted redeploy — shop hours and planned maintenance, migration 042 (2026-10-11 08:21 UTC)
+
+| Item | Value |
+|---|---|
+| Source | Commit `72c28ee` on `origin/main`; artifact `ae40b04e9abf99dc11f8c7809195b9bfbcba80979845f385b9d5fd50449e91eb` (174 files); local checks: 563 backend (12 skipped), 62 frontend tests, build, manifest, voucher and revenue UI checks; SQLite upgrade/downgrade/upgrade; browser walk-through on a scratch database |
+| Directory | `/opt/mikromagic-build21-public-test-20261011T082054Z`; previous `-20261011T075349Z` |
+| Infra / Hub files | Unchanged |
+| Pre-deploy dump | `backups/pre-deploy.dump` (399 restore-list entries) |
+| Migration | 041 → 042 (additive: hours columns on `sites`, `site_incidents.expected_reason`, table `site_maintenance`); PostgreSQL rehearsal 041 → 042 → 041 → 042 clean |
+| Rollback images | `…-{api,web,magic-hub,migrate}:rollback-20261011T082054Z` |
+| Result | api and web recreated and healthy; db and Hub untouched (Hub key and UDP 51820 unchanged); HTTPS 200; `/v1/ready` 200; served bundle `index-B1TDoSmo.js` contains the hours and maintenance UI; `/v1/sites/{id}/hours` returns 401 without a session; read-only SQL: `alembic_version` 042, `site_maintenance` 0 rows, 0 incidents labelled expected, no shops yet |
+
+**Rollback:** retag the `rollback-20261011T082054Z` images, then
+`up -d --no-deps --force-recreate api web` from `-20261011T075349Z`. The 042 columns and table are additive and unused by the old code; restore `backups/pre-deploy.dump` only if the migration itself is at fault.
+
 ### Credential rotation and access
 
 - A new dedicated SSH key, `~/.ssh/mikromagic-hostinger-20261010`, is the only authorized root key (fingerprint `SHA256:YgnX3RLZ…`). The Mac reaches the VPS as `ssh mikromagic-hostinger`, with strict host-key checking.
@@ -255,7 +270,7 @@ only adds a defaulted column, so the 040 code runs on it.
 - A CAA record.
 - The legacy `mm-backup.timer` failures.
 - Old router tunnel `mmh-8adfeb441215`. Owner decision: during an approved router window, disable it first; delete it only after the new Hub connection is proven.
-- Next app work (as of 2026-10-11 14:25 UTC+6:30, live at migration 041, commit `6adffd0`):
+- Next app work (as of 2026-10-11 14:55 UTC+6:30, live at migration 042, commit `72c28ee`):
   - Batch QR on sheets and thermal runs is done (owner-only, no codes). Guest QR on vouchers stays off until a verified guest portal destination exists on a router.
   - Shop business/network hours and planned maintenance are done (migration 042). Still open in that area: automatic Opening Check, push-alert suppression and uptime, which need live monitoring and notifications.
   - Developer role: none exists in the app; the tracker item (L32) awaits the owner's details. The owner works as `nish@magic` (platform role, platform owner, sole Platform console user).
