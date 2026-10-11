@@ -884,3 +884,7 @@ _Clarification synced 2026-10-09 from the authoritative Notion tracker; frozen v
 - **Next owner question Q74 — client presentation when the topology has many devices:** Should customer devices beneath each AP be **A: collapsed into a client-count group by default, expandable on selection; B: every client shown as a separate node by default; or C: a visible owner-selectable compact/detailed presentation**?
 - Preserve owner-confirmed hybrid minimalist UX, switching between interactive Map and Tree, verified connections only, honest unknown/stale statuses, and details on demand. This question addresses *customer-node density*, not physical discovery method, connection verification, or the chosen Map + Tree navigation.
 - Existing P2 **Network Topology / Magic Map = NOT DONE** remains unchanged. Cursor is sole lead developer; no implementation/deployment is authorized by this pending question.
+
+### Q74 answered by the owner (Cursor chat, 2026-10-11 23:10)
+
+- **Q74: Option A.** In the Network Topology / Magic Map, customer devices under each AP are collapsed into a client-count group by default and expand when the owner selects that group. Applies to both the Map and the Tree view; verified links only, unknown or stale links labelled honestly.
