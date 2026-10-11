@@ -675,3 +675,10 @@ _Clarification synced 2026-10-09 from the authoritative Notion tracker; frozen v
 ### Owner decision — 2026-10-11: start of a Media Pass bought online
 - A Media Pass bought online through the guest portal (no voucher code) starts at the **guest's first use**, not when the owner approves the payment. Voucher passes still start at the first redemption of the code in the guest portal (Q40).
 - Recorded from the owner's answer in the Cursor chat (18:27 UTC+6:30) to the question in the 18:40 execution checkpoint. Until playback is connected, such passes show "Starts at your first use" and no clock runs.
+
+### Media Server — owner decision Q50: Media Pass sales channels (2026-10-11)
+- **Q50: Option C — both manual and online Media Pass sales.** SME Owners can manually sell and issue Media Pass vouchers, and customers can purchase Media Passes through the SME's guest portal.
+- Both channels use SME-owned pricing, library/content entitlements and the previously confirmed Media Pass restrictions. Guest payments belong to the respective SME, not the MikroMagic platform subscription account.
+- **Open follow-up Q51:** For a guest's online Media Pass purchase (where no voucher code is handed over), does the purchased duration start at payment approval or when the customer first uses/activates the pass? Until clarified, do not infer automatic activation at payment approval. Maintain first-redemption rules for voucher-code passes (Q40).
+- Cursor is the lead developer. This entry documents a requirement, not confirmation that the two sales channels or local playback are fully implemented.
+- **Q51 answered by the owner (Cursor chat, 2026-10-11 18:27):** a Media Pass bought online starts at the guest's first use. See the owner decision above.
