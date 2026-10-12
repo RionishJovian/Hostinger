@@ -275,3 +275,76 @@ def wireguard_peer_state(client:RouterOSClient,hub_public_key:str):
 def set_wireguard_keepalive(client:RouterOSClient,resource_id:str,seconds:int):
  if not isinstance(resource_id,str) or not re.fullmatch(r'\*[A-Fa-f0-9]+',resource_id):raise RouterOSError('resource_invalid','Router resource identifier is invalid',409)
  return client.write('PATCH','interface/wireguard/peers/'+quote(resource_id,safe=''),{'persistent-keepalive':str(seconds)})
+
+def _profile_html_directory(profile:dict):
+ for key in ('html-directory-override','html-override-directory','html-directory'):
+  value=profile.get(key)
+  if isinstance(value,str) and value.strip():return value.strip()
+ return 'hotspot'
+
+def _destination_files(files,destination:str):
+ prefix=destination.rstrip('/')+'/'
+ matches=[]
+ for item in _records(files):
+  name=item.get('name')
+  if not isinstance(name,str):continue
+  if name==destination or name.startswith(prefix):matches.append(item)
+ return matches
+
+def hotspot_portal_publish_state(client:RouterOSClient,*,profile_name:str,destination:str,expected_files:list[str]|None=None):
+ """Read selected HotSpot profile directory and destination file presence for Safe Change."""
+ if not isinstance(profile_name,str) or not profile_name or len(profile_name)>120:raise RouterOSError('resource_invalid','HotSpot profile name is invalid',409)
+ if not isinstance(destination,str) or not re.fullmatch(r'(?:flash/)?mm-b21-[A-Za-z0-9_-]{1,8}-r[1-9][0-9]{0,8}',destination):
+  raise RouterOSError('resource_invalid','Portal destination directory is invalid',409)
+ profiles=client.get('ip/hotspot/profile')
+ profile=next((item for item in _records(profiles) if item.get('name')==profile_name),None)
+ if not profile or not profile.get('.id'):raise RouterOSError('profile_missing','The selected HotSpot profile is not present on this router',409)
+ files=client.get('file',optional=True)
+ present=_destination_files(files,destination)
+ installed=[]
+ expected=list(expected_files or [])
+ for name in expected:
+  path=destination.rstrip('/')+'/'+name
+  match=next((item for item in present if item.get('name')==path),None)
+  if match:installed.append({'name':name,'size':match.get('size')})
+ return {
+  'resource_id':str(profile['.id']),
+  'profile_name':profile_name,
+  'html_directory':_profile_html_directory(profile),
+  'destination':destination,
+  'destination_present':bool(present),
+  'installed_files':installed,
+ }
+
+def install_hotspot_portal_files(client:RouterOSClient,destination:str,files:dict[str,str]):
+ """Create-only upload of portal servlet files into a new unique directory."""
+ if not files:raise RouterOSError('package_invalid','Portal package has no installable files',409)
+ state_files=client.get('file',optional=True)
+ if _destination_files(state_files,destination):raise RouterOSError('file_collision','Destination portal directory already exists; refusing to overwrite',409)
+ for name,contents in files.items():
+  if not isinstance(name,str) or '/' in name or name in ('.','..') or not re.fullmatch(r'[A-Za-z0-9._-]+',name):
+   raise RouterOSError('package_invalid','Portal package file name is unsafe',409)
+  if not isinstance(contents,str):raise RouterOSError('package_invalid','Portal package file contents must be text',409)
+  path=destination.rstrip('/')+'/'+name
+  client.write('PUT','file/'+quote(path,safe=''),{'contents':contents})
+ after=client.get('file',optional=True)
+ missing=[name for name in files if not any(item.get('name')==destination.rstrip('/')+'/'+name for item in _destination_files(after,destination))]
+ if missing:raise RouterOSError('install_incomplete','Portal files were not all present after create-only upload',409)
+ return {'destination':destination,'files':sorted(files)}
+
+def set_hotspot_profile_html_directory(client:RouterOSClient,resource_id:str,directory:str):
+ if not isinstance(resource_id,str) or not re.fullmatch(r'\*[A-Fa-f0-9]+',resource_id):raise RouterOSError('resource_invalid','Router resource identifier is invalid',409)
+ if not isinstance(directory,str) or not directory or len(directory)>200 or '..' in directory.split('/'):
+  raise RouterOSError('resource_invalid','HotSpot html-directory value is invalid',409)
+ return client.write('PATCH','ip/hotspot/profile/'+quote(resource_id,safe=''),{'html-directory':directory})
+
+def remove_hotspot_portal_files(client:RouterOSClient,destination:str,names:list[str]):
+ """Delete only MikroMagic-created portal files after the profile no longer points at them."""
+ for name in names:
+  path=destination.rstrip('/')+'/'+name
+  try:client.write('DELETE','file/'+quote(path,safe=''),{})
+  except RouterOSError as error:
+   if error.code not in ('router_write_failed',):raise
+ remaining=_destination_files(client.get('file',optional=True),destination)
+ if remaining:raise RouterOSError('cleanup_incomplete','Newly created portal files remain after rollback cleanup',409)
+ return {'destination':destination,'removed':list(names)}

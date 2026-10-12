@@ -85,8 +85,9 @@ class FirstSiteAcceptanceTests(unittest.TestCase):
         for key_name in ['connection_verified', 'preflight_verified', 'portal_published']:
             self.assertEqual(stages[key_name]['status'], 'complete')
         self.assertEqual(stages['hotspot_change_prepared']['status'], 'pending')
-        for key_name in ['owner_review', 'router_apply_verified', 'temporary_test_voucher',
-                         'first_customer_test', 'site_ready']:
+        self.assertEqual(stages['owner_review']['status'], 'blocked')
+        self.assertEqual(stages['router_apply_verified']['status'], 'blocked')
+        for key_name in ['temporary_test_voucher', 'first_customer_test', 'site_ready']:
             self.assertEqual(stages[key_name]['status'], 'blocked')
         self.assertFalse(body['site_ready'])
 
@@ -99,6 +100,7 @@ class FirstSiteAcceptanceTests(unittest.TestCase):
         self.assertTrue(proposal['proposal_only'])
         self.assertFalse(proposal['commands_generated'])
         self.assertEqual(proposal['desired']['new_unique_directory'], f'flash/mm-b21-{site_id[:8]}-r2')
+        self.assertEqual(proposal['desired']['safe_change_operation'], 'hotspot_portal_publish')
         self.assertEqual(proposal['impact']['shared_profile_server_count'], 1)
         self.assertEqual(self.client.post(f"/v1/hotspot-portal-plans/{proposal['id']}/review", headers=owner, json={
             'expected_revision': 1, 'confirm_exact_scope': True,
@@ -107,7 +109,8 @@ class FirstSiteAcceptanceTests(unittest.TestCase):
         refreshed_stages = {stage['key']: stage for stage in refreshed['stages']}
         self.assertEqual(refreshed_stages['hotspot_change_prepared']['status'], 'complete')
         self.assertEqual(refreshed_stages['owner_review']['status'], 'complete')
-        self.assertEqual(refreshed_stages['router_apply_verified']['status'], 'blocked')
+        self.assertEqual(refreshed_stages['router_apply_verified']['status'], 'pending')
+        self.assertEqual(refreshed_stages['temporary_test_voucher']['status'], 'blocked')
         with self.app.state.factory() as session:
             self.assertEqual(session.query(HotspotPortalPlan).filter_by(router_id=router_id).count(), 1)
 

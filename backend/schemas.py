@@ -161,7 +161,18 @@ class BackupIn(Strict):
  storage_ref:str=Field(min_length=1,max_length=400)
  retention_until:int|None=Field(default=None,gt=0)
 class RouterChangePreviewIn(Strict):
- persistent_keepalive_seconds:int=Field(ge=1,le=3600)
+ operation:Literal['wireguard_peer_keepalive','hotspot_portal_publish']='wireguard_peer_keepalive'
+ persistent_keepalive_seconds:int|None=Field(default=None,ge=1,le=3600)
+ hotspot_portal_plan_id:str|None=Field(default=None,min_length=1,max_length=36)
+ @model_validator(mode='after')
+ def validate_preview_fields(self):
+  if self.operation=='wireguard_peer_keepalive':
+   if self.persistent_keepalive_seconds is None:raise ValueError('persistent_keepalive_seconds is required for WireGuard keepalive')
+   if self.hotspot_portal_plan_id is not None:raise ValueError('hotspot_portal_plan_id is only for portal publish')
+  else:
+   if not self.hotspot_portal_plan_id:raise ValueError('hotspot_portal_plan_id is required for portal publish')
+   if self.persistent_keepalive_seconds is not None:raise ValueError('persistent_keepalive_seconds is only for WireGuard keepalive')
+  return self
 class RouterChangeApplyIn(Strict):
  expected_revision:int=Field(gt=0)
  confirm_high_risk:bool=False

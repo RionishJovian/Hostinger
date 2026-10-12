@@ -122,6 +122,13 @@ def build_local_hotspot_package(settings: PortalConfig | dict, *, tenant_id: str
     return payload
 
 
+def package_install_files(payload: bytes) -> dict[str, str]:
+    """Return UTF-8 servlet files to install after validating the archive."""
+    validate_local_hotspot_package(payload)
+    with zipfile.ZipFile(io.BytesIO(payload)) as archive:
+        return {name: archive.read(name).decode("utf-8") for name in FILES}
+
+
 def validate_local_hotspot_package(payload: bytes) -> dict:
     """Fail-closed structural/content validation for generated or supplied archives."""
     if not isinstance(payload, bytes) or len(payload) > MAX_ARCHIVE_BYTES:

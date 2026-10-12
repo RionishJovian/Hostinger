@@ -1,8 +1,8 @@
-"""Proposal-only RouterOS HotSpot portal plans.
+"""RouterOS HotSpot portal plans for guided Safe Change publish.
 
 These endpoints turn trusted read-only inventory and a published local content
-package into an exact, reviewable intent.  They cannot generate RouterOS
-commands, upload files, change a profile, create users, or contact a router.
+package into an exact, reviewable intent. Preparing or reviewing a plan does
+not upload files or change a profile; Publish to MikroTik uses Safe Change.
 """
 import hashlib
 import json
@@ -112,7 +112,8 @@ def register_hotspot_portal_plans(app, current, db, log):
             'content_package_id': package.id, 'content_sha256': package.package_sha256,
             'published_revision': package.published_revision, 'new_unique_directory': destination,
             'selected_profile': profile_name, 'authentication_unchanged': True,
-            'voucher_backend_unchanged': True, 'command_generation': 'not_implemented',
+            'voucher_backend_unchanged': True, 'command_generation': 'safe_change',
+            'safe_change_operation': 'hotspot_portal_publish',
         }
         fingerprint = hashlib.sha256(json.dumps({'before': before, 'desired': desired}, sort_keys=True, separators=(',', ':')).encode()).hexdigest()
         diff = {

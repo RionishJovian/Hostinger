@@ -12372,18 +12372,44 @@
       },
       "RouterChangePreviewIn": {
         "properties": {
+          "operation": {
+            "type": "string",
+            "enum": [
+              "wireguard_peer_keepalive",
+              "hotspot_portal_publish"
+            ],
+            "title": "Operation",
+            "default": "wireguard_peer_keepalive"
+          },
           "persistent_keepalive_seconds": {
-            "type": "integer",
-            "maximum": 3600.0,
-            "minimum": 1.0,
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 3600.0,
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Persistent Keepalive Seconds"
+          },
+          "hotspot_portal_plan_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 36,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hotspot Portal Plan Id"
           }
         },
         "additionalProperties": false,
         "type": "object",
-        "required": [
-          "persistent_keepalive_seconds"
-        ],
         "title": "RouterChangePreviewIn"
       },
       "RouterConflictResolutionIn": {

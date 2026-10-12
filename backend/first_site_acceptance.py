@@ -10,12 +10,14 @@ from sqlalchemy import select
 from .models import (
     LocalPortalPackage,
     HotspotPortalPlan,
+    RouterChange,
     RouterDevice,
     RouterEvidence,
     RouterPlan,
     SitePortal,
     StaffGrant,
 )
+from .hotspot_portal_publish import latest_applied_for_package
 from .sites import allowed_site
 
 
@@ -99,15 +101,23 @@ def register_first_site_acceptance(app, current, db):
                 HotspotPortalPlan.portal_package_id == package.id,
             ).order_by(HotspotPortalPlan.created.desc()))
 
-        # No trusted RouterOS HotSpot-deployment or First Customer Test evidence
-        # type exists yet.  These gates must remain false; owner-reported/manual
-        # metadata is not promoted into technical acceptance.
+        # First Customer Test and Site Ready stay false until real-router evidence
+        # exists. Simulated Safe Change apply can complete router_apply_verified
+        # for software progress only; it is not hardware acceptance.
         hotspot_plan_prepared = bool(hotspot_plan)
         owner_reviewed = bool(hotspot_plan and hotspot_plan.status == 'reviewed')
-        router_apply_verified = False
+        applied = latest_applied_for_package(s, u.tenant_id, router.id, package.id) if router and package else None
+        router_apply_verified = bool(applied and owner_reviewed)
         test_voucher_issued = False
         customer_test_verified = False
         site_ready = False
+        portal_change = None
+        if router and owner_reviewed:
+            portal_change = s.scalar(select(RouterChange).where(
+                RouterChange.tenant_id == u.tenant_id,
+                RouterChange.router_id == router.id,
+                RouterChange.operation == 'hotspot_portal_publish',
+            ).order_by(RouterChange.created.desc(), RouterChange.id.desc()))
 
         stages = [
             _stage('site_details', 'Site details', True,
@@ -127,20 +137,23 @@ def register_first_site_acceptance(app, current, db):
                    f'Published revision {portal.published_revision} has a deterministic local content package.' if portal_prepared else
                    'Publish this site portal to prepare a reviewable local content package.'),
             _stage('hotspot_change_prepared', 'Prepare RouterOS HotSpot change', hotspot_plan_prepared,
-                   'A proposal-only exact content/profile diff is prepared; it contains no commands and performed no router write.' if hotspot_plan_prepared else
-                   'Select an observed HotSpot server to prepare a proposal-only exact diff. No router commands will be generated.',
+                   'An exact content/profile diff is prepared for guided Safe Change publish.' if hotspot_plan_prepared else
+                   'Select an observed HotSpot server to prepare an exact diff for Publish to MikroTik.',
                    blocked=not (preflight_verified and portal_prepared)),
             _stage('owner_review', 'Owner review and confirmation', owner_reviewed,
-                   'The Owner/Admin confirmed the exact proposal scope; this is not router-write authorization.' if owner_reviewed else
+                   'The Owner/Admin confirmed the exact proposal scope before Safe Change backup and apply.' if owner_reviewed else
                    'Review shared-profile impact, exclusions, backup gate and rollback before confirming the proposal.', blocked=not hotspot_plan_prepared),
             _stage('router_apply_verified', 'Apply and verify on the router', router_apply_verified,
-                   'No portal installation, selected-profile update, local voucher enforcement or rollback is verified.', blocked=True),
+                   (f"Safe Change {applied.id} installed the local package and switched the selected profile; real-router acceptance is still pending."
+                    if router_apply_verified else
+                    'Publish to MikroTik through Safe Change: backup, create-only install, profile switch, verify and rollback.'),
+                   blocked=not owner_reviewed),
             _stage('temporary_test_voucher', 'Create temporary test voucher', test_voucher_issued,
-                   'Withheld until router-side portal and enforcement verification exists; it must be excluded from revenue and normal voucher statistics.', blocked=True),
+                   'Withheld until real-router portal and enforcement verification exists; it must be excluded from revenue and normal voucher statistics.', blocked=True),
             _stage('first_customer_test', 'First Customer Test', customer_test_verified,
                    'Requires a real phone through Wi-Fi, captive portal, voucher and internet plus router session/accounting evidence.', blocked=True),
             _stage('site_ready', 'Site Ready', site_ready,
-                   'Fail closed until every earlier technical and owner-confirmation gate is verified.', blocked=True),
+                   'Fail closed until every earlier technical and owner-confirmation gate is verified on a real router.', blocked=True),
         ]
         return {
             'site': {'id': site.id, 'name': site.name, 'timezone': site.timezone},
@@ -150,6 +163,12 @@ def register_first_site_acceptance(app, current, db):
             'site_ready': site_ready,
             'real_device_acceptance': 'not_yet_performed',
             'hotspot_proposal': _hotspot_summary(hotspot_plan, preflight, payload) if router else None,
+            'portal_publish': ({
+                'change_id': portal_change.id if portal_change else None,
+                'status': portal_change.status if portal_change else None,
+                'safety_backup_verified': portal_change.safety_backup_verified if portal_change else False,
+                'applied': router_apply_verified,
+            } if router else None),
             'stages': stages,
             'next_action': next((stage['detail'] for stage in stages if stage['status'] != 'complete'), 'Site ready'),
         }
