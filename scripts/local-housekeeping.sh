@@ -117,46 +117,11 @@ remove_scratch() {
   fi
 }
 
-lima_status() {
-  if ! command -v limactl >/dev/null 2>&1; then
-    log "Lima: not installed"
-    return
-  fi
-  limactl list 2>/dev/null | awk 'NR==1 || /mikromagic/' || true
-}
-
-# Owner policy hook — see request below in the agent chat.
-# Return 0 to stop the mikromagic-wg-dev Lima VM when it is Running; 1 to leave it.
-should_stop_lima_after_tests() {
-  # TODO(owner): choose the Mac memory vs warm-VM trade-off.
-  # Option A — free ~2GiB when Lima is up:  return 0
-  # Option B — keep WireGuard lab warm:     return 1
-  return 1
-}
-
-maybe_stop_lima() {
-  if ! should_stop_lima_after_tests; then
-    log "Lima policy: leave mikromagic-wg-dev as-is"
-    return
-  fi
-  if ! command -v limactl >/dev/null 2>&1; then
-    return
-  fi
-  if limactl list 2>/dev/null | awk '/mikromagic-wg-dev/ {print $2}' | grep -qx Running; then
-    log "Stopping Lima VM mikromagic-wg-dev"
-    limactl stop mikromagic-wg-dev
-  else
-    log "Lima mikromagic-wg-dev already stopped"
-  fi
-}
-
 main() {
   log "Housekeeping for $ROOT"
   stop_project_listeners
   stop_project_orphans
   remove_scratch
-  maybe_stop_lima
-  lima_status
   log "Done. stopped_processes=$killed scratch_removed=$removed"
 }
 

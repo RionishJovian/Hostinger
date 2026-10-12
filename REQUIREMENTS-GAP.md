@@ -120,6 +120,15 @@ Baseline preserved: Build 21; 281 Python tests and the production frontend build
 5. Execute the frozen First Customer Test and outage/reconnect/bypass acceptance on a disposable real router before marking any P0 row ✅.
 6. Reconcile frozen security conflicts through additive migrations and backward-compatible behavior; never destructively rewrite historical accounts, sessions or voucher snapshots.
 
+### Owner reprioritization — 2026-10-12
+
+The owner moved MikroTik connection, router management and the captive portal (Notion P0b) ahead of the remaining P0a interface steps, media and switch/AP work. The working order is in `AGENTS.md` under "Current development sequence". Two findings shape step 1:
+
+- The router plan (`POST /v1/routers/{id}/plan`) needs the router's WireGuard public key, but RouterOS creates that key only when the technician adds the interface. Today the key would have to travel from the router screen to the owner by hand. Step 1 lets the technician submit it through the approved pairing session and binds it to that pairing, which also closes the "plan public-key enrollment is not yet bound to the technician pairing lifecycle" gap above.
+- The deployed stack has no route from the API container to the Hub tunnel pool, so even a fresh handshake cannot be followed by the authenticated management read that Connected requires. Step 2 adds that route as a reviewed infrastructure change.
+
+The Lima development Hub was deleted on 2026-10-12 at the owner's request. The next hardware window uses the production Hub `mm-prod-hub` through the real enrollment flow; `docs/MAGIC-CONNECT-TRANSPORT-LAB.md` is retained as history.
+
 ## Current blockers
 
 - No live disposable MikroTik endpoint, RouterOS credentials/version, approved management transport, Magic Hub peer keys, HotSpot test interface or controlled guest device is available in this workspace.

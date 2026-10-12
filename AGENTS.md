@@ -37,6 +37,7 @@
 - During an approved window, prioritize a fresh real handshake. Preserve `mmh-8adfeb441215`, Wi-Fi, firewall, unrelated routes/VPNs, and customer services. A handshake is transport evidence, not Magic Connect Connected; D1/S1 remains separate.
 - Owner decision 2026-10-10: the dead historical tunnel `mmh-8adfeb441215` may be **disabled** during an approved router window and **deleted** only after the new Hub connection is proven. This is the only exception to preserving it, and it applies only inside an approved window.
 - Current temporary transport plan and rollback: `docs/MAGIC-CONNECT-TRANSPORT-LAB.md`. Its commands are not authorization to contact or modify the router.
+- Owner decision 2026-10-12: the Lima lab is not needed and `mikromagic-wg-dev` was deleted. The Lima items in the readiness list above no longer apply. The next window enrolls the hAP ax² through the real Magic Connect flow on the production Hub `mm-prod-hub`. Offline readiness now means: the technician-guided router setup is deployed behind its flag, the API can reach the tunnel pool through the Hub, the exact router commands and rollback are written, and the historical-tunnel conflict on `156.67.216.128:51820` is handled by disabling `mmh-8adfeb441215` inside the window.
 
 ## Mandatory local Mac housekeeping — owner decision 2026-10-12
 
@@ -44,7 +45,7 @@
 - After every local test, browser walkthrough, or verification that started background processes: run `bash scripts/local-housekeeping.sh` before the final reply. Confirm ports `5173` / `8787` / `8788` are clear and report what was stopped/removed.
 - Do not leave `npm run dev`, Vite, Python unittest runners, or scratch `/tmp/mm-*` databases running when the task is done. Prefer foreground bounded commands; if a background server is required, stop it in the same turn.
 - Scope is this corrective checkout and known local scratch only. Never kill Cursor, unrelated apps, VPS processes, `/opt/build21`, `/opt/mikromagic-v8`, or co-hosted stacks.
-- Lima `mikromagic-wg-dev` stop policy is owned by `should_stop_lima_after_tests` in `scripts/local-housekeeping.sh`; do not invent a different Lima cleanup path.
+- The Lima VM `mikromagic-wg-dev` was deleted on 2026-10-12 at the owner's request; do not recreate it for routine testing.
 
 # Prototype Instructions
 
@@ -57,6 +58,19 @@ When implementing from a selected generated mock, treat that image as the source
 Build app UI in `src/`. Keep `.openai/hosting.json`, `worker/index.js`, `scripts/prepare-sites-build.mjs`, and `tests/sites-worker.test.mjs` intact so the same local prototype can be handed to Sites. Before a Sites handoff, run `npm run build` and `npm run test:sites`; the build must leave `dist/client/index.html`, `dist/server/index.js`, and `dist/.openai/hosting.json`.
 
 # Current development sequence
+
+Owner decision 2026-10-12: prioritize MikroTik connection, router management workflows and the captive portal (Notion P0b) ahead of the remaining P0a interface work, media and switch/AP work. Order:
+
+1. Technician-guided router setup on the real Hub: the router generates its own key, the technician submits the public key through the approved pairing session, the owner reviews the plan, the Hub peer is added, the app watches for the handshake. Behind a flag that stays off until a hardware window.
+2. Management path: API → Hub → router tunnel route (reviewed infra change) and the router's least-privilege monitoring identity over HTTPS (D1/S1), ready for verification in the window.
+3. Hardware window on the hAP ax²: first real handshake and authenticated management read (Connected).
+4. Voucher → HotSpot user and profile sync (time, quotas, speeds, devices, disable/revoke), only for Connected routers.
+5. Publish to MikroTik: install the local portal package and switch the selected HotSpot profile through Safe Change with backup, verify and rollback.
+6. Session and accounting reads: first-login activation, usage, active guests; Unable to Verify when stale.
+7. Local guest login page simplification, Burmese first.
+8. First Customer Test on a real phone before Site Ready.
+
+Small non-router fixes may still ship, but do not start new P1–P3 features until this list reaches step 5.
 
 The frozen v1 tracker dated 2026-10-08 makes real-device acceptance the top priority. Continue RouterOS enrollment, WireGuard, HotSpot/accounting/enforcement, backup/restore and vendor acceptance work without claiming success until real infrastructure evidence exists. `MIKROMAGIC-REQUIREMENTS.md` is authoritative and `REQUIREMENTS-GAP.md` is the current audit.
 

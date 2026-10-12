@@ -1,5 +1,7 @@
 # Stage 2 (transport-only) physical WireGuard connection — prepared, not authorized to execute
 
+> **Retired 2026-10-12.** The owner decided the Lima lab is not needed, and the `mikromagic-wg-dev` VM (with `mm-dev-hub` and its rotated key) was deleted. Nothing below can run as written. The next hardware window enrolls the router through the real Magic Connect flow on the production Hub `mm-prod-hub` (`156.67.216.128:51820`); see "Current development sequence" in `AGENTS.md`. The conflict checks, stop rules and the historical-tunnel retirement steps at the end of this document still apply to that window.
+
 Scope: hAP ax² / RouterOS 7.24.2 / ARM64 to the isolated `mikromagic-wg-dev` VM. This tests transport only. No D1/S1 credentials, RouterOS management service, firewall rule, Wi-Fi, WAN, default route, HotSpot, or historical VPN change is in scope. Do not touch `mmh-8adfeb441215` except for the owner-approved retirement step at the end of this document. Obtain the owner's explicit hardware-window and exact router-write approval before applying any command below.
 
 Stage naming: in this document "Stage 2" means **transport-only connection to the development Hub**. It is not the Stage 1 report's proposed management-surface reduction (telnet/www/MAC Telnet), which remains a separate optional change, and it is not Stage 2 of `MAGIC-CONNECT-CONTROLLED-HARDWARE-ACCEPTANCE.md` (TLS/S1 lab). Its success state is **Transport Verified**, never Magic Connect Connected.
