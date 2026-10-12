@@ -1,15 +1,15 @@
 import React,{useCallback,useEffect,useState} from 'react';
-import {useSMELocalization} from './SMELocalization.jsx';
-const when=t=>t?new Date(t*1000).toLocaleString():'';
-const money=(n,c)=>`${Number(n).toLocaleString()} ${c}`;
+import {useSMELocalization,useSmeFormat} from './SMELocalization.jsx';
+import {formatMmk,formatSmeDateTime} from './sme-format.mjs';
 function Panel({title,children}){return <section className="panel"><div className="panelhead"><h2>{title}</h2></div>{children}</section>}
 function Metric({title,value}){return <div className="metric"><small>{title}</small><strong>{value}</strong></div>}
-export function notificationText(t,x){
+export function notificationText(t,x,language='en'){
+ const when=seconds=>seconds?formatSmeDateTime(seconds,language):'';
  const p={...x.params,router:x.params.router||t('notifications','someRouter'),site:x.params.site||t('notifications','someSite'),scope:t('notifications','scopes')[x.params.scope]||x.params.scope,time:when(x.params.planned_end)};
  const text=t('notifications','kinds')[x.kind];return text?text(p,x.count):x.kind;
 }
 export function NotificationCenter({api,go,onChange}){
- const {t}=useSMELocalization();const n=k=>t('notifications',k);
+ const {t,language}=useSMELocalization();const {when}=useSmeFormat();const n=k=>t('notifications',k);
  const [data,setData]=useState(null),[prefs,setPrefs]=useState(null),[busy,setBusy]=useState(false),[notice,setNotice]=useState('');
  const apply=useCallback(r=>{setData(r);setPrefs(r.preferences);onChange?.(r)},[onChange]);
  const load=useCallback(()=>api.request('notifications').then(apply).catch(e=>setNotice(e.message)),[api,apply]);
@@ -24,7 +24,7 @@ export function NotificationCenter({api,go,onChange}){
    {notice&&<p role="alert">{notice}</p>}
    {data.items.length?<ul className="notification-list">{data.items.map(x=><li key={x.key} className={'notification '+x.level+(x.read?' read':'')}>
     <div className="notification-head"><span className={'pill '+(x.level==='critical'?'critical':x.level==='attention'?'warn':'')}>{n(x.level)}</span>{!x.read&&<b className="count">{n('newBadge')}</b>}<small className="muted">{when(x.updated)}</small></div>
-    <p>{notificationText(t,x)}</p>
+    <p>{notificationText(t,x,language)}</p>
     {x.params.root_cause&&<small>{n(x.params.root_cause_confirmed?'rootConfirmed':'rootSuspected')}: {x.params.root_cause}</small>}
     {x.params.expected_reason&&<small>{n('expected')}</small>}
     <div className="buttons"><button className="button secondary" onClick={()=>go(x.page)}>{n('open')}</button>{!x.read&&<button className="button secondary" disabled={busy} onClick={()=>read([x])}>{n('markRead')}</button>}</div>
@@ -42,9 +42,10 @@ export function NotificationCenter({api,go,onChange}){
  </>;
 }
 export function DailySummary({api,go}){
- const {t}=useSMELocalization();const n=k=>t('notifications',k);const [d,setD]=useState(null);
+ const {t,language}=useSMELocalization();const n=k=>t('notifications',k);const [d,setD]=useState(null);
  useEffect(()=>{let active=true;api.request('notifications/daily-summary').then(r=>{if(active)setD(r)}).catch(()=>{});return ()=>{active=false}},[api]);
  if(!d?.shown)return null;
+ const money=(n,c)=>c&&c!=='MMK'?`${Number(n).toLocaleString(language==='my'?'my-MM':'en')} ${c}`:formatMmk(n,language);
  return <Panel title={n('summaryTitle')(d.date)}>
   {d.important&&<p><span className="pill warn">{n('importantDay')}</span> {d.reasons.map(r=>n('reasons')[r]||r).join(' · ')}</p>}
   <div className="metrics metrics-4">

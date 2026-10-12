@@ -1,10 +1,9 @@
 import React,{useCallback,useEffect,useState} from 'react';
 import {serial} from './voucher-production.mjs';
 import {PAYMENT_METHODS,balanceText,compressSerials,handoverPreview,mmk,movementDetail,newKey,parseSerials} from './dealers.mjs';
-import {useSmeCopy} from './SMELocalization.jsx';
+import {useSmeCopy,useSmeFormat} from './SMELocalization.jsx';
 function Field({label,children}){return <label className="field"><span>{label}</span>{children}</label>}
 const blankDealer={name:'',location:'',phone:'',short_code:'',settlement:'credit',credit_limit:''};
-const when=t=>new Date(t*1000).toLocaleString();
 function dealerBody(f){return {name:f.name,settlement:f.settlement,...(f.location.trim()?{location:f.location}:{}),...(f.phone.trim()?{phone:f.phone}:{}),...(f.short_code.trim()?{short_code:f.short_code}:{}),...(f.settlement==='credit'&&String(f.credit_limit).trim()!==''?{credit_limit:Number(f.credit_limit)}:{})}}
 function DealerFields({form,set,c}){
  return <div className="formgrid">
@@ -17,7 +16,7 @@ function DealerFields({form,set,c}){
  </div>
 }
 export default function Dealers({api,refresh}){
- const c=useSmeCopy('dealers');
+ const c=useSmeCopy('dealers');const {when,phone}=useSmeFormat();
  const [dealers,setDealers]=useState([]),[jobs,setJobs]=useState([]),[active,setActive]=useState(null),[detail,setDetail]=useState(null),[message,setMessage]=useState(''),[working,setWorking]=useState(false);
  const [form,setForm]=useState(blankDealer),[edit,setEdit]=useState(null);
  const [give,setGive]=useState({source:'range',job:'',from:'',to:'',price:'',note:''}),[back,setBack]=useState({from:'',to:'',target:'',price:'',credit:true,note:''});
@@ -43,7 +42,7 @@ export default function Dealers({api,refresh}){
  return <section className="panel dealers"><div className="panelhead"><h2>{c.title}</h2></div>
   <p>{c.intro}</p>
   {message&&<p role="status" className="callout">{message}</p>}
-  <div className="tablewrap"><table><thead><tr>{c.cols.map(h=><th key={h}>{h}</th>)}</tr></thead><tbody>{dealers.map(x=><tr key={x.id} className={x.id===active?'selected':''}><td>{x.rank}</td><td>{x.name}{x.short_code?` (${x.short_code})`:''}<small>{[x.location,x.phone].filter(Boolean).join(' · ')}</small></td><td>{x.settlement==='prepaid'?c.prepaid:c.credit}{x.credit_limit!=null&&<small>{c.limit(mmk(x.credit_limit))}</small>}</td><td>{x.unused}{x.low_stock&&<small className="pill">{c.low}</small>}</td><td>{x.activated}</td><td>{balanceText(x.balance)}</td><td><button type="button" className="button secondary" onClick={()=>open(x.id).catch(e=>setMessage(e.message))}>{c.open}</button></td></tr>)}{!dealers.length&&<tr><td colSpan={7}>{c.empty}</td></tr>}</tbody></table></div>
+  <div className="tablewrap"><table><thead><tr>{c.cols.map(h=><th key={h}>{h}</th>)}</tr></thead><tbody>{dealers.map(x=><tr key={x.id} className={x.id===active?'selected':''}><td>{x.rank}</td><td>{x.name}{x.short_code?` (${x.short_code})`:''}<small>{[x.location,x.phone?phone(x.phone):''].filter(Boolean).join(' · ')}</small></td><td>{x.settlement==='prepaid'?c.prepaid:c.credit}{x.credit_limit!=null&&<small>{c.limit(mmk(x.credit_limit))}</small>}</td><td>{x.unused}{x.low_stock&&<small className="pill">{c.low}</small>}</td><td>{x.activated}</td><td>{balanceText(x.balance)}</td><td><button type="button" className="button secondary" onClick={()=>open(x.id).catch(e=>setMessage(e.message))}>{c.open}</button></td></tr>)}{!dealers.length&&<tr><td colSpan={7}>{c.empty}</td></tr>}</tbody></table></div>
   <p className="muted">{c.rank}</p>
   <details className="dealer-action"><summary>{c.add}</summary><form onSubmit={add}><DealerFields form={form} set={(k,v)=>setForm(f=>({...f,[k]:v}))} c={c}/><button className="button" disabled={working||!form.name.trim()}>{c.addButton}</button></form></details>
   {d&&<div className="dealer-detail">

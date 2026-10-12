@@ -1,11 +1,9 @@
 import React,{useState} from 'react';
 import {PAYMENT_METHODS,canCancelSale,saleFields,saleProblem} from './voucher-sales.mjs';
-import {useSmeCopy} from './SMELocalization.jsx';
-const money=x=>new Intl.NumberFormat('en',{style:'currency',currency:'MMK',maximumFractionDigits:0}).format(x||0);
-const when=t=>new Date(t*1000).toLocaleString();
+import {useSmeCopy,useSmeFormat} from './SMELocalization.jsx';
 function Field({label,children}){return <label className="field"><span>{label}</span>{children}</label>}
 function RecordSale({voucher,act,busy}){
- const c=useSmeCopy('vouchers');
+ const c=useSmeCopy('vouchers');const {money}=useSmeFormat();
  const [method,setMethod]=useState('Cash'),[reference,setReference]=useState(''),[evidence,setEvidence]=useState(''),[confirmed,setConfirmed]=useState(false);
  const f=saleFields(method),problem=saleProblem({method,reference,evidence}),price=money(voucher.policy.price);
  return <form onSubmit={e=>{e.preventDefault();act('vouchers/'+voucher.id+'/sale',{amount:voucher.policy.price,method,reference,evidence,confirmed_received:true})}}>
@@ -29,7 +27,7 @@ function CancelSale({voucher,act,busy}){
  </form></details>
 }
 function RefundSale({sale,voucher,act,busy}){
- const c=useSmeCopy('vouchers');
+ const c=useSmeCopy('vouchers');const {money}=useSmeFormat();
  const [reason,setReason]=useState(''),[reference,setReference]=useState(''),[returned,setReturned]=useState(false);
  return <details className="dealer-action"><summary>{c.refund}</summary><form onSubmit={e=>{e.preventDefault();act('vouchers/'+voucher.id+'/sale/refund',{reason,reference,confirmed_returned:returned})}}>
   <p>{c.refundBody}</p>
@@ -41,7 +39,7 @@ function RefundSale({sale,voucher,act,busy}){
  </form></details>
 }
 export function VoucherPayment({voucher,act,busy}){
- const c=useSmeCopy('vouchers');
+ const c=useSmeCopy('vouchers');const {money,when}=useSmeFormat();
  const sale=voucher.sale,cancelled=voucher.cancelled_sales||[];
  return <section className="panel"><div className="panelhead"><h2>{c.saleTitle(voucher.code_hint)}</h2></div><p>{voucher.policy.name} · {money(voucher.policy.price)} · {c.status[voucher.status]||voucher.status}</p>
   {!sale?<RecordSale voucher={voucher} act={act} busy={busy}/>:<>

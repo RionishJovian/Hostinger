@@ -1,4 +1,5 @@
 import React,{createContext,useContext,useMemo,useState} from 'react';
+import {formatMmk,formatSmeDateTime,formatSmePhone} from './sme-format.mjs';
 import {chooseSmeLanguage,getSmeMessage,normalizeSmeLanguage,persistSmeLanguage,readStoredSmeLanguage,SME_MESSAGES} from './sme-localization.mjs';
 import './sme-localization.css';
 
@@ -26,6 +27,17 @@ export function useSmeCopy(section,enabled=true){
  const context=useContext(SMELocalizationContext);
  const language=enabled&&context?normalizeSmeLanguage(context.language):'en';
  return SME_MESSAGES[language]?.[section]??SME_MESSAGES.en?.[section]??{};
+}
+/** MMK / date / phone helpers bound to the signed-in SME language (English outside the provider). */
+export function useSmeFormat(enabled=true){
+ const context=useContext(SMELocalizationContext);
+ const language=enabled&&context?normalizeSmeLanguage(context.language):'en';
+ return useMemo(()=>({
+  language,
+  money:amount=>formatMmk(amount,language),
+  when:(seconds,options)=>formatSmeDateTime(seconds,language,options),
+  phone:value=>formatSmePhone(value,language)
+ }),[language]);
 }
 
 const LANGUAGE_LABELS={my:'မြန်မာ',en:'English'};

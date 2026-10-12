@@ -61,3 +61,17 @@ test('Burmese SME copy covers Overview, Vouchers and the Routers sections under 
  assert.equal(routers.recoveryLead,'Recovery Required.');
  assert.equal(routers.expiresAt('18:00'),'18:00 တွင် သက်တမ်းကုန်သည်');
 });
+
+test('Revenue and Payments page copy exists in English and Burmese',()=>{
+ assert.equal(getSmeMessage('en','revenue','filtersTitle'),'Report filters');
+ assert.equal(getSmeMessage('en','payments','queueTitle'),'Payment review queue');
+ assert.equal(getSmeMessage('en','payments','approve'),'Confirm receipt & approve');
+ assert.match(getSmeMessage('my','revenue','filtersTitle'),/[\u1000-\u109F]/);
+ assert.match(getSmeMessage('my','revenue','netCollections'),/[\u1000-\u109F]/);
+ assert.match(getSmeMessage('my','revenue','reconcileTitle'),/[\u1000-\u109F]/);
+ assert.match(getSmeMessage('my','payments','queueTitle'),/[\u1000-\u109F]/);
+ assert.match(getSmeMessage('my','payments','approve'),/[\u1000-\u109F]/);
+ assert.match(SME_MESSAGES.my.revenue.workloadBody(2,1,0,0),/၂|2/);
+ assert.match(SME_MESSAGES.en.revenue.periodLine('All time','Asia/Yangon','All shops'),/All time/);
+ assert.match(SME_MESSAGES.my.payments.reviewTitle('Cafe'),/Cafe/);
+});
