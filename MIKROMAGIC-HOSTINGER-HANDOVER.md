@@ -560,6 +560,22 @@ Restore /opt/mikromagic-build21-public-test-20261012T042528Z/backups/pre-deploy.
 then cd /opt/mikromagic-build21-public-test-20261012T042528Z && docker compose -p mikromagic-build21-public-test -f compose.hostinger-public-test.yaml up -d --no-deps --force-recreate api web magic-hub
 Restore /opt/mikromagic-build21-public-test-20261012T050600Z/backups/pre-deploy.dump only if the migration itself is at fault. No schema change.
 
+### Scripted redeploy — MikroMagic-created router logins behind the flag, migration 051 (2026-10-12 12:15 UTC+6:30)
+
+| Item | Value |
+|---|---|
+| Source | Commit `5ceb426` on `origin/main`; artifact `00a7dfd087c51e19b2bac385a27e0a8a90b2a2887f980198272dc9b0977da4b6` (204 files); local checks inside the deploy script: 655 backend tests, 12 skipped, 81 frontend tests, build |
+| Directory | `/opt/mikromagic-build21-public-test-20261012T053804Z`; previous `-20261012T050600Z` |
+| Infra files | `ALLOW_INFRA_CHANGE=1`: `compose.hostinger-public-test.yaml` (API volume `routeros_credentials` at `/var/lib/mikromagic/routeros`; `MIKROMAGIC_ROUTEROS_{MONITORING,SAFE_CHANGE,ENROLL}_SECRETS_DIR`; the unused `MIKROMAGIC_ROUTEROS_SECRETS_DIR` removed), `Dockerfile.api` (the three folders, owner `mikromagic`, mode 0700). Hub untouched |
+| Pre-deploy dump | `backups/pre-deploy.dump` (at 050, 474 entries) |
+| Migration | 050 → 051 (additive: `expected_serial_digest`, `management_identities_at` on `magic_connect_enrollments`); PostgreSQL rehearsal 050 → 051 → 050 → 051 clean |
+| Rollback images | `…-{api,web,magic-hub,migrate}:rollback-20261012T053804Z` |
+| Result | api and web recreated; db and Hub untouched (Hub key `TG1jLN13+hA1Eg9/1h0DykQ768ZHZO54WFGAZWhjL0o=`, UDP `156.67.216.128:51820` unchanged); all services healthy; `/v1/ready` 200; capability still `router_setup_available: false`; `POST /v1/routers/{id}/management-setup` requires sign-in (401); the three credential folders exist in the API container, mode 0700, owned by the API user, empty; bundle `index-CCowoZp_.js` |
+
+**Rollback:** on the VPS, for s in api web magic-hub migrate; do docker tag mikromagic-build21-public-test-$s:rollback-20261012T053804Z mikromagic-build21-public-test-$s:latest; done
+then cd /opt/mikromagic-build21-public-test-20261012T050600Z && docker compose -p mikromagic-build21-public-test -f compose.hostinger-public-test.yaml up -d --no-deps --force-recreate api web
+Restore /opt/mikromagic-build21-public-test-20261012T053804Z/backups/pre-deploy.dump only if the migration itself is at fault. Migration 051 is additive; the old code ignores the new columns. The `routeros_credentials` volume is empty and can stay.
+
 - Next app work (as of 2026-10-12 09:00 UTC+6:30, live at migration 049, commit `13d40af`):
   - Terminology and Burmese (P0a step 6) are live on SME owner pages: Shop, Internet Pass / Media Pass, Router, and Guest Wi-Fi page. Burmese covers Overview, Vouchers, and the Routers sections under the guide. Platform screens stay English. Guest portal and Developer Dashboard are next.
   - Routers page guided (P0a step 5): Connect your router steps first; Magic Hub, connection plans and Safe RouterOS changes under a closed Advanced (technician) section that opens when a change needs attention.
