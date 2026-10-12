@@ -76,9 +76,23 @@ def load_routeros_safe_change_credential(router_id:str,directory:str|None=None)-
 def load_routeros_credential(router_id:str,directory:str|None=None)->RouterOSCredential:
  return load_routeros_monitoring_credential(router_id,directory)
 
+def management_proxy_from_environment():
+ """Return the Hub relay proxy URL, or None when routers are reached directly."""
+ url=os.environ.get('MIKROMAGIC_HUB_RELAY_URL','')
+ if not url:return None
+ parsed=urlparse(url)
+ if parsed.scheme!='http' or parsed.hostname!='magic-hub' or parsed.port!=8791 or parsed.username or parsed.path not in ('','/') or parsed.query or parsed.fragment:
+  raise RouterOSError('relay_invalid','Hub management relay is not the fixed internal endpoint',500)
+ token_file=os.environ.get('MIKROMAGIC_HUB_AGENT_TOKEN_FILE','')
+ try:token=Path(token_file).read_text(encoding='utf-8').strip() if os.path.isabs(token_file) else ''
+ except OSError:token=''
+ if not re.fullmatch(r'[A-Za-z0-9_-]{40,160}',token):raise RouterOSError('relay_unavailable','Hub management relay credential is unavailable',503)
+ return f'http://mikromagic:{token}@magic-hub:8791'
+
 class RouterOSClient:
  def __init__(self,credential:RouterOSCredential,transport=None,timeout=8.0):
-  self.credential=credential;self.client=httpx.Client(base_url=credential.base_url,auth=(credential.username,credential.password),verify=credential.verify,timeout=timeout,transport=transport,trust_env=False,follow_redirects=False,headers={'Accept':'application/json','User-Agent':'MikroMagic-Build21/1.0'})
+  proxy=None if transport else management_proxy_from_environment()
+  self.credential=credential;self.client=httpx.Client(base_url=credential.base_url,auth=(credential.username,credential.password),verify=credential.verify,timeout=timeout,transport=transport,proxy=proxy,trust_env=False,follow_redirects=False,headers={'Accept':'application/json','User-Agent':'MikroMagic-Build21/1.0'})
  def close(self):self.client.close()
  def __enter__(self):return self
  def __exit__(self,*args):self.close()

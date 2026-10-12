@@ -1,6 +1,6 @@
 """Private control plane for one isolated WireGuard Hub container."""
 from __future__ import annotations
-import base64,hmac,ipaddress,json,os,re,subprocess,tempfile,time
+import asyncio,base64,contextlib,hmac,ipaddress,json,os,re,subprocess,tempfile,time
 from pathlib import Path
 from fastapi import FastAPI,Header,HTTPException
 from pydantic import BaseModel,ConfigDict,Field,field_validator
@@ -65,6 +65,8 @@ class WireGuardAgentService:
    try:os.unlink(name)
    except FileNotFoundError:pass
  def public_key(self):return valid_key(self._run('wg','show',self.interface,'public-key').strip())
+ def peer_addresses(self):
+  return {str(ipaddress.ip_network(v).network_address) for v in self._load().values()}
  def provision(self,key,address,pool):
   pool=self._pool(pool);key=valid_key(key);allowed=valid_address(address,pool);state=self._load()
   if key in state:
@@ -94,6 +96,73 @@ class WireGuardAgentService:
   stamp=handshakes.get(key) if found else None;age=int(self.clock())-stamp if stamp else None
   return {'evidence_source':'dedicated_hub_agent_live_read','observed_at':int(self.clock()),'peer_found':found,'allowed_address_match':match,'last_handshake_at':stamp,'handshake_age_seconds':age,'fresh_handshake':bool(match and age is not None and 0<=age<=recent_seconds),'recent_threshold_seconds':recent_seconds}
 
+class ManagementRelay:
+ """CONNECT relay from the API to router management HTTPS over the tunnel.
+
+ Only provisioned peer /32 addresses on port 443 are reachable. TLS runs end
+ to end between the API and the router, so this relay never sees RouterOS
+ credentials or response bodies.
+ """
+ PORTS=frozenset({443})
+ HEAD_LIMIT=8192
+ def __init__(self,service,token,connect=asyncio.open_connection,max_tunnels=16,head_timeout=10,connect_timeout=8,idle_timeout=60,max_seconds=300):
+  self.service=service;self.token=token;self.connect=connect;self.slots=asyncio.Semaphore(max_tunnels)
+  self.head_timeout=head_timeout;self.connect_timeout=connect_timeout;self.idle_timeout=idle_timeout;self.max_seconds=max_seconds
+ def _authorized(self,headers):
+  value=headers.get('proxy-authorization','')
+  if not value.startswith('Basic '):return False
+  try:user,_,secret=base64.b64decode(value[6:],validate=True).decode('utf-8').partition(':')
+  except (ValueError,UnicodeDecodeError):return False
+  return user=='mikromagic' and hmac.compare_digest(secret,self.token)
+ def _target(self,authority):
+  host,sep,port=authority.rpartition(':')
+  if not sep or not port.isdigit() or int(port) not in self.PORTS:return None
+  try:address=ipaddress.IPv4Address(host)
+  except ValueError:return None
+  try:allowed=self.service.peer_addresses()
+  except AgentError:return None
+  return (str(address),int(port)) if str(address) in allowed else None
+ @staticmethod
+ async def _reply(writer,status,reason):
+  writer.write(f'HTTP/1.1 {status} {reason}\r\nContent-Length: 0\r\nConnection: close\r\n\r\n'.encode());
+  with contextlib.suppress(Exception):await writer.drain()
+ async def _pipe(self,reader,writer):
+  try:
+   while True:
+    chunk=await asyncio.wait_for(reader.read(65536),self.idle_timeout)
+    if not chunk:break
+    writer.write(chunk);await writer.drain()
+  finally:
+   with contextlib.suppress(Exception):writer.close()
+ async def handle(self,reader,writer):
+  upstream=None
+  try:
+   try:head=await asyncio.wait_for(reader.readuntil(b'\r\n\r\n'),self.head_timeout)
+   except (asyncio.TimeoutError,asyncio.IncompleteReadError,asyncio.LimitOverrunError):return await self._reply(writer,400,'Bad Request')
+   if len(head)>self.HEAD_LIMIT:return await self._reply(writer,431,'Request Header Fields Too Large')
+   lines=head.decode('latin-1').split('\r\n');parts=lines[0].split(' ')
+   if len(parts)!=3 or parts[0]!='CONNECT' or not parts[2].startswith('HTTP/1.'):return await self._reply(writer,405,'Method Not Allowed')
+   headers={}
+   for line in lines[1:]:
+    name,sep,value=line.partition(':')
+    if sep:headers[name.strip().lower()]=value.strip()
+   if not self._authorized(headers):return await self._reply(writer,407,'Proxy Authentication Required')
+   target=self._target(parts[1])
+   if not target:return await self._reply(writer,403,'Forbidden')
+   if self.slots.locked():return await self._reply(writer,503,'Service Unavailable')
+   async with self.slots:
+    try:upstream_reader,upstream=await asyncio.wait_for(self.connect(*target),self.connect_timeout)
+    except (OSError,asyncio.TimeoutError):return await self._reply(writer,502,'Bad Gateway')
+    writer.write(b'HTTP/1.1 200 Connection Established\r\n\r\n');await writer.drain()
+    pipes=asyncio.gather(self._pipe(reader,upstream),self._pipe(upstream_reader,writer))
+    with contextlib.suppress(Exception):await asyncio.wait_for(pipes,self.max_seconds)
+  finally:
+   for stream in (upstream,writer):
+    if stream:
+     with contextlib.suppress(Exception):stream.close()
+ async def serve(self,host,port):
+  return await asyncio.start_server(self.handle,host,port,limit=self.HEAD_LIMIT)
+
 class Request(BaseModel):
  model_config=ConfigDict(extra='forbid')
  interface:str=Field(min_length=1,max_length=15)
@@ -102,8 +171,14 @@ class Request(BaseModel):
  pool:str|None=None
  recent_seconds:int=Field(default=180,ge=30,le=900)
 
-def make_agent(service,token):
- app=FastAPI(docs_url=None,redoc_url=None,openapi_url=None)
+def make_agent(service,token,relay_port=None):
+ @contextlib.asynccontextmanager
+ async def lifespan(_app):
+  server=await ManagementRelay(service,token).serve('0.0.0.0',relay_port) if relay_port else None
+  try:yield
+  finally:
+   if server:server.close();await server.wait_closed()
+ app=FastAPI(docs_url=None,redoc_url=None,openapi_url=None,lifespan=lifespan)
  def auth(value):
   if not value or not value.startswith('Bearer ') or not hmac.compare_digest(value[7:],token):raise HTTPException(401,'unauthorized')
  def call(fn):
@@ -136,5 +211,6 @@ def application():
  if not re.fullmatch(r'[A-Za-z0-9_-]{40,160}',token):raise RuntimeError('Invalid Hub agent token')
  service=WireGuardAgentService(os.environ['MIKROMAGIC_HUB_INTERFACE'],os.environ['MIKROMAGIC_HUB_PRIVATE_KEY_FILE'],os.environ['MIKROMAGIC_HUB_STATE_FILE'])
  service.initialize(os.environ['MIKROMAGIC_HUB_ADDRESS'],int(os.environ['MIKROMAGIC_HUB_PORT']))
- return make_agent(service,token)
+ relay=os.environ.get('MIKROMAGIC_HUB_RELAY_PORT','')
+ return make_agent(service,token,int(relay) if relay else None)
 

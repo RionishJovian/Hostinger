@@ -42,6 +42,8 @@ services:
       MIKROMAGIC_HUB_DEDICATED_INTERFACE: mm-prod-hub
       MIKROMAGIC_HUB_AGENT_URL: http://magic-hub:8790
       MIKROMAGIC_HUB_AGENT_TOKEN_FILE: /run/secrets/hub_agent_token
+      # Router management HTTPS goes through the Hub's CONNECT relay over the tunnel.
+      MIKROMAGIC_HUB_RELAY_URL: http://magic-hub:8791
       MIKROMAGIC_HUB_PEER_READS_ENABLED: "true"
       MIKROMAGIC_HUB_PEER_WRITES_ENABLED: "true"
       MIKROMAGIC_MAGIC_CONNECT_ENABLED: "true"
@@ -98,6 +100,7 @@ services:
       MIKROMAGIC_HUB_PRIVATE_KEY_FILE: /run/secrets/hub_private_key
       MIKROMAGIC_HUB_AGENT_TOKEN_FILE: /run/secrets/hub_agent_token
       MIKROMAGIC_HUB_STATE_FILE: /var/lib/mikromagic-hub/peers.json
+      MIKROMAGIC_HUB_RELAY_PORT: "8791"
     secrets: [hub_private_key, hub_agent_token]
     volumes: [hub_state:/var/lib/mikromagic-hub]
     tmpfs: ["/tmp:rw,noexec,nosuid,nodev,size=16m"]
