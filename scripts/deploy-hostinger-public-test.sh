@@ -22,10 +22,14 @@ git fetch -q origin main
 git merge-base --is-ancestor HEAD origin/main || stop "deploy only commits already pushed to origin/main"
 commit=$(git rev-parse --short HEAD)
 
-echo "== Local checks for $commit"
-"$PY" -m unittest discover -s tests -p 'test_*.py'
-npm run build
-node --test tests/*.test.mjs
+stamp="$(git rev-parse --git-dir)/mikromagic-checks-passed"
+if [ "${FORCE_CHECKS:-0}" != 1 ] && [ -f "$stamp" ] && [ "$(cat "$stamp")" = "$(git rev-parse 'HEAD^{tree}')" ]; then
+  echo "== Local checks already passed for this exact source tree ($commit); not repeating them (FORCE_CHECKS=1 reruns)"
+  npm run build
+else
+  echo "== Local checks for $commit"
+  PYTHON="$PY" bash scripts/check.sh
+fi
 node scripts/generate-source-manifest.mjs >/dev/null
 [ -z "$(git status --porcelain)" ] || stop "source manifest is out of date; commit .corrective-source-manifest.txt and rerun"
 bundle=$(cd dist/client/assets && ls index-*.js)

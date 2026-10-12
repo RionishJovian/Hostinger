@@ -16,10 +16,10 @@ The dev launcher starts the demo API at 127.0.0.1:8787 and account API at 127.0.
 
 ## Checks
 ```
-.venv/bin/python -m unittest discover -s tests -p 'test_*.py' -v
-npm run build
-npm run test:sites
+bash scripts/check.sh   # Python tests in parallel, build, Node tests (includes the Sites test)
 ```
+
+Single modules: `.venv/bin/python scripts/run-tests.py test_hubs`. Serial run: `.venv/bin/python -m unittest discover -s tests -p 'test_*.py' -v`.
 
 ## Manual-review callback
 Defaults to disabled. Configure PAYMENT_HOOK_SECRET and PAYMENT_HOOK_TENANT only in a private development environment. POST /api/hooks/payment-decision with JSON {id, decision, reason}. X-Timestamp: unix seconds; X-Nonce: at least 16 characters; X-Signature: lowercase hex HMAC-SHA256 of timestamp + '.' + nonce + '.' + raw body. Maximum skew 300 seconds; repeated nonce rejected. This endpoint is tenant-scoped, but real platform reviewer mapping/adapters are still required.
