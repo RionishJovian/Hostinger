@@ -1,5 +1,5 @@
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
-from sqlalchemy import String, Integer, BigInteger, ForeignKey, JSON, UniqueConstraint, Boolean, CheckConstraint, LargeBinary, Index, Float, text
+from sqlalchemy import String, Integer, BigInteger, ForeignKey, JSON, UniqueConstraint, Boolean, CheckConstraint, LargeBinary, Index, Float, Text, text
 import uuid
 class Base(DeclarativeBase):pass
 def uid():return str(uuid.uuid4())
@@ -148,6 +148,7 @@ class Voucher(Base):
  disabled_reason:Mapped[str|None]=mapped_column(String(1000),nullable=True)
  deleted_at:Mapped[int|None]=mapped_column(BigInteger,nullable=True)
  router_sync:Mapped[str|None]=mapped_column(String(20),nullable=True)
+ code_sealed:Mapped[str|None]=mapped_column(Text,nullable=True)
  serial_no:Mapped[int|None]=mapped_column(Integer,nullable=True)
  production_job_id:Mapped[str|None]=mapped_column(ForeignKey('voucher_production_jobs.id',name='fk_vouchers_production_job'),nullable=True,index=True)
  sheet_no:Mapped[int|None]=mapped_column(Integer,nullable=True)
@@ -637,6 +638,20 @@ class RouterEvidence(Base):
  created_by:Mapped[str]=mapped_column(ForeignKey('users.id'))
  created:Mapped[int]=mapped_column(BigInteger)
  __table_args__=(CheckConstraint("kind in ('preflight','wireguard_router_peer')"),)
+
+class HotspotVoucherSync(Base):
+ """What MikroMagic last applied for one voucher on one router's HotSpot."""
+ __tablename__='hotspot_voucher_sync'
+ voucher_id:Mapped[str]=mapped_column(ForeignKey('vouchers.id'),primary_key=True)
+ router_id:Mapped[str]=mapped_column(ForeignKey('router_devices.id'),primary_key=True,index=True)
+ tenant_id:Mapped[str]=mapped_column(ForeignKey('tenants.id'),index=True)
+ applied:Mapped[str|None]=mapped_column(String(10),nullable=True)
+ applied_fingerprint:Mapped[str|None]=mapped_column(String(64),nullable=True)
+ applied_at:Mapped[int|None]=mapped_column(BigInteger,nullable=True)
+ attempts:Mapped[int]=mapped_column(Integer,default=0)
+ last_error:Mapped[str|None]=mapped_column(String(60),nullable=True)
+ last_attempt_at:Mapped[int|None]=mapped_column(BigInteger,nullable=True)
+ __table_args__=(CheckConstraint("applied is null or applied in ('present','disabled','absent')",name='ck_hotspot_voucher_sync_applied'),)
 
 class RouterChange(Base):
  __tablename__='router_changes'

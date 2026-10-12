@@ -41,6 +41,8 @@ Rollback: `/interface wireguard enable [find where name="mmh-8adfeb441215"]`
 | 7 | Owner | Check handshake | "Handshake received", not Connected |
 | 8 | Technician | Step 4 read-only check, then certificate, `www-ssl` for the Hub only, one input rule, temporary `mm-enroll-<id8>` login | — |
 | 9 | Owner | Within three minutes of a handshake check: Finish management setup and verify | Logins created, temporary login removed, then **Connected** |
+| 10 | Owner | Issue one test voucher for the shop (a 1-hour plan), then Routers → Sync vouchers | "Updated on router" 1; Need attention 0 |
+| 11 | Owner | Disable that voucher, then Sync vouchers again | The router login is disabled and any active session for it is removed |
 
 All router commands are generated per router on the technician page; the rollback block there removes everything MikroMagic added.
 
@@ -49,7 +51,8 @@ All router commands are generated per router on the technician page; the rollbac
 - Step 1 or Step 4 checks show a conflict listed on the technician page (existing `mm-` names, port 13239 in use, the tunnel pool already used, `www-ssl` already enabled).
 - The ping in step 6 fails after the owner added the Hub peer, or the handshake does not appear within two minutes.
 - Finish management setup returns `router_serial_mismatch`, `certificate_name_mismatch`, `group_conflict`, `user_conflict` or `monitoring_write_not_denied`. Do not retry with changes; record the code.
-- Anything touches WAN, LAN, Wi-Fi, HotSpot, other VPNs or unrelated firewall rules.
+- Anything touches WAN, LAN, Wi-Fi, HotSpot servers, other VPNs or unrelated firewall rules. Voucher sync may only add or change HotSpot users with the comment `MikroMagic voucher`, user profiles named `mm-<hash>` with the comment `MikroMagic plan`, and the scheduler `mm-voucher-expiry`.
+- Sync vouchers reports `hotspot_user_conflict` or `hotspot_profile_conflict`: a login or profile with that name already exists and was not created by MikroMagic. Leave it and record the name.
 
 ## Evidence to record
 
@@ -57,6 +60,7 @@ All router commands are generated per router on the technician page; the rollbac
 - Management setup response: model, architecture, certificate SHA-256, usernames, checks (`monitoring_write_denied`, `safe_change_login`, `enrollment_login_removed`). It contains no passwords.
 - Preflight response: `connection.connection_verified: true`, RouterOS version, compatibility.
 - On the router: `/user print where name~"^mm-"` shows only `mm-monitor-<id8>` and `mm-safechange-<id8>`, both with `address=10.90.1.1/32`.
+- Voucher sync: the Sync vouchers result, `/ip hotspot user print detail where comment~"MikroMagic"` (redact the voucher code, which is the login name and password), `/ip hotspot user profile print where name~"^mm-"`, and `/system scheduler print where name="mm-voucher-expiry"`.
 
 ## Rollback
 
@@ -75,8 +79,11 @@ These RouterOS behaviours are assumptions; each failure stops the window with a 
 - A user deleting itself through REST (`DELETE /rest/user/<id>`).
 - `/rest/system/identity/set` being refused for the monitoring group.
 - `place-before=0` on an input chain that already has rules.
+- HotSpot user fields `limit-bytes-total` and `limit-uptime`, and profile fields `shared-users`, `rate-limit` (`<rx>k/<tx>k`) and `on-login`, accepted through REST and read back unchanged.
+- The profile `on-login` script writing `|exp=<time>` into the user comment on first login, and the `mm-voucher-expiry` scheduler (every minute, using `[:timestamp]`, which needs a recent RouterOS 7 release) disabling the user and removing its session after expiry. Until a real login proves this, voucher sync is not enforcement evidence.
 
 ## Known gaps after the window
 
 - Router credential files are stored unencrypted on the API's `routeros_credentials` volume (directory mode 0700, files 0600). Encryption at rest (M1) is still required before launch.
 - Password rotation, revocation and recovery for these logins are later Safe Change work (C1).
+- Voucher sync does not yet enforce the "redeem before" date on the router, separate upload/download speeds or quotas, or activation reporting back to MikroMagic (session and accounting reads, development step 6). Vouchers issued before this release have no stored code and are not sent to routers.

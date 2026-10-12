@@ -289,6 +289,8 @@ def make_app(url=None,initialize=False):
  register_backups(app,current,db,owner,log)
  from .firmware import register_firmware
  register_firmware(app,current,db,owner,log)
+ from .hotspot_sync import register_hotspot_sync
+ register_hotspot_sync(app,current,db,log)
  from .routeros_preflight import register_routeros_preflight
  register_routeros_preflight(app,current,db,log)
  from .safe_changes import register_safe_changes

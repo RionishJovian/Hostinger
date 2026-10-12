@@ -23,7 +23,9 @@ def register_voucher_lifecycle(app,current,db,owner,log):
  def changed(s,u,v,action,result,message):
   if result.rowcount!=1:
    s.rollback();raise HTTPException(409,message)
-  log(s,u,'voucher_'+action,v.id);s.commit();s.refresh(v);return voucher_json(v)
+  log(s,u,'voucher_'+action,v.id);s.commit();s.refresh(v)
+  if hasattr(app.state,'hotspot_sync_voucher'):app.state.hotspot_sync_voucher(s,v)
+  return voucher_json(v)
 
  @app.post('/v1/vouchers/{id}/disable')
  def disable(id:str,b:VoucherReason,u=Depends(current),s=Depends(db)):

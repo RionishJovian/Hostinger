@@ -10,6 +10,7 @@ from .vouchers import digest,voucher_json
 from .voucher_codes import new_code,normalize_prefix,display
 from .sites import allowed_site
 from .media import ensure_media_offer,ensure_sold_separately
+from .voucher_vault import seal
 class BatchIn(VoucherIssue):
  count:int=Field(ge=1,le=100)
 def register_voucher_batch(app,current,db,owner,log):
@@ -28,7 +29,7 @@ def register_voucher_batch(app,current,db,owner,log):
   ensure_sold_separately(package.policy);ensure_media_offer(s,u.tenant_id,package.policy);now=int(time.time());items=[];codes=set()
   for i in range(b.count):
    code,code_hash,hint=new_code(s,u.tenant_id,code_prefix,exclude=codes);codes.add(code)
-   v=Voucher(site_id=b.site_id,tenant_id=u.tenant_id,package_id=package.id,policy=package.policy.copy(),code_hash=code_hash,code_hint=hint,code_format='prefixed' if code_prefix else 'standard',code_prefix=code_prefix,issued_by=u.id,request_key=prefix+str(i).zfill(3),created=now,expires=now+b.expires_days*86400);s.add(v);items.append((v,display(code,code_prefix)))
+   v=Voucher(site_id=b.site_id,tenant_id=u.tenant_id,package_id=package.id,policy=package.policy.copy(),code_hash=code_hash,code_sealed=seal(u.tenant_id,code),code_hint=hint,code_format='prefixed' if code_prefix else 'standard',code_prefix=code_prefix,issued_by=u.id,request_key=prefix+str(i).zfill(3),created=now,expires=now+b.expires_days*86400);s.add(v);items.append((v,display(code,code_prefix)))
   try:
    s.flush()
    for v,_ in items:log(s,u,'voucher_batch_issued',v.id)

@@ -74,6 +74,7 @@ export function RouterRegistry({ sites, routers, act, busy, platform = false, lo
   const [model, setModel] = useState('');
   const [version, setVersion] = useState('');
   const [preflight, setPreflight] = useState(null);
+  const [sync, setSync] = useState(null);
 
   return <>
     {!platform && <section className="panel" id="register-router">
@@ -108,12 +109,27 @@ export function RouterRegistry({ sites, routers, act, busy, platform = false, lo
             {!platform && <td><button className="button secondary" disabled={busy} onClick={async () => {
               const result = await act(`routers/${router.id}/preflight`, {});
               if (result) setPreflight(result);
-            }}>{c.preflight}</button></td>}
+            }}>{c.preflight}</button> <button className="button secondary" disabled={busy} onClick={async () => {
+              const result = await act(`routers/${router.id}/hotspot-sync`, {});
+              if (result) setSync({ ...result, router: router.name });
+            }}>{c.syncVouchers}</button></td>}
           </tr>)}
           {!routers.length && <tr><td colSpan={platform ? 5 : 6}>{c.empty}</td></tr>}</tbody>
         </table>
       </div>
     </section>
+    {sync && <section className="panel">
+      <div className="panelhead"><h2>{c.syncTitle} · {sync.router}</h2><button className="button secondary" onClick={() => setSync(null)}>{c.close}</button></div>
+      <div className="details">
+        <p><b>{c.syncApplied}</b>{sync.applied}</p>
+        <p><b>{c.syncInSync}</b>{sync.in_sync}</p>
+        <p><b>{c.syncPending}</b>{sync.pending}</p>
+        <p><b>{c.syncFailed}</b>{sync.failed}</p>
+        {Object.entries(sync.skipped || {}).map(([reason, count]) => <p key={reason}><b>{c.syncSkipped}</b>{count} · {c.syncReasons[reason] || reason}</p>)}
+      </div>
+      {sync.aborted && <div className="callout">{c.syncAborted}</div>}
+      <div className="callout">{c.syncNote}</div>
+    </section>}
     {preflight && <section className="panel">
       <div className="panelhead"><h2>{c.preflightTitle}</h2><button className="button secondary" onClick={() => setPreflight(null)}>{c.close}</button></div>
       {(() => {

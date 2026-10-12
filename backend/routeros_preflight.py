@@ -63,6 +63,9 @@ def register_routeros_preflight(app,current,db,log):
   if connection.get('connection_verified'):
    log(s,u,'router_management_read_verified',id)
   record=save(s,u,router,'preflight',evidence);log(s,u,'router_preflight_read',id);s.commit()
+  if connection.get('connection_verified'):
+   from .hotspot_sync import background_sync
+   getattr(app.state,'hotspot_background_sync',background_sync)(app.state.factory,[id])
   compatibility=(evidence.get('compatibility') or {}).get('status','needs_review')
   next_gate=('management_identity_verification_required_no_router_changes' if not connection.get('connection_verified') else 'continue_to_separately_gated_safe_change_or_higher_review' if compatibility=='compatible_for_safe_change' else 'show_compatibility_guidance_no_router_changes')
   return {'router_id':id,'plan_id':plan.id,'evidence_id':record.id,'site_id':router.site_id,'configured_name':router.name,'configured_model':router.model,'configured_routeros':router.reported_routeros,'evidence':evidence,'connection':connection,'next_gate':next_gate}

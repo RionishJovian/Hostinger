@@ -7,6 +7,7 @@ from .models import Voucher,Package,Entitlement,PortalSettings,LoginAttempt,Vouc
 from .media import ensure_media_offer,ensure_sold_separately
 from .schemas import VoucherIssue,VoucherRedeem,VoucherRevoke
 from .voucher_codes import new_code,find_voucher,normalize_prefix,normalize_custom,display
+from .voucher_vault import seal
 
 def digest(code):return hashlib.sha256(code.encode()).hexdigest()
 def voucher_json(v):
@@ -37,7 +38,7 @@ def register_vouchers(app,current,db,owner,log):
   if custom and not p.policy.get('vip'):raise HTTPException(422,'Custom codes are available only for VIP packages')
   ensure_sold_separately(p.policy);ensure_media_offer(s,u.tenant_id,p.policy)
   code,code_hash,hint=new_code(s,u.tenant_id,prefix,custom);now=int(time.time())
-  v=Voucher(site_id=b.site_id,tenant_id=u.tenant_id,package_id=p.id,policy=p.policy.copy(),code_hash=code_hash,code_hint=hint,code_format='custom' if custom else 'prefixed' if prefix else 'standard',code_prefix=prefix,issued_by=u.id,request_key=b.request_key,created=now,expires=now+b.expires_days*86400);s.add(v)
+  v=Voucher(site_id=b.site_id,tenant_id=u.tenant_id,package_id=p.id,policy=p.policy.copy(),code_hash=code_hash,code_sealed=seal(u.tenant_id,code),code_hint=hint,code_format='custom' if custom else 'prefixed' if prefix else 'standard',code_prefix=prefix,issued_by=u.id,request_key=b.request_key,created=now,expires=now+b.expires_days*86400);s.add(v)
   try:s.flush();log(s,u,'voucher_issued',v.id);s.commit()
   except IntegrityError:s.rollback();raise HTTPException(409,'Issuance raced with another request; retry the same request key')
   return voucher_json(v)|{'code':display(code,prefix),'replayed':False}
@@ -74,4 +75,6 @@ def register_vouchers(app,current,db,owner,log):
   result=s.execute(update(Voucher).where(Voucher.id==id,Voucher.revoked==False).values(revoked=True,reason=b.reason,router_sync='revoke'))
   if result.rowcount:
    s.execute(update(Entitlement).where(Entitlement.voucher_id==id).values(revoked=True));log(s,u,'voucher_revoked',id);s.commit()
-  s.refresh(v);return voucher_json(v)
+  s.refresh(v)
+  if result.rowcount and hasattr(app.state,'hotspot_sync_voucher'):app.state.hotspot_sync_voucher(s,v)
+  return voucher_json(v)

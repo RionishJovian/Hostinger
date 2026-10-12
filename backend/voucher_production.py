@@ -18,6 +18,7 @@ from .sites import allowed_site
 from .media import ensure_media_offer,ensure_sold_separately
 from .voucher_codes import new_code,normalize_prefix,display
 from .vouchers import voucher_json
+from .voucher_vault import seal
 
 GRID={'a4_ultra':(5,12),'a4_economy':(4,10),'a4_standard':(3,8),'a4_premium':(2,5)}
 THERMAL_RUN=25
@@ -153,7 +154,7 @@ def register_voucher_production(app,current,db,owner,log):
   start=(s.scalar(select(func.max(Voucher.serial_no)).where(Voucher.tenant_id==u.tenant_id)) or 0)+1;prefix=job.settings.get('prefix');expires=now+job.settings['expires_days']*86400;items=[];codes=set()
   for i in range(job.quantity):
    code,code_hash,hint=new_code(s,u.tenant_id,prefix,exclude=codes);codes.add(code)
-   v=Voucher(site_id=job.site_id,tenant_id=u.tenant_id,package_id=package.id,policy=package.policy.copy(),code_hash=code_hash,code_hint=hint,code_format='prefixed' if prefix else 'standard',code_prefix=prefix,issued_by=u.id,request_key=f'job:{job.id}:{i:04d}',created=now,expires=expires,serial_no=start+i,production_job_id=job.id,sheet_no=i//p['per_sheet']+1)
+   v=Voucher(site_id=job.site_id,tenant_id=u.tenant_id,package_id=package.id,policy=package.policy.copy(),code_hash=code_hash,code_sealed=seal(u.tenant_id,code),code_hint=hint,code_format='prefixed' if prefix else 'standard',code_prefix=prefix,issued_by=u.id,request_key=f'job:{job.id}:{i:04d}',created=now,expires=expires,serial_no=start+i,production_job_id=job.id,sheet_no=i//p['per_sheet']+1)
    s.add(v);items.append((v,display(code,prefix)))
   job.serial_start=start;job.serial_end=start+job.quantity-1;job.sheets={str(n):{'state':'pending','reprints':0} for n in range(1,p['sheets']+1)}
   try:
