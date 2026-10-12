@@ -1,4 +1,4 @@
-import os,sqlite3,tempfile,unittest
+import json,os,sqlite3,tempfile,time,unittest
 from pathlib import Path
 from unittest.mock import patch
 from alembic import command
@@ -63,7 +63,8 @@ class RouterSetupTests(unittest.TestCase):
    f'/interface wireguard peers add interface={iface} public-key="{key(1)}" endpoint-address=hub.example.com endpoint-port=51820 allowed-address=10.90.1.1/32 persistent-keepalive=25s comment="MikroMagic Hub"',
    f'/ip address add address={plan["address"]}/32 interface={iface} comment="MikroMagic management"',
    f'/ip route add dst-address=10.90.1.1/32 gateway={iface} comment="MikroMagic Hub"'])
-  bound=self.client.post(f"/v1/magic-connect/attempts/{attempt['id']}/enrollment",headers=owner,json={'plan_id':plan['id']})
+  self.assertEqual(self.client.post(f"/v1/magic-connect/attempts/{attempt['id']}/enrollment",headers=owner,json={'plan_id':plan['id'],'router_serial':'bad!'}).status_code,422)
+  bound=self.client.post(f"/v1/magic-connect/attempts/{attempt['id']}/enrollment",headers=owner,json={'plan_id':plan['id'],'router_serial':'HFA0ABC1234'})
   self.assertEqual(bound.status_code,201,bound.text)
   adapter=FakeHubAdapter()
   self.app.state.magic_hub_orchestrator=HubPeerOrchestrator(adapter,HostOperationPolicy('isolated-magic-connect-test',True,True,'wg-mm'))
@@ -71,8 +72,46 @@ class RouterSetupTests(unittest.TestCase):
   self.assertEqual(provision.status_code,200,provision.text);self.assertTrue(adapter.peer_present)
   status=self.status(tech)
   self.assertEqual(status['router_setup']['step'],'awaiting_handshake');self.assertFalse(status['connection_verified']);self.assertFalse(status['router_write_access'])
+  self.assertGreaterEqual(status['expires'],int(time.time())+1700)
+  self.assertNotIn('management_access',status['router_setup']['commands'])
   with self.app.state.factory() as s:
    self.assertIn('router_key_submitted',{e.event for e in s.scalars(select(MagicConnectEvent))})
+  self.management_step(owner,tech,router,plan,adapter,site)
+
+ def management_step(self,owner,tech,router,plan,adapter,site):
+  from test_management_enrollment import FakeRouter,certificate
+  from backend.management_enrollment import provision_management_identities
+  stores=tempfile.TemporaryDirectory();self.addCleanup(stores.cleanup);env={}
+  for role,var in (('m','MONITORING'),('s','SAFE_CHANGE'),('e','ENROLL')):
+   path=Path(stores.name)/role;path.mkdir(mode=0o700);env[f'MIKROMAGIC_ROUTEROS_{var}_SECRETS_DIR']=str(path)
+  patcher=patch.dict(os.environ,env);patcher.start();self.addCleanup(patcher.stop)
+  route=f"/v1/routers/{router}/management-setup"
+  self.assertEqual(self.client.post(route,headers=owner).json()['detail']['code'],'fresh_hub_handshake_required')
+  adapter.handshake=True;fresh=int(time.time())
+  adapter.observe_peer=lambda *a,**k:{'evidence_source':'fixture_only','peer_found':True,'allowed_address_match':True,'fresh_handshake':True,'last_handshake_at':fresh}
+  self.assertEqual(self.client.post(f"/v1/router-plans/{plan['id']}/hub-peer/observe",headers=owner).status_code,200)
+  setup=self.status(tech)['router_setup'];id8=router[:8];address=plan['address']
+  self.assertEqual(setup['step'],'management_access')
+  commands=setup['commands']['management_access']
+  self.assertEqual(commands[0],f'/certificate add name=mm-mgmt-{id8} common-name={address} subject-alt-name=IP:{address} key-usage=key-cert-sign,digital-signature,key-encipherment,tls-server days-valid=3650')
+  self.assertIn(f'/ip service set www-ssl certificate=mm-mgmt-{id8} address=10.90.1.1/32 disabled=no',commands)
+  enroll=commands[-1];self.assertTrue(enroll.startswith(f'/user add name=mm-enroll-{id8} group=full address=10.90.1.1/32 password="'))
+  password=enroll.split('password="')[1].split('"')[0];self.assertEqual(self.status(tech)['router_setup']['commands']['management_access'][-1],enroll)
+  owner_view=self.client.get(f'/v1/sites/{site}/magic-connect/attempts',headers=owner).text
+  self.assertNotIn(password,owner_view)
+  fake=FakeRouter();fake.add_enrollment(password,f'mm-enroll-{id8}');cert=certificate(address)
+  self.app.state.management_provisioner=lambda rid,snap,digest:provision_management_identities(rid,snap,digest,fetch=lambda a:cert,client_factory=fake.client)
+  self.assertEqual(self.client.post(route,headers=self.login('other')).status_code,404)
+  done=self.client.post(route,headers=owner);self.assertEqual(done.status_code,200,done.text)
+  self.assertNotIn(password,done.text);self.assertFalse(done.json()['connection_verified'])
+  self.assertEqual(set(fake.users),{f'mm-monitor-{id8}',f'mm-safechange-{id8}'})
+  for secret in (fake.users[f'mm-monitor-{id8}']['password'],fake.users[f'mm-safechange-{id8}']['password']):self.assertNotIn(secret,done.text)
+  status=self.status(tech);self.assertEqual(status['router_setup']['step'],'management_ready');self.assertNotIn(password,json.dumps(status))
+  self.assertEqual(self.client.post(route,headers=owner).json()['detail']['code'],'management_already_set_up')
+  with self.app.state.factory() as s:
+   from backend.models import MagicConnectEnrollment
+   enrollment=s.get(MagicConnectEnrollment,plan['id']);self.assertTrue(enrollment.expected_identity_digest and enrollment.management_identities_at)
+   self.assertIn('management_identities_created',{e.event for e in s.scalars(select(MagicConnectEvent))})
 
  def test_router_link_and_key_guards(self):
   _,owner,hub,site,_=self.setup_hub();router=self.router(owner,site)
@@ -110,5 +149,10 @@ class RouterSetupTests(unittest.TestCase):
      self.assertNotIn('router_public_key',{row[1] for row in db.execute('PRAGMA table_info(magic_connect_attempts)')})
      self.assertEqual(db.execute('SELECT id FROM magic_connect_attempts').fetchone(),('a',))
     command.upgrade(cfg,'head')
+    with sqlite3.connect(file) as db:
+     db.execute("INSERT INTO magic_connect_enrollments (plan_id,attempt_id,tenant_id,site_id,owner_id,created,expected_serial_digest) VALUES ('p','a','t','site','u',1,?)",('d'*64,))
+    with self.assertRaisesRegex(RuntimeError,'management identity records exist'):command.downgrade(cfg,'050')
+    with sqlite3.connect(file) as db:db.execute('DELETE FROM magic_connect_enrollments')
+    command.downgrade(cfg,'050');command.upgrade(cfg,'head')
 
 if __name__=='__main__':unittest.main()

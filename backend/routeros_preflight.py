@@ -2,11 +2,12 @@
 import time
 from fastapi import Depends,HTTPException
 from sqlalchemy import select
-from .models import RouterDevice,RouterPlan,RouterEvidence,MagicConnectEnrollment
+from .models import RouterDevice,RouterPlan,RouterEvidence,MagicConnectEnrollment,MagicConnectAttempt,MagicConnectEvent
 from .enrollment import router_identity_digest,sync_enrollment_state
 import hmac
 from .routeros_adapter import RouterOSClient,RouterOSError,discover_routeros,load_routeros_monitoring_credential,observe_wireguard_peer
 from .hub_orchestrator import confirm_management_read
+from .management_enrollment import ManagementSetupError,provision_management_identities
 
 def register_routeros_preflight(app,current,db,log):
  def visible_router(s,u,id):
@@ -17,6 +18,27 @@ def register_routeros_preflight(app,current,db,log):
  def save(s,u,router,kind,evidence):
   observed=evidence.get('checked_at') or evidence.get('observed_at') or int(time.time())
   record=RouterEvidence(tenant_id=router.tenant_id,router_id=router.id,kind=kind,observed_at=observed,source=evidence['evidence_source'],payload=evidence,created_by=u.id,created=int(time.time()));s.add(record);s.flush();return record
+ @app.post('/v1/routers/{id}/management-setup')
+ def management_setup(id:str,u=Depends(current),s=Depends(db)):
+  if u.role!='sme' or getattr(u,'staff_profile',None):raise HTTPException(403,'SME Owner permission required')
+  router=visible_router(s,u,id)
+  if not (app.state.magic_connect_pairing_enabled and getattr(app.state,'magic_connect_router_setup_enabled',False)):raise HTTPException(503,'Technician-guided router setup is not enabled')
+  plan=s.scalar(select(RouterPlan).where(RouterPlan.router_id==id,RouterPlan.tenant_id==router.tenant_id))
+  enrollment=s.get(MagicConnectEnrollment,plan.id) if plan else None;attempt=s.get(MagicConnectAttempt,enrollment.attempt_id) if enrollment else None
+  if not attempt or attempt.router_id!=id or enrollment.owner_id!=u.id:raise HTTPException(409,{'code':'pairing_setup_required','message':'Finish management setup from the pairing that linked this router'})
+  if enrollment.management_identities_at:raise HTTPException(409,{'code':'management_already_set_up','message':'MikroMagic logins already exist for this router'})
+  now=int(time.time())
+  if plan.lifecycle_state!='verifying_management' or not plan.handshake_verified_at or not 0<=now-plan.handshake_verified_at<=180:
+   raise HTTPException(409,{'code':'fresh_hub_handshake_required','message':'Check the handshake again, then finish management setup within three minutes'})
+  provision=getattr(app.state,'management_provisioner',provision_management_identities)
+  try:evidence=provision(id,plan.snapshot,enrollment.expected_serial_digest)
+  except (ManagementSetupError,RouterOSError) as e:
+   log(s,u,'router_management_setup_failed',id);s.commit()
+   raise HTTPException(e.status,{'code':e.code,'message':str(e)})
+  enrollment.expected_identity_digest=evidence['identity_digest'];enrollment.management_identities_at=now
+  s.add(MagicConnectEvent(tenant_id=attempt.tenant_id,attempt_id=attempt.id,actor_kind='owner',actor_id=u.id,event='management_identities_created',created=now))
+  log(s,u,'router_management_identities_created',id);s.commit()
+  return {'router_id':id,'plan_id':plan.id,'evidence':evidence,'connection_verified':False,'next_gate':'run_authenticated_preflight'}
  @app.post('/v1/routers/{id}/preflight')
  def preflight(id:str,u=Depends(current),s=Depends(db)):
   router=visible_router(s,u,id)

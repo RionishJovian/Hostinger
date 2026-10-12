@@ -611,6 +611,8 @@ class MagicConnectEnrollment(Base):
  created:Mapped[int]=mapped_column(BigInteger)
  consumed_at:Mapped[int|None]=mapped_column(BigInteger,nullable=True)
  peer_provisioned_at:Mapped[int|None]=mapped_column(BigInteger,nullable=True)
+ expected_serial_digest:Mapped[str|None]=mapped_column(String(64),nullable=True)
+ management_identities_at:Mapped[int|None]=mapped_column(BigInteger,nullable=True)
 
 class MagicConnectEvent(Base):
  __tablename__='magic_connect_events'

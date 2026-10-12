@@ -15,9 +15,9 @@ COPY alembic.ini ./
 COPY backend ./backend
 COPY docker/api-entrypoint.sh /usr/local/bin/mikromagic-api-entrypoint
 RUN chmod 0555 /usr/local/bin/mikromagic-api-entrypoint \
-    && mkdir -p /var/lib/mikromagic/backups \
-    && chown -R mikromagic:mikromagic /app /var/lib/mikromagic/backups \
-    && chmod 0700 /var/lib/mikromagic/backups
+    && mkdir -p /var/lib/mikromagic/backups /var/lib/mikromagic/routeros/monitoring /var/lib/mikromagic/routeros/safe-change /var/lib/mikromagic/routeros/enroll \
+    && chown -R mikromagic:mikromagic /app /var/lib/mikromagic/backups /var/lib/mikromagic/routeros \
+    && chmod 0700 /var/lib/mikromagic/backups /var/lib/mikromagic/routeros /var/lib/mikromagic/routeros/monitoring /var/lib/mikromagic/routeros/safe-change /var/lib/mikromagic/routeros/enroll
 
 USER mikromagic
 EXPOSE 8788

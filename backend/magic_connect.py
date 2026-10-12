@@ -3,11 +3,13 @@
 Pairing consent, plus an optional technician-guided transport setup (off by
 default). The setup shows copy-and-paste RouterOS steps for the management
 WireGuard tunnel only; the router generates its own private key and the
-technician returns the public key through this pairing. It never provisions
-RouterOS credentials or reports a router connected.
+technician returns the public key through this pairing. After the handshake
+the technician adds a temporary enrollment login (Hub address only); MikroMagic
+then creates its own logins (management_enrollment) and deletes it. Connected
+still requires a fresh authenticated read.
 """
 from __future__ import annotations
-import base64,hashlib,re,secrets,time
+import base64,hashlib,ipaddress,re,secrets,time
 from fastapi import Depends,Header,HTTPException,Request
 from pydantic import Field,field_validator
 from sqlalchemy import case,select,update
@@ -15,6 +17,7 @@ from sqlalchemy.exc import IntegrityError
 from .models import MagicConnectAttempt,MagicConnectClaimRate,MagicConnectEvent,MagicConnectEnrollment,MagicHub,RouterDevice,RouterPlan,Site
 from .hubs import public_key,router_interface
 from .hub_orchestrator import connection_is_fresh
+from .management_enrollment import CERTIFICATE_PREFIX,ENROLL_PREFIX,GROUPS,USER_PREFIX,ManagementSetupError,enrollment_password
 from .schemas import Strict
 
 PAIRING_LIFETIME_SECONDS=600
@@ -96,8 +99,31 @@ def _router_setup(attempt,plan,enrollment):
   f'/ip address add address={router["address"]} interface={iface} comment="MikroMagic management"',
   f'/ip route add dst-address={hub["hub_address"]}/32 gateway={iface} comment="MikroMagic Hub"',
   f'/ping {hub["hub_address"]} count=3']
- step='awaiting_handshake' if enrollment and enrollment.peer_provisioned_at else 'connect_hub'
- return result|{'step':step,'hub_address':hub['hub_address'],'router_address':router['address']}
+ result|={'hub_address':hub['hub_address'],'router_address':router['address']}
+ if not (enrollment and enrollment.peer_provisioned_at):return result|{'step':'connect_hub'}
+ id8=attempt.router_id[:8];ip=str(ipaddress.ip_interface(router['address']).ip);hub_ip=hub['hub_address'];cert=CERTIFICATE_PREFIX+id8;enroll=ENROLL_PREFIX+id8
+ commands['rollback']=[f'/user remove [find where name="{enroll}" or name="{USER_PREFIX["monitoring"]}{id8}" or name="{USER_PREFIX["safe_change"]}{id8}"]',
+  f'/user group remove [find where name="{GROUPS["monitoring"]}" or name="{GROUPS["safe_change"]}"]',
+  f'/ip firewall filter remove [find where chain=input and in-interface="{iface}" and comment="MikroMagic management"]',
+  f'/ip service set www-ssl disabled=yes certificate=none address=""',f'/certificate remove [find where name="{cert}"]']+commands['rollback']
+ if enrollment.management_identities_at:return result|{'step':'management_ready'}
+ if not plan.handshake_verified_at:return result|{'step':'awaiting_handshake'}
+ commands['inspect_management']=['/ip service print where name=www-ssl',f'/user print where name~"^mm-"','/ip firewall filter print where chain=input']
+ commands['management_access']=[f'/certificate add name={cert} common-name={ip} subject-alt-name=IP:{ip} key-usage=key-cert-sign,digital-signature,key-encipherment,tls-server days-valid=3650',
+  f'/certificate sign {cert}',
+  f'/ip service set www-ssl certificate={cert} address={hub_ip}/32 disabled=no',
+  f'/ip firewall filter add chain=input in-interface={iface} src-address={hub_ip} protocol=tcp dst-port=443 action=accept comment="MikroMagic management" place-before=0',
+  None]
+ result['stop_if']=stop_if+['www-ssl is already enabled (someone uses HTTPS WebFig); do not change it, ask MikroMagic support','A user or group starting with mm- already exists','The firewall input chain is empty: run the firewall command without place-before=0']
+ return result|{'step':'management_access','enrollment_user':enroll}
+
+def _fill_enrollment_login(setup,router_id,hub_ip):
+ """Insert the temporary enrollment secret; only the technician view calls this."""
+ if not setup or setup.get('step')!='management_access':return setup
+ try:password=enrollment_password(router_id,create=True)
+ except ManagementSetupError:return setup|{'step':'management_storage_unavailable','commands':{'rollback':setup['commands']['rollback']}}
+ commands=dict(setup['commands']);commands['management_access']=commands['management_access'][:-1]+[f'/user add name={setup["enrollment_user"]} group=full address={hub_ip}/32 password="{password}" comment="MikroMagic temporary enrollment"']
+ return setup|{'commands':commands}
 
 def register_magic_connect(app,current,db,owner,log,resolve_ip,digest_ip):
  def router_setup_enabled():
@@ -180,13 +206,15 @@ def register_magic_connect(app,current,db,owner,log,resolve_ip,digest_ip):
   if not plan and attempt.router_id:plan=s.scalar(select(RouterPlan).where(RouterPlan.router_id==attempt.router_id))
   verified=bool(enrollment and plan and connection_is_fresh(plan,now));setup=None
   if attempt.status=='approved' and router_setup_enabled():
-   access='transport_setup';setup=_router_setup(attempt,plan,enrollment);instructions=bool(setup['commands'])
+   access='transport_setup';setup=_router_setup(attempt,plan,enrollment)
+   if setup.get('step')=='management_access':setup=_fill_enrollment_login(setup,attempt.router_id,setup['hub_address'])
+   instructions=bool(setup['commands'])
   elif attempt.status=='approved':
    access='blocked_pending_hardware_verification';instructions=False
   elif attempt.status=='pending' or attempt.status=='claimed':access='awaiting_owner_approval';instructions=False
   else:access='closed';instructions=False
   state='verifying_management' if attempt.enrollment_state=='connected' and not verified else attempt.enrollment_state
-  return {'status':attempt.status,'enrollment_state':state,'failure_code':attempt.failure_code,'router_name':attempt.router_name,'comparison_code':attempt.comparison_code,'expires':attempt.expires,'setup_access':access,'setup_instructions_available':instructions,'router_setup':setup,'business_data_access':False,'router_write_access':False,'connection_verified':verified,'observed_at':now}
+  return {'status':attempt.status,'enrollment_state':state,'failure_code':attempt.failure_code,'router_name':attempt.router_name,'comparison_code':attempt.comparison_code,'expires':attempt.technician_session_expires or attempt.expires,'setup_access':access,'setup_instructions_available':instructions,'router_setup':setup,'business_data_access':False,'router_write_access':False,'connection_verified':verified,'observed_at':now}
 
  @app.post('/v1/magic-connect/technician/router-key')
  def submit_router_key(b:RouterKeySubmit,authorization:str|None=Header(default=None),s=Depends(db)):

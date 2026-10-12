@@ -3524,6 +3524,48 @@
         ]
       }
     },
+    "/v1/routers/{id}/management-setup": {
+      "post": {
+        "summary": "Management Setup",
+        "operationId": "management_setup_v1_routers__id__management_setup_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/routers/{id}/preflight": {
       "post": {
         "summary": "Preflight",
@@ -6416,6 +6458,58 @@
         }
       }
     },
+    "/v1/magic-connect/attempts/{id}/plan": {
+      "post": {
+        "summary": "Plan From Pairing",
+        "operationId": "plan_from_pairing_v1_magic_connect_attempts__id__plan_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PairingPlanIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/router-plans/{id}/review": {
       "post": {
         "summary": "Review",
@@ -6884,6 +6978,60 @@
             }
           }
         ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/magic-connect/technician/router-key": {
+      "post": {
+        "summary": "Submit Router Key",
+        "operationId": "submit_router_key_v1_magic_connect_technician_router_key_post",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RouterKeySubmit"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -9765,6 +9913,19 @@
               }
             ],
             "title": "Expected Identity Digest"
+          },
+          "router_serial": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 40,
+                "minLength": 6
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Router Serial"
           }
         },
         "additionalProperties": false,
@@ -11006,6 +11167,19 @@
           "comparison_confirmed": {
             "type": "boolean",
             "title": "Comparison Confirmed"
+          },
+          "router_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 36,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Router Id"
           }
         },
         "additionalProperties": false,
@@ -11014,6 +11188,22 @@
           "comparison_confirmed"
         ],
         "title": "PairingDecision"
+      },
+      "PairingPlanIn": {
+        "properties": {
+          "hub_id": {
+            "type": "string",
+            "maxLength": 36,
+            "minLength": 1,
+            "title": "Hub Id"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "hub_id"
+        ],
+        "title": "PairingPlanIn"
       },
       "Palette": {
         "properties": {
@@ -12178,6 +12368,22 @@
           "model"
         ],
         "title": "RouterIn"
+      },
+      "RouterKeySubmit": {
+        "properties": {
+          "router_public_key": {
+            "type": "string",
+            "maxLength": 44,
+            "minLength": 44,
+            "title": "Router Public Key"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "router_public_key"
+        ],
+        "title": "RouterKeySubmit"
       },
       "SheetResult": {
         "properties": {

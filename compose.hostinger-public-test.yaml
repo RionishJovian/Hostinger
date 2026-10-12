@@ -37,7 +37,10 @@ services:
       MIKROMAGIC_ENVIRONMENT: hostinger-public-test
       MIKROMAGIC_MAGIC_CONNECT_TEST_MODE: "false"
       MIKROMAGIC_ROUTEROS_ALLOW_HTTP: "false"
-      MIKROMAGIC_ROUTEROS_SECRETS_DIR: /run/routeros-secrets
+      # Written only by the API when MikroMagic creates its own router logins.
+      MIKROMAGIC_ROUTEROS_MONITORING_SECRETS_DIR: /var/lib/mikromagic/routeros/monitoring
+      MIKROMAGIC_ROUTEROS_SAFE_CHANGE_SECRETS_DIR: /var/lib/mikromagic/routeros/safe-change
+      MIKROMAGIC_ROUTEROS_ENROLL_SECRETS_DIR: /var/lib/mikromagic/routeros/enroll
       MIKROMAGIC_HUB_MODE: dedicated-agent
       MIKROMAGIC_HUB_DEDICATED_INTERFACE: mm-prod-hub
       MIKROMAGIC_HUB_AGENT_URL: http://magic-hub:8790
@@ -75,6 +78,7 @@ services:
     secrets: *api_secrets
     volumes:
       - encrypted_backups:/var/lib/mikromagic/backups
+      - routeros_credentials:/var/lib/mikromagic/routeros
     networks:
       private: {}
       frontend:
@@ -148,6 +152,7 @@ volumes:
   postgres_data:
   encrypted_backups:
   hub_state:
+  routeros_credentials:
 
 secrets:
   postgres_password:

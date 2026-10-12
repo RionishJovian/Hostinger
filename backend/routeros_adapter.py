@@ -5,7 +5,7 @@ requests or persisted in the control-plane database. A successful pre-flight is
 evidence of that request only; it is not WireGuard/HotSpot acceptance.
 """
 from __future__ import annotations
-import json,os,time,ssl
+import base64,json,os,socket,time,ssl
 from dataclasses import dataclass,field
 from pathlib import Path
 from urllib.parse import urlparse
@@ -89,10 +89,43 @@ def management_proxy_from_environment():
  if not re.fullmatch(r'[A-Za-z0-9_-]{40,160}',token):raise RouterOSError('relay_unavailable','Hub management relay credential is unavailable',503)
  return f'http://mikromagic:{token}@magic-hub:8791'
 
+def pinned_tls_context(ca_bundle:str)->ssl.SSLContext:
+ """Trust exactly the pinned router certificate, which RouterOS self-signs."""
+ context=ssl.create_default_context(cafile=ca_bundle)
+ context.verify_flags|=ssl.VERIFY_X509_PARTIAL_CHAIN
+ context.verify_flags&=~getattr(ssl,'VERIFY_X509_STRICT',0)
+ return context
+
+def fetch_router_certificate(address:str,port:int=443,timeout:float=8.0):
+ """Read the router's TLS certificate over the Hub relay without trusting it.
+
+ The caller pins it only after checking it names the management address; the
+ relay reaches only provisioned WireGuard peers, so the tunnel key binds it.
+ """
+ proxy=management_proxy_from_environment()
+ try:
+  if proxy:
+   parsed=urlparse(proxy);sock=socket.create_connection((parsed.hostname,parsed.port),timeout)
+   auth=base64.b64encode(f'{parsed.username}:{parsed.password}'.encode()).decode()
+   sock.sendall(f'CONNECT {address}:{port} HTTP/1.1\r\nHost: {address}:{port}\r\nProxy-Authorization: Basic {auth}\r\n\r\n'.encode())
+   head=b''
+   while b'\r\n\r\n' not in head and len(head)<4096:
+    chunk=sock.recv(1024)
+    if not chunk:break
+    head+=chunk
+   if not head.startswith(b'HTTP/1.1 200'):sock.close();raise RouterOSError('unreachable','Hub relay refused the router management connection')
+  else:sock=socket.create_connection((address,port),timeout)
+  context=ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT);context.check_hostname=False;context.verify_mode=ssl.CERT_NONE
+  with context.wrap_socket(sock) as tls:der=tls.getpeercert(binary_form=True)
+ except (OSError,ssl.SSLError):raise RouterOSError('unreachable','Router management endpoint is unreachable')
+ if not der:raise RouterOSError('tls_verification_failed','Router did not present a certificate')
+ return der
+
 class RouterOSClient:
  def __init__(self,credential:RouterOSCredential,transport=None,timeout=8.0):
   proxy=None if transport else management_proxy_from_environment()
-  self.credential=credential;self.client=httpx.Client(base_url=credential.base_url,auth=(credential.username,credential.password),verify=credential.verify,timeout=timeout,transport=transport,proxy=proxy,trust_env=False,follow_redirects=False,headers={'Accept':'application/json','User-Agent':'MikroMagic-Build21/1.0'})
+  verify=pinned_tls_context(credential.verify) if isinstance(credential.verify,str) else credential.verify
+  self.credential=credential;self.client=httpx.Client(base_url=credential.base_url,auth=(credential.username,credential.password),verify=verify,timeout=timeout,transport=transport,proxy=proxy,trust_env=False,follow_redirects=False,headers={'Accept':'application/json','User-Agent':'MikroMagic-Build21/1.0'})
  def close(self):self.client.close()
  def __enter__(self):return self
  def __exit__(self,*args):self.close()

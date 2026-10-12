@@ -10,6 +10,7 @@ from .models import MagicHub,HubAssignment,RouterPlan,RouterDevice,Tenant,SitePo
 from .enrollment import sync_enrollment_state,enrollment_milestones
 from .wireguard_hub import hub_adapter_from_environment
 from .bootstrap_security import provisioning_review
+from .management_enrollment import TECHNICIAN_SETUP_SECONDS,serial_digest
 from .hub_orchestrator import HubPeerOrchestrator,HostOperationPolicy,HubOrchestrationError,connection_is_fresh
 
 def router_interface(router_id):return 'mm-'+router_id[:8]
@@ -64,6 +65,12 @@ class PlanReview(Strict):confirmed_review:Literal[True]
 class EnrollmentIn(Strict):
  plan_id:str=Field(min_length=1,max_length=36)
  expected_identity_digest:str|None=Field(default=None,pattern=r'^[a-f0-9]{64}$')
+ router_serial:str|None=Field(default=None,min_length=6,max_length=40)
+ @field_validator('router_serial')
+ @classmethod
+ def serial(cls,v):
+  if v is not None and not serial_digest(v):raise ValueError('Enter the serial number exactly as printed on the router label')
+  return v
 
 def hub_json(h):
  n=ipaddress.ip_network(h.pool)
@@ -194,12 +201,12 @@ def register_hubs(app,current,db,owner,log):
   if not attempt or attempt.tenant_id!=u.tenant_id or attempt.owner_id!=u.id:raise HTTPException(404,'Approved pairing not found')
   existing=s.get(MagicConnectEnrollment,p.id)
   if existing:
-   if existing.attempt_id!=id or existing.expected_identity_digest!=b.expected_identity_digest:raise HTTPException(409,'Plan already bound to another enrollment authorization')
+   if existing.attempt_id!=id or existing.expected_identity_digest!=b.expected_identity_digest or existing.expected_serial_digest!=(serial_digest(b.router_serial) if b.router_serial else None):raise HTTPException(409,'Plan already bound to another enrollment authorization')
    return {'plan_id':p.id,'replayed':True,**enrollment_milestones(s,p),'connection_verified':False}
   if attempt.status!='approved' or attempt.expires<=now or not attempt.approved_at:raise HTTPException(409,'An approved unexpired pairing is required')
   if attempt.site_id!=router.site_id or not p.reviewed_at or p.lifecycle_state!='awaiting_bootstrap':raise HTTPException(409,'Reviewed plan and pairing site must match')
   if attempt.router_id and (attempt.router_id!=p.router_id or attempt.router_public_key!=p.router_public_key):raise HTTPException(409,'Plan does not match the router and key submitted through this pairing')
-  s.add(MagicConnectEnrollment(plan_id=p.id,attempt_id=id,tenant_id=u.tenant_id,site_id=router.site_id,owner_id=u.id,expected_identity_digest=b.expected_identity_digest,created=now))
+  s.add(MagicConnectEnrollment(plan_id=p.id,attempt_id=id,tenant_id=u.tenant_id,site_id=router.site_id,owner_id=u.id,expected_identity_digest=b.expected_identity_digest,expected_serial_digest=serial_digest(b.router_serial) if b.router_serial else None,created=now))
   try:
    s.flush();sync_enrollment_state(s,p);log(s,u,'magic_connect_enrollment_bound',p.id);s.commit()
   except IntegrityError:s.rollback();raise HTTPException(409,'Pairing authorization has already been bound')
@@ -210,6 +217,9 @@ def register_hubs(app,current,db,owner,log):
   if not app.state.magic_connect_pairing_enabled:raise HTTPException(503,'Magic Connect pairing is unavailable until router bootstrap is verified')
   try:result=orchestrator().provision(s,p,h,u.tenant_id,confirmed=b.confirmed,idempotency_key=b.idempotency_key)
   except HubOrchestrationError as error:orchestration_error(s,u,p,error)
+  enrollment=s.get(MagicConnectEnrollment,p.id);attempt=s.get(MagicConnectAttempt,enrollment.attempt_id) if enrollment else None
+  if attempt and attempt.router_id and attempt.technician_session_hash and attempt.technician_session_expires:
+   attempt.technician_session_expires=max(attempt.technician_session_expires,int(time.time())+TECHNICIAN_SETUP_SECONDS)
   log(s,u,'hub_peer_provisioned',p.id);s.commit();s.refresh(p)
   return result|{'plan':plan_json(p),**enrollment_milestones(s,p)}
  @app.post('/v1/router-plans/{id}/hub-peer/observe')
