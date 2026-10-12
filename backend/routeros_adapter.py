@@ -276,6 +276,50 @@ def set_wireguard_keepalive(client:RouterOSClient,resource_id:str,seconds:int):
  if not isinstance(resource_id,str) or not re.fullmatch(r'\*[A-Fa-f0-9]+',resource_id):raise RouterOSError('resource_invalid','Router resource identifier is invalid',409)
  return client.write('PATCH','interface/wireguard/peers/'+quote(resource_id,safe=''),{'persistent-keepalive':str(seconds)})
 
+def _int_field(value):
+ if value is None or value=='':return 0
+ try:return max(0,int(float(str(value))))
+ except (TypeError,ValueError):return 0
+
+def list_hotspot_active(client:RouterOSClient):
+ """Return sanitized HotSpot active sessions (read-only)."""
+ rows=client.get('ip/hotspot/active',optional=True)
+ guests=[]
+ for item in _records(rows):
+  user=item.get('user')
+  if not isinstance(user,str) or not user:continue
+  guests.append({
+   'resource_id':str(item.get('.id') or ''),
+   'user':user,
+   'mac':item.get('mac-address') or item.get('mac'),
+   'address':item.get('address'),
+   'server':item.get('server'),
+   'uptime_seconds':_duration_seconds(str(item.get('uptime') or '')) or 0,
+   'bytes_in':_int_field(item.get('bytes-in')),
+   'bytes_out':_int_field(item.get('bytes-out')),
+  })
+ return guests
+
+def list_mikromagic_hotspot_users(client:RouterOSClient,comment_prefix:str):
+ """Return MikroMagic-owned HotSpot users with usage and comment markers."""
+ rows=client.get('ip/hotspot/user',optional=True)
+ users=[]
+ for item in _records(rows):
+  comment=str(item.get('comment') or '')
+  if not comment.startswith(comment_prefix):continue
+  name=item.get('name')
+  if not isinstance(name,str) or not name:continue
+  users.append({
+   'resource_id':str(item.get('.id') or ''),
+   'name':name,
+   'comment':comment,
+   'disabled':str(item.get('disabled','false')).lower()=='true',
+   'bytes_in':_int_field(item.get('bytes-in')),
+   'bytes_out':_int_field(item.get('bytes-out')),
+   'uptime_seconds':_duration_seconds(str(item.get('uptime') or '')) or 0,
+  })
+ return users
+
 def _profile_html_directory(profile:dict):
  for key in ('html-directory-override','html-override-directory','html-directory'):
   value=profile.get(key)

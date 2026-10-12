@@ -33,16 +33,20 @@ export default function OverviewHealth({sites=[],routers=[],pendingPayments,navi
  </section>;
 }
 
-export function OverviewNetwork({sites=[],routers=[],devices=[],vouchers=[],netCollections,navigate}){
+export function OverviewNetwork({sites=[],routers=[],devices=[],vouchers=[],netCollections,sessionSummary,navigate}){
  const t=useOverviewText();
  const apCount=devices.filter(device=>device.kind==='access_point').length;
+ const sessions=sessionSummary||{};
+ const customersVerified=sessions.status==='verified'&&Number.isFinite(sessions.active_count);
+ const customersValue=customersVerified?sessions.active_count:t.unavailable;
+ const customersNote=customersVerified?(sessions.detail||t.customerNote):(sessions.detail||t.customerNote);
  return <section className="overview-network panel" aria-labelledby="overview-network-title">
   <div className="panelhead"><h2 id="overview-network-title">{t.summary}</h2></div>
   <div className="overview-stat-grid">
    <SummaryCard icon={Buildings} label={t.shops} value={sites.length} note={t.countNote} onClick={()=>navigate('Sites')}/>
    <SummaryCard icon={Gateway} label={t.gateways} value={routers.length} note={t.countNote} onClick={()=>navigate('Routers')}/>
    <SummaryCard icon={WifiHigh} label={t.aps} value={apCount} note={t.apNote} onClick={()=>navigate('Network')}/>
-   <SummaryCard icon={UsersThree} label={t.customers} value={t.unavailable} note={t.customerNote}/>
+   <SummaryCard icon={UsersThree} label={t.customers} value={customersValue} note={customersNote} onClick={()=>navigate('Routers')}/>
    <SummaryCard icon={Ticket} label={t.vouchers} value={vouchers.length} note={t.voucherNote} onClick={()=>navigate('Vouchers')}/>
    <SummaryCard icon={Coins} label={t.netCollections} value={netCollections} note={t.revenueNote} onClick={()=>navigate('Revenue')}/>
   </div>

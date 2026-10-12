@@ -95,12 +95,9 @@ def register_access_diagnostics(app, current, db):
         items = [_pass_item(item, vouchers.get(item.voucher_id), now) for item in passes]
         items.extend(_order_item(item) for item in orders if item.id not in entitlement_orders)
         items.sort(key=lambda item: (item['recorded_at'] or 0, item['id']), reverse=True)
+        from .hotspot_accounting import guest_network_evidence
         return {
             'generated_at': now,
-            'network_evidence': {
-                'status': 'unavailable',
-                'freshness': 'none',
-                'detail': 'No live RouterOS session or accounting evidence is available for this guest.',
-            },
+            'network_evidence': guest_network_evidence(s, u.id, u.tenant_id, now),
             'items': items,
         }

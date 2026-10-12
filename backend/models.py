@@ -653,6 +653,22 @@ class HotspotVoucherSync(Base):
  last_attempt_at:Mapped[int|None]=mapped_column(BigInteger,nullable=True)
  __table_args__=(CheckConstraint("applied is null or applied in ('present','disabled','absent')",name='ck_hotspot_voucher_sync_applied'),)
 
+class HotspotSessionObservation(Base):
+ """Last HotSpot active-session / accounting read for one managed router."""
+ __tablename__='hotspot_session_observations'
+ router_id:Mapped[str]=mapped_column(ForeignKey('router_devices.id'),primary_key=True)
+ tenant_id:Mapped[str]=mapped_column(ForeignKey('tenants.id'),index=True)
+ site_id:Mapped[str]=mapped_column(ForeignKey('sites.id'),index=True)
+ observed_at:Mapped[int]=mapped_column(BigInteger)
+ status:Mapped[str]=mapped_column(String(24))
+ active_count:Mapped[int]=mapped_column(Integer,default=0)
+ guests:Mapped[list]=mapped_column(JSON)
+ activations_applied:Mapped[int]=mapped_column(Integer,default=0)
+ usage_updated:Mapped[int]=mapped_column(Integer,default=0)
+ last_error:Mapped[str|None]=mapped_column(String(60),nullable=True)
+ updated:Mapped[int]=mapped_column(BigInteger)
+ __table_args__=(CheckConstraint("status in ('verified','unable_to_verify')",name='ck_hotspot_session_obs_status'),CheckConstraint('active_count >= 0',name='ck_hotspot_session_obs_count'))
+
 class RouterChange(Base):
  __tablename__='router_changes'
  id:Mapped[str]=mapped_column(String(36),primary_key=True,default=uid)

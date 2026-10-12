@@ -75,6 +75,7 @@ export function RouterRegistry({ sites, routers, act, busy, platform = false, lo
   const [version, setVersion] = useState('');
   const [preflight, setPreflight] = useState(null);
   const [sync, setSync] = useState(null);
+  const [sessions, setSessions] = useState(null);
 
   return <>
     {!platform && <section className="panel" id="register-router">
@@ -112,7 +113,10 @@ export function RouterRegistry({ sites, routers, act, busy, platform = false, lo
             }}>{c.preflight}</button> <button className="button secondary" disabled={busy} onClick={async () => {
               const result = await act(`routers/${router.id}/hotspot-sync`, {});
               if (result) setSync({ ...result, router: router.name });
-            }}>{c.syncVouchers}</button></td>}
+            }}>{c.syncVouchers}</button> <button className="button secondary" disabled={busy} onClick={async () => {
+              const result = await act(`routers/${router.id}/hotspot-sessions/collect`, {});
+              if (result) setSessions({ ...result, router: router.name });
+            }}>{c.collectSessions}</button></td>}
           </tr>)}
           {!routers.length && <tr><td colSpan={platform ? 5 : 6}>{c.empty}</td></tr>}</tbody>
         </table>
@@ -129,6 +133,18 @@ export function RouterRegistry({ sites, routers, act, busy, platform = false, lo
       </div>
       {sync.aborted && <div className="callout">{c.syncAborted}</div>}
       <div className="callout">{c.syncNote}</div>
+    </section>}
+    {sessions && <section className="panel">
+      <div className="panelhead"><h2>{c.sessionsTitle} · {sessions.router}</h2><button className="button secondary" onClick={() => setSessions(null)}>{c.close}</button></div>
+      <div className="details">
+        <p><b>{c.sessionsStatus}</b>{sessions.status}</p>
+        <p><b>{c.sessionsFreshness}</b>{sessions.freshness}</p>
+        <p><b>{c.sessionsActive}</b>{sessions.active_count == null ? c.sessionsUnavailable : sessions.active_count}</p>
+        <p><b>{c.sessionsActivated}</b>{sessions.activations_applied ?? 0}</p>
+        <p><b>{c.sessionsUsage}</b>{sessions.usage_updated ?? 0}</p>
+      </div>
+      {sessions.aborted && <div className="callout">{c.sessionsAborted}</div>}
+      <div className="callout">{sessions.detail || c.sessionsNote}</div>
     </section>}
     {preflight && <section className="panel">
       <div className="panelhead"><h2>{c.preflightTitle}</h2><button className="button secondary" onClick={() => setPreflight(null)}>{c.close}</button></div>

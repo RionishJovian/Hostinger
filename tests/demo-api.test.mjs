@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {demoClient,DEMO_PAGES,DEMO_BLOCKED,scrubDemoText,inSchedule} from '../src/demo-api.mjs';
 
-const SME_LOAD=['tenants','packages','orders','entitlements','audit','appearance/effective','media/titles','event-deliveries','review-credentials','external-review-actions','knowledge','revenue','vouchers','sites','routers','hubs','router-plans','router-changes','site-devices','portal'];
+const SME_LOAD=['tenants','packages','orders','entitlements','audit','appearance/effective','media/titles','event-deliveries','review-credentials','external-review-actions','knowledge','revenue','vouchers','sites','routers','hubs','router-plans','router-changes','site-devices','hotspot-sessions/summary','portal'];
 
 async function withoutNetwork(run){
  const original=globalThis.fetch;let calls=0;
@@ -74,6 +74,10 @@ test('actions outside the demo are refused without changing anything',async()=>{
  const audit=(await api.request('audit')).length;
  await assert.rejects(api.request('support-reports/'+report.id+'/share',{}),/never sent to MikroMagic support/);
  await assert.rejects(api.request('routers/'+router.id+'/preflight',{}),/no real router/);
+ await assert.rejects(api.request('routers/'+router.id+'/hotspot-sessions/collect',{}),/no live HotSpot sessions/);
+ const sessions=await api.request('hotspot-sessions/summary');
+ assert.equal(sessions.status,'unable_to_verify');
+ assert.equal(sessions.active_count,null);
  await assert.rejects(api.request('vouchers/redeem',{code:'DEMO-ABCDEF'}),/never work on a real network/);
  await assert.rejects(api.request('staff',{username:'x'}),new RegExp(DEMO_BLOCKED));
  await assert.rejects(api.request('subscriptions/requests',{}),new RegExp(DEMO_BLOCKED));
