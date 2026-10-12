@@ -636,6 +636,22 @@ Restore /opt/mikromagic-build21-public-test-20261012T095157Z/backups/pre-deploy.
 then cd /opt/mikromagic-build21-public-test-20261012T095157Z && docker compose -p mikromagic-build21-public-test -f compose.hostinger-public-test.yaml up -d --no-deps --force-recreate api web
 Restore /opt/mikromagic-build21-public-test-20261012T114409Z/backups/pre-deploy.dump only if the migration itself is at fault. Migration 054 downgrade refuses while observation rows exist.
 
+### Scripted redeploy — REST group policies + guest login step 7 (2026-10-12 13:08 UTC)
+
+| Item | Value |
+|---|---|
+| Source | Commit `e6e535a` on `origin/main`; artifact `5ce74f542b6985595efe2edca9c501012ee3d7dc546bbe60f2d129623637ff47` (212 files); local checks already recorded for this tree (674 backend tests with 12 skips, build, 81 Node tests) |
+| Directory | `/opt/mikromagic-build21-public-test-20261012T130856Z`; previous `-20261012T114409Z` |
+| Infra files | none |
+| Pre-deploy dump | `backups/pre-deploy.dump` (at 054, 490 restore-list entries) |
+| Migration | none (stays 054); rehearsal skipped |
+| Rollback images | `…-{api,web,magic-hub,migrate}:rollback-20261012T130856Z` |
+| Result | api and web recreated; db and Hub untouched (Hub key `TG1jLN13+hA1Eg9/1h0DykQ768ZHZO54WFGAZWhjL0o=`, UDP `156.67.216.128:51820` unchanged); bundle `index-C-NOWJGi.js`. `mm-monitor`/`mm-safechange` policies now include `api` with `rest-api`; local HotSpot guest package is Burmese-first. Not claimed on hardware or a real phone |
+
+**Rollback:** on the VPS, for s in api web magic-hub migrate; do docker tag mikromagic-build21-public-test-$s:rollback-20261012T130856Z mikromagic-build21-public-test-$s:latest; done
+then cd /opt/mikromagic-build21-public-test-20261012T114409Z && docker compose -p mikromagic-build21-public-test -f compose.hostinger-public-test.yaml up -d --no-deps --force-recreate api web
+Restore /opt/mikromagic-build21-public-test-20261012T130856Z/backups/pre-deploy.dump only if the migration itself is at fault.
+
 - Next app work (as of 2026-10-12 09:00 UTC+6:30, live at migration 049, commit `13d40af`):
   - Terminology and Burmese (P0a step 6) are live on SME owner pages: Shop, Internet Pass / Media Pass, Router, and Guest Wi-Fi page. Burmese covers Overview, Vouchers, and the Routers sections under the guide. Platform screens stay English. Guest portal and Developer Dashboard are next.
   - Routers page guided (P0a step 5): Connect your router steps first; Magic Hub, connection plans and Safe RouterOS changes under a closed Advanced (technician) section that opens when a change needs attention.
