@@ -668,8 +668,24 @@ Restore /opt/mikromagic-build21-public-test-20261012T130856Z/backups/pre-deploy.
 then cd /opt/mikromagic-build21-public-test-20261012T130856Z && docker compose -p mikromagic-build21-public-test -f compose.hostinger-public-test.yaml up -d --no-deps --force-recreate api web
 Restore /opt/mikromagic-build21-public-test-20261012T191414Z/backups/pre-deploy.dump only if the migration itself is at fault.
 
+### Scripted redeploy — P0a Packages/Passes Burmese (2026-10-12 19:33 UTC)
+
+| Item | Value |
+|---|---|
+| Source | Commit `2d586ed` on `origin/main`; artifact `3e3b4a97015d322c60d87262283b555836da3b59c757249de630a3e46d141938` (213 files); local checks already recorded for this tree (674 backend tests with 12 skips, build, 88 Node tests) |
+| Directory | `/opt/mikromagic-build21-public-test-20261012T193326Z`; previous `-20261012T191414Z` |
+| Infra files | none |
+| Pre-deploy dump | `backups/pre-deploy.dump` (at 054, 490 restore-list entries) |
+| Migration | none (stays 054); rehearsal skipped |
+| Rollback images | `…-{api,web,magic-hub,migrate}:rollback-20261012T193326Z` |
+| Result | api and web recreated; db and Hub untouched (Hub key `TG1jLN13+hA1Eg9/1h0DykQ768ZHZO54WFGAZWhjL0o=`, UDP `156.67.216.128:51820` unchanged); bundle `index-CD-92QlM.js`. Packages/Passes list and create form are Burmese-first. Remaining English: Sites hours, Media, Account, Integrations |
+
+**Rollback:** on the VPS, for s in api web magic-hub migrate; do docker tag mikromagic-build21-public-test-$s:rollback-20261012T193326Z mikromagic-build21-public-test-$s:latest; done
+then cd /opt/mikromagic-build21-public-test-20261012T191414Z && docker compose -p mikromagic-build21-public-test -f compose.hostinger-public-test.yaml up -d --no-deps --force-recreate api web
+Restore /opt/mikromagic-build21-public-test-20261012T193326Z/backups/pre-deploy.dump only if the migration itself is at fault.
+
 - Next app work (as of 2026-10-12 09:00 UTC+6:30, live at migration 049, commit `13d40af`):
-  - Terminology and Burmese (P0a step 6) are live on SME owner pages: Shop, Internet Pass / Media Pass, Router, and Guest Wi-Fi page. Burmese covers Overview, Vouchers, Routers under the guide, Revenue and Payments. Platform screens stay English. Packages/Sites/Media/Account and guest portal remain for later slices.
+  - Terminology and Burmese (P0a) are live on SME owner pages: Shop, Internet Pass / Media Pass, Router, Guest Wi-Fi page, Overview, Vouchers, Routers under the guide, Revenue, Payments and Packages/Passes. Platform screens stay English. Sites hours / Media / Account and guest portal remain for later slices.
   - Routers page guided (P0a step 5): Connect your router steps first; Magic Hub, connection plans and Safe RouterOS changes under a closed Advanced (technician) section that opens when a change needs attention.
   - Routers page guided (P0a step 5): Connect your router steps first; Magic Hub, connection plans and Safe RouterOS changes under a closed Advanced (technician) section that opens when a change needs attention.
   - Overview simplified (P0a step 4): the router state appears once, with its action; revenue detail stays on Revenue (a collections card links there).
