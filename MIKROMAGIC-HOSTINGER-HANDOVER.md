@@ -543,6 +543,23 @@ Restore /opt/mikromagic-build21-public-test-20261012T033248Z/backups/pre-deploy.
 then cd /opt/mikromagic-build21-public-test-20261012T033248Z && docker compose -p mikromagic-build21-public-test -f compose.hostinger-public-test.yaml up -d --no-deps --force-recreate api web
 Restore /opt/mikromagic-build21-public-test-20261012T042528Z/backups/pre-deploy.dump only if the migration itself is at fault. Migration 050 is additive; the old code ignores the new columns.
 
+### Scripted redeploy — Hub management relay, reviewed infra change (2026-10-12 11:37 UTC+6:30)
+
+| Item | Value |
+|---|---|
+| Source | Commit `72af249` on `origin/main`; artifact `326b297da83fef20c88e6a87650dce2888c849a9e3088365feddd93ef2562f23` (202 files); local checks inside the deploy script: 649 backend tests, 12 skipped, 81 frontend tests, build |
+| Directory | `/opt/mikromagic-build21-public-test-20261012T050600Z`; previous `-20261012T042528Z` |
+| Infra / Hub files | `ALLOW_INFRA_CHANGE=1`: `compose.hostinger-public-test.yaml` (API `MIKROMAGIC_HUB_RELAY_URL=http://magic-hub:8791`, Hub `MIKROMAGIC_HUB_RELAY_PORT=8791`), `Dockerfile.hub` (expose 8791/tcp), `backend/hub_agent.py` (CONNECT relay). No privileges, firewall rules, host routes or published ports added |
+| Pre-deploy dump | `backups/pre-deploy.dump` (at 050, 474 entries) |
+| Migration | none (050 → 050; rehearsal skipped) |
+| Rollback images | `…-{api,web,magic-hub,migrate}:rollback-20261012T050600Z` |
+| Result | api, web and magic-hub recreated (0 Hub peers, so no tunnel interrupted); all four services healthy; Hub key `TG1jLN13+hA1Eg9/1h0DykQ768ZHZO54WFGAZWhjL0o=` and UDP `156.67.216.128:51820` unchanged; 8791 not published; `/v1/ready` 200; capability still `router_setup_available: false`; bundle `index-C4nFCI1p.js` |
+| Relay check (read-only, from the API container) | No or wrong proxy credentials → 407; the real token to `10.90.1.2:443` (no Hub peer) → 403; port 22 → 403; the API resolves the relay proxy from its environment |
+
+**Rollback:** on the VPS, for s in api web magic-hub migrate; do docker tag mikromagic-build21-public-test-$s:rollback-20261012T050600Z mikromagic-build21-public-test-$s:latest; done
+then cd /opt/mikromagic-build21-public-test-20261012T042528Z && docker compose -p mikromagic-build21-public-test -f compose.hostinger-public-test.yaml up -d --no-deps --force-recreate api web magic-hub
+Restore /opt/mikromagic-build21-public-test-20261012T050600Z/backups/pre-deploy.dump only if the migration itself is at fault. No schema change.
+
 - Next app work (as of 2026-10-12 09:00 UTC+6:30, live at migration 049, commit `13d40af`):
   - Terminology and Burmese (P0a step 6) are live on SME owner pages: Shop, Internet Pass / Media Pass, Router, and Guest Wi-Fi page. Burmese covers Overview, Vouchers, and the Routers sections under the guide. Platform screens stay English. Guest portal and Developer Dashboard are next.
   - Routers page guided (P0a step 5): Connect your router steps first; Magic Hub, connection plans and Safe RouterOS changes under a closed Advanced (technician) section that opens when a change needs attention.
