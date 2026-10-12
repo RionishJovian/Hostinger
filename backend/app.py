@@ -88,6 +88,8 @@ def make_app(url=None,initialize=False):
  isolated_pairing=(os.environ.get('MIKROMAGIC_ENVIRONMENT')=='isolated-magic-connect-test' and os.environ.get('MIKROMAGIC_MAGIC_CONNECT_TEST_MODE','').lower()=='true')
  dedicated_pairing=(os.environ.get('MIKROMAGIC_ENVIRONMENT')=='hostinger-public-test' and os.environ.get('MIKROMAGIC_HUB_MODE')=='dedicated-agent' and os.environ.get('MIKROMAGIC_MAGIC_CONNECT_ENABLED','').lower()=='true')
  app.state.magic_connect_pairing_enabled=isolated_pairing or dedicated_pairing
+ # Off until a hardware window; enabling it is a reviewed environment change.
+ app.state.magic_connect_router_setup_enabled=app.state.magic_connect_pairing_enabled and os.environ.get('MIKROMAGIC_MAGIC_CONNECT_ROUTER_SETUP','').lower()=='true'
  app.state.trusted_proxy_networks=trusted_proxy_networks(os.environ.get('MIKROMAGIC_TRUSTED_PROXY_CIDRS',''))
  @app.middleware('http')
  async def safety(request,call_next):

@@ -30,3 +30,11 @@ test('receipt bytes use private bearer headers and upload keys, without JSON enc
  const calls=[];const file=new Blob(['test-image'],{type:'image/png'});const client=accountClient(()=>{},async(url,options)=>{calls.push({url,options});return {ok:true,json:async()=>({id:'image-id'}),blob:async()=>file}});
  client.setToken('test-private-token');await client.upload('orders/order-id/receipts',file,'upload-key-123456');assert.equal(calls[0].options.body,file);assert.equal(calls[0].options.headers['Content-Type'],'application/octet-stream');assert.equal(calls[0].options.headers['X-Upload-Key'],'upload-key-123456');assert.equal(calls[0].options.headers.Authorization,'Bearer test-private-token');assert.equal(await client.blob('orders/order-id/receipts/image-id'),file);assert.ok(calls.every(c=>!c.url.includes('test-private-token')));
 });
+test('structured API errors surface the safe message and code instead of a generic failure',async()=>{
+ const client=accountClient(()=>{},async()=>({ok:false,status:503,json:async()=>({detail:{code:'host_peer_writes_disabled',message:'Hub peer operation could not be completed safely'}})}));
+ await assert.rejects(client.request('router-plans/p/hub-peer/provision',{confirmed:true}),{message:'Hub peer operation could not be completed safely (host_peer_writes_disabled)'});
+});
+test('structured API errors surface the safe message and code instead of a generic failure',async()=>{
+ const client=accountClient(()=>{},async()=>({ok:false,status:503,json:async()=>({detail:{code:'host_peer_writes_disabled',message:'Hub peer operation could not be completed safely'}})}));
+ await assert.rejects(client.request('router-plans/p/hub-peer/provision',{confirmed:true}),{message:'Hub peer operation could not be completed safely (host_peer_writes_disabled)'});
+});

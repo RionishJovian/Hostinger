@@ -8,7 +8,7 @@ from alembic import command
 from alembic.config import Config
 from sqlalchemy import create_engine,text
 from sqlalchemy.orm import Session
-from backend.models import Tenant,RouterDevice,MagicHub,RouterPlan,MagicConnectAttempt,MagicConnectEnrollment
+from backend.models import Tenant,RouterDevice,MagicHub,RouterPlan,MagicConnectEnrollment
 
 
 class EnrollmentMigrationTests(unittest.TestCase):
@@ -28,11 +28,12 @@ class EnrollmentMigrationTests(unittest.TestCase):
                         RouterDevice(id='r',tenant_id='t',site_id='s',name='Synthetic',model='unknown',reported_routeros='',registered_by='u',created=1),
                         MagicHub(id='h',name='Synthetic',endpoint='test.invalid',port=51820,pool='10.90.1.0/24',public_key='synthetic-not-used',next_host=3,created=1),
                         RouterPlan(id='p',tenant_id='t',router_id='r',hub_id='h',router_public_key='synthetic-not-used',address='10.90.1.2',snapshot={},created=1),
-                        MagicConnectAttempt(id='a',tenant_id='t',site_id='s',owner_id='u',router_name='Synthetic',code_hash='d'*64,comparison_code='000000',status='approved',created=1,expires=601,approved_at=2),
-                    ]);session.commit()
+                    ])
+                    # Raw SQL: the current ORM model has columns that revision 031 does not.
+                    session.execute(text("INSERT INTO magic_connect_attempts (id,tenant_id,site_id,owner_id,router_name,code_hash,comparison_code,status,created,expires,approved_at) VALUES ('a','t','s','u','Synthetic',:hash,'000000','approved',1,601,2)"),{'hash':'d'*64});session.commit()
                 command.upgrade(cfg,'032');command.upgrade(cfg,'head')
                 with sqlite3.connect(database) as db:
-                    self.assertEqual(db.execute('SELECT version_num FROM alembic_version').fetchone()[0],'049')
+                    self.assertEqual(db.execute('SELECT version_num FROM alembic_version').fetchone()[0],'050')
                     self.assertEqual(db.execute('SELECT status FROM magic_connect_attempts').fetchone()[0],'approved')
                     self.assertEqual(db.execute('SELECT count(*) FROM users').fetchone()[0],1)
                 with Session(engine) as session:

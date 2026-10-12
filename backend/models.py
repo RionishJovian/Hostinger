@@ -588,6 +588,9 @@ class MagicConnectAttempt(Base):
  enrollment_state:Mapped[str]=mapped_column(String(32),default='pairing_pending',server_default='pairing_pending')
  failure_code:Mapped[str|None]=mapped_column(String(48),nullable=True)
  state_changed_at:Mapped[int|None]=mapped_column(BigInteger,nullable=True)
+ router_id:Mapped[str|None]=mapped_column(ForeignKey('router_devices.id'),nullable=True)
+ router_public_key:Mapped[str|None]=mapped_column(String(44),nullable=True,unique=True)
+ router_key_submitted_at:Mapped[int|None]=mapped_column(BigInteger,nullable=True)
  __table_args__=(CheckConstraint("status in ('pending','claimed','approved','denied','cancelled','expired')"),CheckConstraint("enrollment_state in ('pairing_pending','pairing_approved','awaiting_bootstrap','awaiting_handshake','verifying_management','connected','failed_recovery_required','management_lock_pending','management_locked','revoked')"),CheckConstraint('expires > created'))
 
 class MagicConnectClaimRate(Base):
