@@ -620,6 +620,22 @@ For 052 itself, roll back to `-20261012T053804Z` the same way; the 052 downgrade
 then cd /opt/mikromagic-build21-public-test-20261012T071353Z && docker compose -p mikromagic-build21-public-test -f compose.hostinger-public-test.yaml up -d --no-deps --force-recreate api web
 Restore /opt/mikromagic-build21-public-test-20261012T095157Z/backups/pre-deploy.dump only if the migration itself is at fault. Migration 053 downgrade refuses while `hotspot_portal_publish` change rows exist.
 
+### Scripted redeploy — HotSpot session/accounting reads, migration 054 (2026-10-12 11:44 UTC)
+
+| Item | Value |
+|---|---|
+| Source | Commit `f0dd569` on `origin/main`; artifact `88b55e4bc75c8e0cd676507e8d97064197b0273dda6572eaefc145581fc8b7e8` (212 files); local checks already recorded for this tree (674 backend tests with 12 skips, build, 81 Node tests) |
+| Directory | `/opt/mikromagic-build21-public-test-20261012T114409Z`; previous `-20261012T095157Z` |
+| Infra files | none |
+| Pre-deploy dump | `backups/pre-deploy.dump` (at 053, 482 restore-list entries) |
+| Migration | 053 → 054 (additive table `hotspot_session_observations`); PostgreSQL rehearsal 053 → 054 → 053 → 054 clean |
+| Rollback images | `…-{api,web,magic-hub,migrate}:rollback-20261012T114409Z` |
+| Result | api and web recreated; db and Hub untouched (Hub key `TG1jLN13+hA1Eg9/1h0DykQ768ZHZO54WFGAZWhjL0o=`, UDP `156.67.216.128:51820` unchanged); bundle `index-C-NOWJGi.js`. Step 6 session/accounting reads are live in software only; real hAP ax² acceptance is not claimed |
+
+**Rollback:** on the VPS, for s in api web magic-hub migrate; do docker tag mikromagic-build21-public-test-$s:rollback-20261012T114409Z mikromagic-build21-public-test-$s:latest; done
+then cd /opt/mikromagic-build21-public-test-20261012T095157Z && docker compose -p mikromagic-build21-public-test -f compose.hostinger-public-test.yaml up -d --no-deps --force-recreate api web
+Restore /opt/mikromagic-build21-public-test-20261012T114409Z/backups/pre-deploy.dump only if the migration itself is at fault. Migration 054 downgrade refuses while observation rows exist.
+
 - Next app work (as of 2026-10-12 09:00 UTC+6:30, live at migration 049, commit `13d40af`):
   - Terminology and Burmese (P0a step 6) are live on SME owner pages: Shop, Internet Pass / Media Pass, Router, and Guest Wi-Fi page. Burmese covers Overview, Vouchers, and the Routers sections under the guide. Platform screens stay English. Guest portal and Developer Dashboard are next.
   - Routers page guided (P0a step 5): Connect your router steps first; Magic Hub, connection plans and Safe RouterOS changes under a closed Advanced (technician) section that opens when a change needs attention.
