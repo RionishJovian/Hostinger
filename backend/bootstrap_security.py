@@ -16,7 +16,14 @@ from .models import MagicConnectAttempt,MagicConnectEnrollment,RouterPlan,Router
 from .routeros_adapter import RouterOSError
 from .routeros_compatibility import classify_routeros_compatibility
 
-POLICIES={'monitoring':('read','rest-api'),'safe_change':('read','write','rest-api')}
+# Official RouterOS User policies treat `api` and `rest-api` as separate login
+# rights (https://help.mikrotik.com/docs/spaces/ROS/pages/8978504/User). REST is
+# a JSON wrapper of the console API over www-ssl
+# (https://help.mikrotik.com/docs/spaces/ROS/pages/47579162/REST+API); GET needs
+# `read`, mutations need `write`. Virtual RouterOS 7 rejected `read,rest-api`
+# alone with "not allowed (9)"; include `api` with `rest-api`. No `write` on
+# monitoring. Not verified on hardware.
+POLICIES={'monitoring':('read','api','rest-api'),'safe_change':('read','write','api','rest-api')}
 
 
 class BootstrapSecurityError(RuntimeError):pass

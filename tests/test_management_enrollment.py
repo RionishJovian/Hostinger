@@ -73,7 +73,8 @@ class ManagementEnrollmentTests(unittest.TestCase):
   router=FakeRouter();shown=enrollment_password(ROUTER,create=True)
   self.assertEqual(enrollment_password(ROUTER,create=True),shown)
   evidence=self.run_setup(router)
-  self.assertEqual(router.groups['mm-monitor']['policy'],'read,rest-api');self.assertEqual(router.groups['mm-safechange']['policy'],'read,write,rest-api')
+  self.assertEqual(router.groups['mm-monitor']['policy'],'read,api,rest-api');self.assertEqual(router.groups['mm-safechange']['policy'],'read,write,api,rest-api')
+  self.assertNotIn('write',router.groups['mm-monitor']['policy'].split(','))
   monitor,change=router.users['mm-monitor-abcdef12'],router.users['mm-safechange-abcdef12']
   self.assertEqual((monitor['group'],monitor['address']),('mm-monitor','10.90.1.1/32'));self.assertEqual((change['group'],change['address']),('mm-safechange','10.90.1.1/32'))
   self.assertNotIn(ENROLL,router.users);self.assertIsNone(enrollment_password(ROUTER))
@@ -89,7 +90,7 @@ class ManagementEnrollmentTests(unittest.TestCase):
   self.assertTrue(all(isinstance(c.verify,str) and c.verify.endswith(ROUTER+'.pem') for c in router.credentials))
 
  def test_rerun_resets_existing_logins_in_the_right_groups(self):
-  router=FakeRouter();router.groups['mm-monitor']={'policy':'read,rest-api,!write,!policy'}
+  router=FakeRouter();router.groups['mm-monitor']={'policy':'read,api,rest-api,!write,!policy'}
   router.users['mm-monitor-abcdef12']={'.id':'*9','group':'mm-monitor','password':'old','address':'0.0.0.0/0'}
   self.run_setup(router)
   self.assertNotEqual(router.users['mm-monitor-abcdef12']['password'],'old');self.assertEqual(router.users['mm-monitor-abcdef12']['address'],'10.90.1.1/32')
@@ -101,10 +102,13 @@ class ManagementEnrollmentTests(unittest.TestCase):
     self.assertEqual(raised.exception.code,code);self.assertEqual(set(router.users),{ENROLL});self.assertEqual(set(router.groups),{'full'})
 
  def test_conflicts_and_unsafe_rights_stop_setup(self):
-  router=FakeRouter();router.groups['mm-monitor']={'policy':'read,write,rest-api'}
+  router=FakeRouter();router.groups['mm-monitor']={'policy':'read,write,api,rest-api'}
   with self.assertRaises(ManagementSetupError) as raised:self.run_setup(router)
   self.assertEqual(raised.exception.code,'group_conflict')
-  router=FakeRouter();router.groups['mm-safechange']={'policy':'read,write,rest-api'};router.users['mm-safechange-abcdef12']={'.id':'*9','group':'full','password':'x'}
+  router=FakeRouter();router.groups['mm-monitor']={'policy':'read,rest-api'}
+  with self.assertRaises(ManagementSetupError) as raised:self.run_setup(router)
+  self.assertEqual(raised.exception.code,'group_conflict')
+  router=FakeRouter();router.groups['mm-safechange']={'policy':'read,write,api,rest-api'};router.users['mm-safechange-abcdef12']={'.id':'*9','group':'full','password':'x'}
   with self.assertRaises(ManagementSetupError) as raised:self.run_setup(router)
   self.assertEqual(raised.exception.code,'user_conflict')
   router=FakeRouter(monitor_can_write=True)

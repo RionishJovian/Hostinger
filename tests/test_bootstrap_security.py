@@ -14,7 +14,9 @@ class BootstrapReviewTests(unittest.TestCase):
     def test_review_exact_authority_and_non_dispatchable(self):
         review=provisioning_review(self.session,'plan-a','owner-a',now=1100)
         self.assertFalse(review['credential_delivery_enabled']);self.assertFalse(review['router_writes_enabled'])
-        self.assertEqual(review['identities']['monitoring']['candidate_policies'],['read','rest-api'])
+        self.assertEqual(review['identities']['monitoring']['candidate_policies'],['read','api','rest-api'])
+        self.assertEqual(review['identities']['safe_change']['candidate_policies'],['read','write','api','rest-api'])
+        self.assertNotIn('write',review['identities']['monitoring']['candidate_policies'])
         with self.assertRaises(BootstrapSecurityError):provisioning_review(self.session,'plan-a','wrong-owner',now=1100)
         with self.assertRaises(BootstrapSecurityError):provisioning_review(self.session,'plan-a','owner-a',now=4102444800)
         with self.assertRaisesRegex(BootstrapSecurityError,'hardware_acceptance'):dispatch_identity_provisioning(review)
@@ -51,7 +53,7 @@ class MetadataTests(unittest.TestCase):
             if path.endswith('system/resource'):rows=[{'version':'7.24.2','architecture-name':'arm64','serial-number':'MUST_NOT_LEAK'}]
             elif path.endswith('ip/service'):rows=[{'disabled':'false','certificate':'PRIVATE_NAME','address':'192.0.2.1','password':'MUST_NOT_LEAK'}]
             elif path.endswith('user'):rows=[{'group':'custom','disabled':'false','address':'10.0.0.1/32'}]
-            elif path.endswith('user/group'):rows=[{'name':'custom','policy':'read,rest-api'}]
+            elif path.endswith('user/group'):rows=[{'name':'custom','policy':'read,api,rest-api'}]
             return httpx.Response(200,json=rows)
         with RouterOSClient(RouterOSCredential('https://router','mm-monitor-router01','synthetic-only'),transport=httpx.MockTransport(respond)) as client:
             result=inspect_security_prerequisites(client,'router01')

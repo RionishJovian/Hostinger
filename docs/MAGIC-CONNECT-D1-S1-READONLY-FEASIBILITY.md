@@ -237,7 +237,7 @@ Remaining prerequisites, by kind:
      new Ethernet management address; this is not decided.
 3. Router writes, controlled-acceptance Stage 2 approval: a lab-only server certificate
    and `www-ssl`, source-restricted to the approved test path; two lab users with custom
-   groups (`read,rest-api` and `read,write,rest-api`).
+   groups (`read,api,rest-api` and `read,write,api,rest-api`).
 4. Hardware tests after item 3: trusted/untrusted/wrong-host/expired TLS; Monitoring
    write denial; Safe Change user/privilege-change denial; REST session behaviour after
    group changes; partial account creation and recovery; then D1 delivery (Stage 3).

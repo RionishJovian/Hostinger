@@ -73,7 +73,7 @@ All router commands are generated per router on the technician page; the rollbac
 
 These RouterOS behaviours are assumptions; each failure stops the window with a recorded code:
 
-- `rest-api` as a group policy, and REST working for a `read,rest-api` group.
+- REST over HTTPS for `mm-monitor` with group policy `read,api,rest-api` (no `write`) and for `mm-safechange` with `read,write,api,rest-api`. Official User docs list `api` and `rest-api` as separate login policies; REST is the JSON wrapper of the console API over `www-ssl`. Virtual RouterOS 7 returned "not allowed (9)" for `read,rest-api` alone — still unverified on the hAP ax².
 - `/certificate add ... subject-alt-name=IP:<address>` and `/certificate sign` producing a certificate Python accepts when pinned.
 - `/ip service set www-ssl address=<hub>/32` limiting HTTPS to the Hub.
 - A user deleting itself through REST (`DELETE /rest/user/<id>`).
