@@ -7,30 +7,32 @@ function Field({ label, children }) {
 }
 
 function ShopSettings({ sites, act, busy }) {
+  const c = useSmeCopy('sites');
   const [site, setSite] = useState('');
   const [ssid, setSsid] = useState('');
   const chosen = sites.find(item => item.id === site);
   const problem = ssidProblem(ssid);
   return <section className="panel">
-    <h2>Shop settings</h2>
+    <h2>{c.settingsTitle}</h2>
     <form onSubmit={async event => {
       event.preventDefault();
       await act(`sites/${site}/settings`, { printed_ssid: ssid.trim() || null });
     }}>
       <div className="formgrid">
-        <Field label="Shop"><select required value={site} onChange={event => { setSite(event.target.value); setSsid(sites.find(item => item.id === event.target.value)?.printed_ssid || ''); }}>
-          <option value="">Select a shop</option>{sites.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}
+        <Field label={c.shop}><select required value={site} onChange={event => { setSite(event.target.value); setSsid(sites.find(item => item.id === event.target.value)?.printed_ssid || ''); }}>
+          <option value="">{c.selectShop}</option>{sites.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}
         </select></Field>
-        <Field label="Default printed Wi-Fi name (optional)"><input value={ssid} disabled={!site} onChange={event => setSsid(event.target.value)} placeholder="e.g. Golden Cafe WiFi" /></Field>
+        <Field label={c.defaultWifi}><input value={ssid} disabled={!site} onChange={event => setSsid(event.target.value)} placeholder={c.wifiHint} /></Field>
       </div>
       {problem && <p className="muted" role="status">{problem}</p>}
-      <button className="button" disabled={busy || !site || !!problem || ssid.trim() === (chosen?.printed_ssid || '')}>Save shop settings</button>
+      <button className="button" disabled={busy || !site || !!problem || ssid.trim() === (chosen?.printed_ssid || '')}>{c.saveSettings}</button>
     </form>
-    <p className="muted">Printed on this shop's voucher cards and filled in for new print runs; you can still change it per print run. Leave it empty to print no Wi-Fi name. This label does not change the Wi-Fi network on your router or access points.</p>
+    <p className="muted">{c.settingsNote}</p>
   </section>;
 }
 
 export function SiteRegistry({ sites, act, busy }) {
+  const c = useSmeCopy('sites');
   const [name, setName] = useState('');
   const [timezone, setTimezone] = useState('Asia/Yangon');
   const [ssid, setSsid] = useState('');
@@ -38,30 +40,30 @@ export function SiteRegistry({ sites, act, busy }) {
 
   return <>
     <section className="panel">
-      <div className="panelhead"><h2>Shops</h2></div>
+      <div className="panelhead"><h2>{c.listTitle}</h2></div>
       <div className="tablewrap">
         <table>
-          <thead><tr><th>Shop</th><th>Timezone</th><th>Printed Wi-Fi name</th><th>Identifier</th></tr></thead>
+          <thead><tr>{c.heads.map(h => <th key={h}>{h}</th>)}</tr></thead>
           <tbody>{sites.map(site => <tr key={site.id}>
-            <td>{site.name}</td><td>{site.timezone}</td><td>{site.printed_ssid || <small>Not set</small>}</td><td>{site.id}</td>
+            <td>{site.name}</td><td>{site.timezone}</td><td>{site.printed_ssid || <small>{c.notSet}</small>}</td><td>{site.id}</td>
           </tr>)}</tbody>
         </table>
       </div>
     </section>
     {sites.length > 0 && <ShopSettings sites={sites} act={act} busy={busy} />}
     <section className="panel">
-      <h2>Add a shop</h2>
+      <h2>{c.addTitle}</h2>
       <form onSubmit={async event => {
         event.preventDefault();
         if (await act('sites', { name, timezone, printed_ssid: ssid.trim() || null })) { setName(''); setSsid(''); }
       }}>
         <div className="formgrid">
-          <Field label="Shop name"><input required maxLength={120} value={name} onChange={event => setName(event.target.value)} /></Field>
-          <Field label="Reporting timezone"><input required maxLength={80} value={timezone} onChange={event => setTimezone(event.target.value)} /></Field>
-          <Field label="Printed Wi-Fi name (optional)"><input value={ssid} onChange={event => setSsid(event.target.value)} placeholder="e.g. Golden Cafe WiFi" /></Field>
+          <Field label={c.shopName}><input required maxLength={120} value={name} onChange={event => setName(event.target.value)} /></Field>
+          <Field label={c.timezone}><input required maxLength={80} value={timezone} onChange={event => setTimezone(event.target.value)} /></Field>
+          <Field label={c.wifi}><input value={ssid} onChange={event => setSsid(event.target.value)} placeholder={c.wifiHint} /></Field>
         </div>
         {problem && <p className="muted" role="status">{problem}</p>}
-        <button className="button" disabled={busy || !!problem}>Create shop</button>
+        <button className="button" disabled={busy || !!problem}>{c.create}</button>
       </form>
     </section>
   </>;

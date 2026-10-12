@@ -35,3 +35,11 @@ test('hours form sends only the schedules the chosen mode needs',()=>{
  assert.match(hoursProblem({businessSet:false,business,mode:'custom',network:{...network,fri:{open:'x',close:'23:00'}}}),/Network hours · Fri/);
  assert.equal(hoursProblem({businessSet:true,business,mode:'always',network}),'');
 });
+
+test('week and hours problems accept localized labels',()=>{
+ const days={mon:'တနင်္လာ',tue:'အင်္ဂါ',wed:'ဗုဒ္ဓဟူး',thu:'ကြာသပတေး',fri:'သောကြာ',sat:'စနေ',sun:'တနင်္ဂနွေ'};
+ const week={...defaultWeek(),tue:{open:'8:00',close:'22:00'}};
+ assert.match(weekProblem(week,{dayNames:days,badTimes:d=>`${d} BAD`}),/အင်္ဂါ BAD/);
+ assert.equal(scheduleSummary({...defaultWeek(),sun:null},{dayNames:days,closed:'ပိတ်'}),'တနင်္လာ–စနေ 08:00–22:00 · တနင်္ဂနွေ ပိတ်');
+ assert.match(hoursProblem({businessSet:false,business:defaultWeek(),mode:'business',network:defaultWeek()},{needBusinessFirst:'လုပ်ငန်း အရင်'}),/လုပ်ငန်း အရင်/);
+});

@@ -86,3 +86,14 @@ test('Packages / Passes page copy exists in English and Burmese',()=>{
  assert.equal(getSmeMessage('my','packages','internetPass'),'Internet Pass');
  assert.equal(SME_MESSAGES.my.packages.policyBoth(1,2),'1 GB / 2 နာရီ');
 });
+
+test('Sites and SiteHours page copy exists in English and Burmese',()=>{
+ assert.equal(getSmeMessage('en','sites','listTitle'),'Shops');
+ assert.equal(getSmeMessage('en','siteHours','title'),'Opening hours');
+ assert.equal(getSmeMessage('en','siteHours','modes').always,'24×7 (always on)');
+ assert.match(getSmeMessage('my','sites','listTitle'),/[\u1000-\u109F]/);
+ assert.match(getSmeMessage('my','siteHours','title'),/[\u1000-\u109F]/);
+ assert.match(getSmeMessage('my','siteHours','maintenanceTitle'),/[\u1000-\u109F]/);
+ assert.match(SME_MESSAGES.my.siteHours.days.mon,/[\u1000-\u109F]/);
+ assert.match(SME_MESSAGES.my.siteHours.needBusinessFirst,/[\u1000-\u109F]/);
+});
