@@ -21,11 +21,13 @@ export const mmk=n=>`${Number(n||0).toLocaleString('en-US')} MMK`;
 export function balanceText(balance){return balance>0?`Owes ${mmk(balance)}`:balance<0?`Prepaid credit ${mmk(-balance)}`:'Settled'}
 export const MOVEMENTS={assign:'Handed over',return:'Returned to your stock',reassign_out:'Moved to another dealer',reassign_in:'Received from another dealer',stock_check:'Stock check'};
 export const LEDGER={charge:'Stock charge',payment:'Payment received',return_credit:'Return credit',adjustment:'Correction',reversal:'Reversal'};
-export function movementDetail(m,dealerName=id=>id){
- const d=m.details||{},who=m.counterpart_dealer_id?` · ${m.kind==='reassign_in'?'from':'to'} ${dealerName(m.counterpart_dealer_id)}`:'';
- if(m.kind==='stock_check')return `Expected ${d.expected} · counted ${d.counted} · difference ${d.difference>0?'+':''}${d.difference}${m.reason?` · ${STOCK_REASONS[m.reason]}`:''}${d.missing_serials?.length?` · missing ${compressSerials(d.missing_serials)}`:''}${d.disabled?` · ${d.disabled} disabled`:''}`;
- if(m.kind==='assign'||m.kind==='reassign_in')return `${d.serials||''} · ${mmk(m.unit_price)} each (face ${mmk(d.face_value)})${who}`;
- return `${d.serials||''}${d.credited?` · credited ${mmk(d.credited)}`:' · no credit'}${who}`;
+export function movementDetail(m,dealerName=id=>id,phrases){
+ const p=phrases||{expected:'Expected',counted:'counted',difference:'difference',missing:'missing',disabled:'disabled',each:'each',face:'face',credited:'credited',noCredit:'no credit',from:'from',to:'to',reasons:STOCK_REASONS};
+ const reasons=p.reasons||STOCK_REASONS;
+ const d=m.details||{},who=m.counterpart_dealer_id?` · ${m.kind==='reassign_in'?p.from:p.to} ${dealerName(m.counterpart_dealer_id)}`:'';
+ if(m.kind==='stock_check')return `${p.expected} ${d.expected} · ${p.counted} ${d.counted} · ${p.difference} ${d.difference>0?'+':''}${d.difference}${m.reason?` · ${reasons[m.reason]||m.reason}`:''}${d.missing_serials?.length?` · ${p.missing} ${compressSerials(d.missing_serials)}`:''}${d.disabled?` · ${d.disabled} ${p.disabled}`:''}`;
+ if(m.kind==='assign'||m.kind==='reassign_in')return `${d.serials||''} · ${mmk(m.unit_price)} ${p.each} (${p.face} ${mmk(d.face_value)})${who}`;
+ return `${d.serials||''}${d.credited?` · ${p.credited} ${mmk(d.credited)}`:` · ${p.noCredit}`}${who}`;
 }
 export function handoverPreview(count,price){
  const n=Number(count)||0,p=Number(price);

@@ -35,13 +35,13 @@ export default function FirstSiteAcceptance({api, sites, routers}) {
     }catch(e){setError(e.message);setBusy(false)}
   }
   return <section className="panel">
-    <div className="panelhead"><h2>Guided first-site acceptance</h2>{result&&<span className="pill warn">Not ready</span>}</div>
+    <div className="panelhead"><h2>Guided first-shop acceptance</h2>{result&&<span className="pill warn">Not ready</span>}</div>
     <p>Connect → Inspect → Explain → Confirm → Back up → Configure → Verify → First Customer Test → Ready.</p>
     <div className="formgrid">
-      <label className="field"><span>Business site</span><select value={siteId} onChange={e=>setSiteId(e.target.value)}>
-        <option value="">Select a site</option>{sites.map(site=><option key={site.id} value={site.id}>{site.name}</option>)}
+      <label className="field"><span>Shop</span><select value={siteId} onChange={e=>setSiteId(e.target.value)}>
+        <option value="">Select a shop</option>{sites.map(site=><option key={site.id} value={site.id}>{site.name}</option>)}
       </select></label>
-      <label className="field"><span>MikroTik for this site</span><select disabled={!siteId} value={routerId} onChange={e=>{setRouterId(e.target.value);setResult(null)}}>
+      <label className="field"><span>Router for this shop</span><select disabled={!siteId} value={routerId} onChange={e=>{setRouterId(e.target.value);setResult(null)}}>
         <option value="">{siteRouters.length===1?'Use the only registered router':'Select a router'}</option>{siteRouters.map(router=><option key={router.id} value={router.id}>{router.name}</option>)}
       </select></label>
     </div>
@@ -73,7 +73,7 @@ export default function FirstSiteAcceptance({api, sites, routers}) {
         {result.hotspot_proposal.plan.status==='prepared'&&<button className="button secondary" disabled={busy} onClick={reviewHotspot}>Confirm exact proposal scope</button>}
         <p className="muted">Confirmation records owner review only. It is not authorization to write to RouterOS, upload files, or start a hardware session.</p>
       </div>}
-      <p className="muted">This view reads durable records only. It cannot contact or modify a router, accept owner-reported metadata as telemetry, issue a premature test voucher, or mark Site Ready without real device evidence.</p>
+      <p className="muted">This view reads durable records only. It cannot contact or modify a router, accept owner-reported metadata as telemetry, issue a premature test voucher, or mark the shop Ready without real device evidence.</p>
     </>}
   </section>;
 }

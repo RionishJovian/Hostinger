@@ -3,7 +3,7 @@ import {mkdir,readFile,writeFile,rm} from 'node:fs/promises';
 import assert from 'node:assert/strict';
 const folder='.ui-check';await mkdir(folder,{recursive:true});
 try{
- const bundle=await build({entryPoints:['src/PortalSettings.jsx'],bundle:true,platform:'node',format:'esm',external:['react','react-dom/server'],write:false});
+ const bundle=await build({entryPoints:['src/PortalSettings.jsx'],bundle:true,platform:'node',format:'esm',external:['react','react-dom/server'],loader:{'.css':'empty'},write:false});
  await writeFile(folder+'/components.mjs',bundle.outputFiles[0].text);
  const {PortalEditor,GuestPurchase}=await import('../'+folder+'/components.mjs');
  const React=await import('react');const {renderToStaticMarkup}=await import('react-dom/server');

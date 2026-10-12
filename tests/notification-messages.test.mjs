@@ -21,7 +21,7 @@ test('every backend notification kind, scope and summary reason has English and 
 });
 
 test('the summary never labels redeemed vouchers as sold and names unmeasured router facts',()=>{
- assert.match(SME_MESSAGES.en.notifications.redeemedNote,/not the same as sold/);
+ assert.match(SME_MESSAGES.en.notifications.redeemedNote,/Redeemed in the app is not Sold, and it is not Activated on the router/);
  assert.match(SME_MESSAGES.en.notifications.notMeasured,/peak customers.*internet availability.*access point health/);
  assert.match(SME_MESSAGES.en.notifications.inApp,/not connected yet/);
 });

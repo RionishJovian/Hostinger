@@ -834,3 +834,8 @@ Verification: `tests/test_agents.py` (required fields, bounds, stored and return
 
 - SME owners see **Connect your router** first: four steps with Done / Next / Later and one action on the next step. An unverified router is never shown as connected.
 - Magic Hub, connection plans and Safe RouterOS changes moved into a closed **Advanced (technician)** section that opens by itself when a router change needs attention. No API change; no migration.
+
+## 2026-10-12 — SME terminology and Burmese (P0a, increment 6)
+
+- SME page contents use Shop, Pass (Internet Pass / Media Pass), Router, and Guest Wi-Fi page. Internal API names and page keys are unchanged. Generated, Sold, and Activated stay distinct.
+- Burmese covers Overview, the Vouchers page, and the Routers sections under the guide, including Magic Hub, connection plans, and Safe RouterOS. Platform screens stay English. Guest portal and Developer Dashboard are next. No API change; no migration.

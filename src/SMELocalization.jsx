@@ -1,5 +1,5 @@
 import React,{createContext,useContext,useMemo,useState} from 'react';
-import {chooseSmeLanguage,getSmeMessage,persistSmeLanguage,readStoredSmeLanguage} from './sme-localization.mjs';
+import {chooseSmeLanguage,getSmeMessage,normalizeSmeLanguage,persistSmeLanguage,readStoredSmeLanguage,SME_MESSAGES} from './sme-localization.mjs';
 import './sme-localization.css';
 
 const SMELocalizationContext=createContext(null);
@@ -20,6 +20,12 @@ export function useSMELocalization(){
  const context=useContext(SMELocalizationContext);
  if(!context)throw new Error('useSMELocalization must be used inside SMELocalizationProvider');
  return context;
+}
+/** Page copy for the signed-in language. Without a provider, or when disabled, English is used so shared platform screens stay English. */
+export function useSmeCopy(section,enabled=true){
+ const context=useContext(SMELocalizationContext);
+ const language=enabled&&context?normalizeSmeLanguage(context.language):'en';
+ return SME_MESSAGES[language]?.[section]??SME_MESSAGES.en?.[section]??{};
 }
 
 const LANGUAGE_LABELS={my:'မြန်မာ',en:'English'};

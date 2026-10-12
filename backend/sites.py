@@ -25,7 +25,7 @@ def register_sites(app,current,db,owner,log):
  def create_site(b:SiteIn,u=Depends(current),s=Depends(db)):
   owner(u);x=Site(tenant_id=u.tenant_id,**b.model_dump(),created=int(time.time()));s.add(x)
   try:s.flush();log(s,u,'site_registered',x.id);s.commit()
-  except IntegrityError:s.rollback();raise HTTPException(409,'A site with this name already exists')
+  except IntegrityError:s.rollback();raise HTTPException(409,'A shop with this name already exists')
   return {'id':x.id,'name':x.name,'timezone':x.timezone,'printed_ssid':x.printed_ssid}
  @app.post('/v1/sites/{id}/settings')
  def site_settings(id:str,b:SiteSettingsIn,u=Depends(current),s=Depends(db)):

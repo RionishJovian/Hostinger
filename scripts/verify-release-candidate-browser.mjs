@@ -83,7 +83,7 @@ try{
   await owner.page.getByRole('button',{name:'Shops',exact:true}).click();
   await owner.page.getByLabel('Site name').fill('RC Site '+label+' '+suffix);
   const response=owner.page.waitForResponse(r=>r.url().endsWith('/v1/sites')&&r.request().method()==='POST');
-  await owner.page.getByRole('button',{name:'Create site'}).click();
+  await owner.page.getByRole('button',{name:'Create shop'}).click();
   assert.equal((await response).status(),201);
   await owner.page.getByText('RC Site '+label+' '+suffix).first().waitFor();
  }
@@ -99,7 +99,7 @@ try{
  await ownerA.page.getByRole('button',{name:'Passes',exact:true}).click();
  await ownerA.page.getByLabel('Package name').fill('RC Internet '+suffix);
  const packageResponse=ownerA.page.waitForResponse(r=>r.url().endsWith('/v1/packages')&&r.request().method()==='POST');
- await ownerA.page.getByRole('button',{name:'Create package'}).click();
+ await ownerA.page.getByRole('button',{name:'Create pass'}).click();
  assert.equal((await packageResponse).status(),201);
  await ownerA.page.getByText('RC Internet '+suffix).first().waitFor();
  result.workflows.package_creation_in_browser='PASS';

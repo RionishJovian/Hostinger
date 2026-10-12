@@ -227,7 +227,7 @@ function route(db,method,path,body){
   db.reconciliations.unshift(row);return clone(row);
  }
  if(raw==='sites'){
-  const name=String(body.name||'').trim();if(!name)fail('Enter a site name');if(db.sites.some(s=>s.name.toLowerCase()===name.toLowerCase()))fail('A site with this name already exists');
+  const name=String(body.name||'').trim();if(!name)fail('Enter a shop name');if(db.sites.some(s=>s.name.toLowerCase()===name.toLowerCase()))fail('A shop with this name already exists');
   const site={id:id(),tenant_id:db.tenant.id,name,timezone:body.timezone||'Asia/Yangon',created:now,printed_ssid:body.printed_ssid||null,business_hours:null,network_hours_mode:'always',network_hours:null};
   db.sites.push(site);log(db,'site_registered',site.id);return siteJson(db,site);
  }
