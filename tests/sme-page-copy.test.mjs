@@ -113,3 +113,17 @@ test('Media and Account page copy exists in English and Burmese',()=>{
  assert.equal(SME_MESSAGES.en.media.ops.publish,'Publish');
  assert.match(SME_MESSAGES.my.media.ops.publish,/[\u1000-\u109F]/);
 });
+
+test('Integrations, Did you know?, first-site and Magic Boy copy exist in English and Burmese',()=>{
+ assert.equal(getSmeMessage('en','integrations','create'),'Create credential');
+ assert.match(getSmeMessage('en','integrations','connectNote'),/does not connect/);
+ assert.equal(getSmeMessage('en','didYouKnow','explain'),'Explain with Magic Boy');
+ assert.equal(getSmeMessage('en','firstSite','title'),'Guided first-shop acceptance');
+ assert.equal(getSmeMessage('en','magicBoy','name'),'Magic Boy');
+ assert.match(getSmeMessage('my','integrations','create'),/[\u1000-\u109F]/);
+ assert.match(getSmeMessage('my','didYouKnow','title'),/[\u1000-\u109F]/);
+ assert.match(getSmeMessage('my','firstSite','title'),/[\u1000-\u109F]/);
+ assert.match(getSmeMessage('my','magicBoy','restrained'),/[\u1000-\u109F]/);
+ assert.equal(SME_MESSAGES.en.firstSite.stages.site_ready,'Site Ready');
+ assert.match(SME_MESSAGES.my.firstSite.stages.site_ready,/[\u1000-\u109F]/);
+});

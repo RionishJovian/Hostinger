@@ -3,7 +3,7 @@ import {mkdir,writeFile,readFile,rm} from 'node:fs/promises';
 import assert from 'node:assert/strict';
 await mkdir('.ui-check',{recursive:true});
 try{
- const bundle=await build({entryPoints:['src/ReviewIntegrations.jsx'],bundle:true,platform:'node',format:'esm',external:['react'],write:false});await writeFile('.ui-check/review-integrations.mjs',bundle.outputFiles[0].text);
+ const bundle=await build({entryPoints:['src/ReviewIntegrations.jsx'],bundle:true,platform:'node',format:'esm',external:['react'],loader:{'.css':'empty'},write:false});await writeFile('.ui-check/review-integrations.mjs',bundle.outputFiles[0].text);
  const {default:ReviewIntegrations}=await import('../.ui-check/review-integrations.mjs');const React=await import('react');const {renderToStaticMarkup}=await import('react-dom/server');
  const credentials=[{id:'sample-credential',label:'Counter review bot',provider:'telegram',reviewer_identity:'sample-owner-id',can_decide:true,receive_events:true,expires:1793750400,revoked_at:null}];const actions=[{id:'sample-action',created:1791158400,service_label:'Counter review bot',provider:'telegram',reviewer_identity:'sample-owner-id',order_id:'sample-order',decision:'needs_evidence',reason:'Please attach the complete receipt.'}];
  const deliveries=[{id:'sample-delivery',credential_id:'sample-credential',service_label:'Counter review bot',order_id:'sample-order',event:'payment.submitted',event_revision:1,state:'failed',attempts:5,cycle_attempts:5,last_error:'Provider unavailable in sample data',credential_available:true,subscription_enabled:true}];
