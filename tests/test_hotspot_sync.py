@@ -70,6 +70,10 @@ class HotspotSyncTests(unittest.TestCase):
   listed=self.client.get('/v1/vouchers',headers=owner).text;self.assertNotIn('code_sealed',listed);self.assertNotIn(issued['code'],listed)
   with patch.dict(os.environ,{'MIKROMAGIC_BACKUP_KEY':''}):unsealed=self.issue(owner,package,site,'seal-two')
   with self.app.state.factory() as s:self.assertIsNone(s.get(Voucher,unsealed['id']).code_sealed)
+  import base64
+  with patch.dict(os.environ,{'MIKROMAGIC_BACKUP_KEY':base64.b64encode(bytes(range(200,248))).decode()}):
+   longer=self.issue(owner,package,site,'seal-three')
+   with self.app.state.factory() as s:v=s.get(Voucher,longer['id']);self.assertEqual(unseal(v.tenant_id,v.code_sealed),longer['code'])
 
  def test_limits_map_to_profiles_and_users(self):
   limits=internet_limits({'service':'internet','mode':'both','gb':2,'hours':24,'devices':2,'speed':10,'clock':'elapsed'})

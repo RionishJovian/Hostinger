@@ -173,5 +173,12 @@ class EncryptedBackupStoreTests(unittest.TestCase):
   with tempfile.TemporaryDirectory() as folder:
    key=Fernet.generate_key();store=EncryptedBackupStore(key,folder);ref,digest=store.save_verified(b'sensitive-redacted-export')
    path=Path(folder)/ref.removeprefix('encrypted://');self.assertNotIn(b'sensitive-redacted-export',path.read_bytes());self.assertEqual(oct(path.stat().st_mode&0o777),'0o600');self.assertEqual(len(digest),64)
+ def test_base64_random_key_longer_than_fernet_is_accepted_and_short_keys_refused(self):
+  raw=base64.b64encode(bytes(range(200,248))).decode();self.assertEqual(len(raw),64);self.assertTrue('+' in raw or '/' in raw)
+  with tempfile.TemporaryDirectory() as folder:
+   store=EncryptedBackupStore(raw,folder);ref,_=store.save_verified(b'export')
+   self.assertEqual(EncryptedBackupStore(raw,folder).cipher.decrypt((Path(folder)/ref.removeprefix('encrypted://')).read_bytes()),b'export')
+   with self.assertRaises(RouterOSError) as error:EncryptedBackupStore(base64.b64encode(b'short').decode(),folder)
+   self.assertEqual(error.exception.code,'backup_key_invalid')
 
 if __name__=='__main__':unittest.main()

@@ -9,6 +9,7 @@ from pathlib import Path
 from cryptography.fernet import Fernet,InvalidToken
 from fastapi import Depends,HTTPException
 from sqlalchemy import select,update,or_
+from .backup_key import derived_fernet
 from .models import RouterDevice,RouterPlan,RouterEvidence,RouterChange,BackupArtifact,Audit
 from .schemas import RouterChangePreviewIn,RouterChangeApplyIn,RouterConflictResolutionIn
 from .routeros_adapter import RouterOSClient,RouterOSError,load_routeros_safe_change_credential,wireguard_peer_state,set_wireguard_keepalive
@@ -32,7 +33,9 @@ class EncryptedBackupStore:
   raw=key or os.environ.get('MIKROMAGIC_BACKUP_KEY')
   if not raw:raise RouterOSError('backup_key_missing','Encrypted backup key is not configured',500)
   try:self.cipher=Fernet(raw.encode() if isinstance(raw,str) else raw)
-  except (ValueError,TypeError):raise RouterOSError('backup_key_invalid','Encrypted backup key is invalid',500)
+  except (ValueError,TypeError):
+   self.cipher=derived_fernet(raw,b'mikromagic-router-backup-v1')
+   if self.cipher is None:raise RouterOSError('backup_key_invalid','Encrypted backup key is invalid',500)
   self.root=Path(directory or os.environ.get('MIKROMAGIC_BACKUP_DIR','/var/lib/mikromagic/backups')).resolve();self.root.mkdir(parents=True,exist_ok=True,mode=0o700);os.chmod(self.root,0o700)
  def save_verified(self,plaintext:bytes):
   if not plaintext:raise RouterOSError('backup_invalid','Router configuration backup was empty')

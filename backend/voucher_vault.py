@@ -5,19 +5,13 @@ again to routers that were offline, replaced or added later. It is sealed with
 a key derived from the backup key, bound to the business, and never returned
 by any API after issue.
 """
-import base64,os
-from cryptography.fernet import Fernet,InvalidToken
-from cryptography.hazmat.primitives import hashes
-from cryptography.hazmat.primitives.kdf.hkdf import HKDF
+import os
+from cryptography.fernet import InvalidToken
+from .backup_key import derived_fernet
 
 INFO=b'mikromagic-voucher-code-v1'
 
-def _cipher():
- raw=os.environ.get('MIKROMAGIC_BACKUP_KEY','')
- try:master=base64.urlsafe_b64decode(raw.encode())
- except (ValueError,TypeError):return None
- if len(master)!=32:return None
- return Fernet(base64.urlsafe_b64encode(HKDF(algorithm=hashes.SHA256(),length=32,salt=None,info=INFO).derive(master)))
+def _cipher():return derived_fernet(os.environ.get('MIKROMAGIC_BACKUP_KEY',''),INFO)
 
 def seal(tenant_id,code):
  """Return the sealed code, or None when no key is configured (the voucher then cannot sync)."""
