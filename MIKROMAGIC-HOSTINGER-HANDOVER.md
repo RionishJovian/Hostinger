@@ -576,6 +576,34 @@ Restore /opt/mikromagic-build21-public-test-20261012T050600Z/backups/pre-deploy.
 then cd /opt/mikromagic-build21-public-test-20261012T050600Z && docker compose -p mikromagic-build21-public-test -f compose.hostinger-public-test.yaml up -d --no-deps --force-recreate api web
 Restore /opt/mikromagic-build21-public-test-20261012T053804Z/backups/pre-deploy.dump only if the migration itself is at fault. Migration 051 is additive; the old code ignores the new columns. The `routeros_credentials` volume is empty and can stay.
 
+### Scripted redeploy — voucher → HotSpot sync for Connected routers, migration 052 (2026-10-12 12:50 UTC+6:30)
+
+| Item | Value |
+|---|---|
+| Source | Commit `50b77a6` on `origin/main`; artifact `48a6d7a12938960a7906ae7c907cc3da7eed711cc75cceba9addafc644dee966` (207 files); local checks inside the deploy script green (backend tests, build, 81 Node tests) |
+| Directory | `/opt/mikromagic-build21-public-test-20261012T062036Z`; previous `-20261012T053804Z` |
+| Infra files | none |
+| Pre-deploy dump | `backups/pre-deploy.dump` (at 051, 474 entries) |
+| Migration | 051 → 052 (additive: `vouchers.code_sealed`, table `hotspot_voucher_sync`); PostgreSQL rehearsal 051 → 052 → 051 → 052 clean |
+| Rollback images | `…-{api,web,magic-hub,migrate}:rollback-20261012T062036Z` |
+| Result | api and web recreated; Hub key `TG1jLN13+hA1Eg9/1h0DykQ768ZHZO54WFGAZWhjL0o=`, UDP `156.67.216.128:51820` unchanged; bundle `index-Di3-rOlF.js`. Live check found the production backup key (48 random bytes, base64) was not accepted as a Fernet key, so voucher sealing and Safe Change backups were unavailable; fixed in the next release |
+
+### Scripted redeploy — backup key format fix (2026-10-12 13:43 UTC+6:30)
+
+| Item | Value |
+|---|---|
+| Source | Commit `3583ea7` on `origin/main` (fix in `8dcb4ab`); artifact `a66eb4663cec3971fb68a83a441a4c9df90782bf57596a284ae299969aa586f5`; local checks inside the deploy script: 662 backend tests (12 PostgreSQL skips), build, 81 Node tests |
+| Directory | `/opt/mikromagic-build21-public-test-20261012T071353Z`; previous `-20261012T062036Z` |
+| Infra files | none |
+| Pre-deploy dump | `backups/pre-deploy.dump` (at 052) |
+| Migration | none (stays 052) |
+| Rollback images | `…-{api,web,magic-hub,migrate}:rollback-20261012T071353Z` |
+| Result | api and web recreated and healthy; Hub untouched (key and UDP 51820 unchanged). Verified 15:20 in the running API: voucher seal/unseal round trip OK and the Safe Change backup store accepts the production key (derived per purpose with HKDF; no backups existed before). The deploy script's own summary was lost to a local interruption; these values were re-read from the VPS |
+
+**Rollback:** on the VPS, for s in api web magic-hub migrate; do docker tag mikromagic-build21-public-test-$s:rollback-20261012T071353Z mikromagic-build21-public-test-$s:latest; done
+then cd /opt/mikromagic-build21-public-test-20261012T062036Z && docker compose -p mikromagic-build21-public-test -f compose.hostinger-public-test.yaml up -d --no-deps --force-recreate api web
+For 052 itself, roll back to `-20261012T053804Z` the same way; the 052 downgrade refuses while sync records or sealed codes exist. Restore a `pre-deploy.dump` only if a migration itself is at fault.
+
 - Next app work (as of 2026-10-12 09:00 UTC+6:30, live at migration 049, commit `13d40af`):
   - Terminology and Burmese (P0a step 6) are live on SME owner pages: Shop, Internet Pass / Media Pass, Router, and Guest Wi-Fi page. Burmese covers Overview, Vouchers, and the Routers sections under the guide. Platform screens stay English. Guest portal and Developer Dashboard are next.
   - Routers page guided (P0a step 5): Connect your router steps first; Magic Hub, connection plans and Safe RouterOS changes under a closed Advanced (technician) section that opens when a change needs attention.
