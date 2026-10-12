@@ -3,19 +3,97 @@ import {useSmeCopy} from './SMELocalization.jsx';
 
 export function SafeRouterChanges({routers,plans,changes,act,busy,localize=true}){
  const c=useSmeCopy('routersPage',localize);
- const [router,setRouter]=useState(''),[seconds,setSeconds]=useState(25),[selected,setSelected]=useState(changes[0]?.id||''),[confirmed,setConfirmed]=useState(false),[resolutionConfirmed,setResolutionConfirmed]=useState(false);
+ const [router,setRouter]=useState('');
+ const [seconds,setSeconds]=useState(25);
+ const [selected,setSelected]=useState(changes[0]?.id||'');
+ const [confirmed,setConfirmed]=useState(false);
+ const [resolutionConfirmed,setResolutionConfirmed]=useState(false);
  const change=changes.find(x=>x.id===selected);
  const eligible=routers.filter(r=>plans.some(p=>p.router_id===r.id&&p.reviewed_at));
- async function preview(e){e.preventDefault();const result=await act('routers/'+router+'/changes/preview',{persistent_keepalive_seconds:Number(seconds)});if(result){setSelected(result.id);setConfirmed(false)}}
- async function apply(){const result=await act('router-changes/'+change.id+'/apply',{expected_revision:change.revision,confirm_high_risk:true});if(result){setSelected(result.id);setConfirmed(false)}}
- async function resolve(choice){const result=await act('router-changes/'+change.id+'/resolve-conflict',{expected_revision:change.revision,choice,confirm_high_risk:choice==='keep_mikromagic'&&resolutionConfirmed});if(result){setSelected(result.id);setResolutionConfirmed(false)}}
- const phase=c.phases[change?.phase]||c.statuses[change?.status]||change?.status;
  const portal=change?.operation==='hotspot_portal_publish';
+ const phase=c.phases[change?.phase]||c.statuses[change?.status]||change?.status;
  const summary=x=>x.operation==='hotspot_portal_publish'
   ?(x.diff?.profile_html_directory?`${x.diff.profile_html_directory.before} → ${x.diff.profile_html_directory.after}`:'portal publish')
   :`${x.before?.persistent_keepalive_seconds} → ${x.desired?.persistent_keepalive_seconds} ${c.sec}`;
- return <section className="panel"><div className="panelhead"><h2>{c.safeTitle}</h2></div><p>{c.safeIntro}</p><form onSubmit={preview}><div className="formgrid"><label className="field"><span>{c.reviewedRouter}</span><select required value={router} onChange={e=>setRouter(e.target.value)}><option value="">{c.selectRouter}</option>{eligible.map(r=><option key={r.id} value={r.id}>{r.name}</option>)}</select></label><label className="field"><span>{c.keepalive}</span><input required type="number" min="1" max="3600" value={seconds} onChange={e=>setSeconds(e.target.value)}/></label></div><button className="button secondary" disabled={busy||!router}>{c.inspect}</button></form><p className="muted">HotSpot portal publish is started from Guided first-shop acceptance after the owner reviews the exact proposal.</p>{change&&<div className="safechange"><h3>{c.risk(change.risk.toUpperCase())}{portal?' · portal publish':''}</h3><div className="details"><p><b>{c.phase}</b>{phase}</p>{portal?<>
-  <p><b>Profile directory</b>{change.diff?.profile_html_directory?.before} → {change.diff?.profile_html_directory?.after}</p>
-  <p><b>Package</b>revision {change.desired?.published_revision}</p>
- </>:<><p><b>{c.before}</b>{c.seconds(change.before.persistent_keepalive_seconds)}</p><p><b>{c.mmVersion}</b>{c.seconds(change.desired.persistent_keepalive_seconds)}</p></>}<p><b>{c.impact}</b>{change.diff.impact}</p><p><b>{c.backup}</b>{change.safety_backup_verified?c.backupYes:c.backupNo}</p>{!portal&&<p><b>{c.actual}</b>{change.actual?.persistent_keepalive_seconds==null?c.notYet:c.seconds(change.actual.persistent_keepalive_seconds)}</p>}{change.gateway_deadline&&change.status==='verifying'&&<p><b>{c.deadline}</b>{new Date(change.gateway_deadline*1000).toLocaleString()}</p></div>{change.status==='previewed'&&<><label><input type="checkbox" checked={confirmed} onChange={e=>setConfirmed(e.target.checked)}/> {c.confirm}</label><button className="button" disabled={busy||!confirmed} onClick={apply}>{c.apply}</button></>}{change.status==='conflict'&&<div className="conflict-resolution"><h3>{c.choose}</h3><p>{c.merge}</p><button className="button secondary" disabled={busy} onClick={()=>resolve('keep_router')}>{c.keepRouter}</button><p className="muted">{c.keepRouterNote}</p><label><input type="checkbox" checked={resolutionConfirmed} onChange={e=>setResolutionConfirmed(e.target.checked)}/> {c.keepMm}</label><button className="button" disabled={busy||!resolutionConfirmed} onClick={()=>resolve('keep_mikromagic')}>{c.keepMmButton}</button><p className="muted">{c.week}</p></div>}{change.status==='recovery_required'&&<p role="alert"><b>{c.recoveryLead}</b> {c.recovery}</p>}<p className="muted">{c.proof}</p></div>}<div className="tablewrap"><table><thead><tr>{c.changeCols.map(h=><th key={h}>{h}</th>)}</tr></thead><tbody>{changes.map(x=><tr key={x.id}><td>{routers.find(r=>r.id===x.router_id)?.name||x.router_id}</td><td>{summary(x)}</td><td>{x.risk}</td><td>{c.statuses[x.status]||x.status}</td><td><button className="button secondary" onClick={()=>{setSelected(x.id);setConfirmed(false);setResolutionConfirmed(false)}}>{c.view}</button></td></tr>)}{!changes.length&&<tr><td colSpan="5">{c.noChanges}</td></tr>}</tbody></table></div></section>
+
+ async function preview(e){
+  e.preventDefault();
+  const result=await act('routers/'+router+'/changes/preview',{persistent_keepalive_seconds:Number(seconds)});
+  if(result){setSelected(result.id);setConfirmed(false)}
+ }
+ async function apply(){
+  const result=await act('router-changes/'+change.id+'/apply',{expected_revision:change.revision,confirm_high_risk:true});
+  if(result){setSelected(result.id);setConfirmed(false)}
+ }
+ async function resolve(choice){
+  const result=await act('router-changes/'+change.id+'/resolve-conflict',{
+   expected_revision:change.revision,choice,confirm_high_risk:choice==='keep_mikromagic'&&resolutionConfirmed,
+  });
+  if(result){setSelected(result.id);setResolutionConfirmed(false)}
+ }
+
+ return <section className="panel">
+  <div className="panelhead"><h2>{c.safeTitle}</h2></div>
+  <p>{c.safeIntro}</p>
+  <form onSubmit={preview}>
+   <div className="formgrid">
+    <label className="field"><span>{c.reviewedRouter}</span>
+     <select required value={router} onChange={e=>setRouter(e.target.value)}>
+      <option value="">{c.selectRouter}</option>
+      {eligible.map(r=><option key={r.id} value={r.id}>{r.name}</option>)}
+     </select>
+    </label>
+    <label className="field"><span>{c.keepalive}</span>
+     <input required type="number" min="1" max="3600" value={seconds} onChange={e=>setSeconds(e.target.value)}/>
+    </label>
+   </div>
+   <button className="button secondary" disabled={busy||!router}>{c.inspect}</button>
+  </form>
+  <p className="muted">HotSpot portal publish is started from Guided first-shop acceptance after the owner reviews the exact proposal.</p>
+  {change&&<div className="safechange">
+   <h3>{c.risk(change.risk.toUpperCase())}{portal?' · portal publish':''}</h3>
+   <div className="details">
+    <p><b>{c.phase}</b>{phase}</p>
+    {portal?<>
+     <p><b>Profile directory</b>{change.diff?.profile_html_directory?.before} → {change.diff?.profile_html_directory?.after}</p>
+     <p><b>Package</b>revision {change.desired?.published_revision}</p>
+    </>:<>
+     <p><b>{c.before}</b>{c.seconds(change.before.persistent_keepalive_seconds)}</p>
+     <p><b>{c.mmVersion}</b>{c.seconds(change.desired.persistent_keepalive_seconds)}</p>
+    </>}
+    <p><b>{c.impact}</b>{change.diff.impact}</p>
+    <p><b>{c.backup}</b>{change.safety_backup_verified?c.backupYes:c.backupNo}</p>
+    {!portal&&<p><b>{c.actual}</b>{change.actual?.persistent_keepalive_seconds==null?c.notYet:c.seconds(change.actual.persistent_keepalive_seconds)}</p>}
+    {change.gateway_deadline&&change.status==='verifying'&&<p><b>{c.deadline}</b>{new Date(change.gateway_deadline*1000).toLocaleString()}</p>}
+   </div>
+   {change.status==='previewed'&&<>
+    <label><input type="checkbox" checked={confirmed} onChange={e=>setConfirmed(e.target.checked)}/> {c.confirm}</label>
+    <button className="button" disabled={busy||!confirmed} onClick={apply}>{c.apply}</button>
+   </>}
+   {change.status==='conflict'&&<div className="conflict-resolution">
+    <h3>{c.choose}</h3>
+    <p>{c.merge}</p>
+    <button className="button secondary" disabled={busy} onClick={()=>resolve('keep_router')}>{c.keepRouter}</button>
+    <p className="muted">{c.keepRouterNote}</p>
+    <label><input type="checkbox" checked={resolutionConfirmed} onChange={e=>setResolutionConfirmed(e.target.checked)}/> {c.keepMm}</label>
+    <button className="button" disabled={busy||!resolutionConfirmed} onClick={()=>resolve('keep_mikromagic')}>{c.keepMmButton}</button>
+    <p className="muted">{c.week}</p>
+   </div>}
+   {change.status==='recovery_required'&&<p role="alert"><b>{c.recoveryLead}</b> {c.recovery}</p>}
+   <p className="muted">{c.proof}</p>
+  </div>}
+  <div className="tablewrap"><table>
+   <thead><tr>{c.changeCols.map(h=><th key={h}>{h}</th>)}</tr></thead>
+   <tbody>
+    {changes.map(x=><tr key={x.id}>
+     <td>{routers.find(r=>r.id===x.router_id)?.name||x.router_id}</td>
+     <td>{summary(x)}</td>
+     <td>{x.risk}</td>
+     <td>{c.statuses[x.status]||x.status}</td>
+     <td><button className="button secondary" onClick={()=>{setSelected(x.id);setConfirmed(false);setResolutionConfirmed(false)}}>{c.view}</button></td>
+    </tr>)}
+    {!changes.length&&<tr><td colSpan="5">{c.noChanges}</td></tr>}
+   </tbody>
+  </table></div>
+ </section>;
 }
