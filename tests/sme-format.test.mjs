@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {formatMmk,formatSmeDateTime,formatSmePhone,smeIntlLocale} from '../src/sme-format.mjs';
+import {formatMmk,formatSmeDateTime,formatSmePhone,smeIntlLocale,toMyanmarDigits} from '../src/sme-format.mjs';
 
 test('SME intl locale maps Burmese to my-MM',()=>{
  assert.equal(smeIntlLocale('my'),'my-MM');
@@ -8,12 +8,18 @@ test('SME intl locale maps Burmese to my-MM',()=>{
  assert.equal(smeIntlLocale('xx'),'my-MM');
 });
 
+test('toMyanmarDigits maps ASCII digits only',()=>{
+ assert.equal(toMyanmarDigits('19,000'),'၁၉,၀၀၀');
+ assert.equal(toMyanmarDigits('MMK 0'),'MMK ၀');
+});
+
 test('MMK formatting uses English digits for en and Myanmar digits for my',()=>{
  assert.match(formatMmk(15000,'en'),/15,?000/);
  assert.match(formatMmk(15000,'en'),/MMK/);
  const my=formatMmk(15000,'my');
+ assert.equal(my,'၁၅,၀၀၀ ကျပ်');
  assert.match(my,/[၀-၉]/);
- assert.doesNotMatch(my,/MMK\s*15/);
+ assert.doesNotMatch(my,/[0-9]/);
 });
 
 test('date/time formatting follows the SME language',()=>{

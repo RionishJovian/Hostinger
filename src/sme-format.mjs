@@ -1,14 +1,25 @@
 /** Locale-aware MMK, date/time and Myanmar phone display for the SME workspace. */
 import {normalizeSmeLanguage} from './sme-localization.mjs';
 
+const MYANMAR_DIGITS='၀၁၂၃၄၅၆၇၈၉';
+/** Map ASCII digits to Myanmar digits; leave other characters unchanged. */
+export function toMyanmarDigits(text){
+ return String(text).replace(/[0-9]/g,d=>MYANMAR_DIGITS[Number(d)]);
+}
+
 export function smeIntlLocale(language){
  return normalizeSmeLanguage(language)==='my'?'my-MM':'en';
 }
 
-/** MMK amounts: Burmese digits + ကျပ် symbol via ICU when my; plain MMK when English. */
+/** MMK amounts: English uses Intl MMK; Burmese uses grouped Latin format then Myanmar digits + ကျပ်. */
 export function formatMmk(amount,language='en'){
  const value=Number(amount)||0;
- return new Intl.NumberFormat(smeIntlLocale(language),{style:'currency',currency:'MMK',maximumFractionDigits:0}).format(value);
+ if(normalizeSmeLanguage(language)!=='my'){
+  return new Intl.NumberFormat('en',{style:'currency',currency:'MMK',maximumFractionDigits:0}).format(value);
+ }
+ // Chromium ICU often keeps Latin digits for MMK even with my-MM / numberingSystem=myanmar.
+ const grouped=new Intl.NumberFormat('en-US',{maximumFractionDigits:0}).format(value);
+ return `${toMyanmarDigits(grouped)} ကျပ်`;
 }
 
 /** Unix seconds → readable local date/time in the SME language. */
@@ -16,9 +27,12 @@ export function formatSmeDateTime(seconds,language='en',options={}){
  if(seconds==null||seconds==='')return '';
  const date=seconds instanceof Date?seconds:new Date(Number(seconds)*1000);
  if(Number.isNaN(date.getTime()))return '';
- const locale=smeIntlLocale(language);
+ const my=normalizeSmeLanguage(language)==='my';
+ const locale=my?'my-MM':'en';
  const defaults={dateStyle:'medium',timeStyle:'short',...options};
- try{return new Intl.DateTimeFormat(locale,defaults).format(date)}catch{return date.toLocaleString(locale)}
+ let text;
+ try{text=new Intl.DateTimeFormat(locale,defaults).format(date)}catch{text=date.toLocaleString(locale)}
+ return my?toMyanmarDigits(text):text;
 }
 
 /**

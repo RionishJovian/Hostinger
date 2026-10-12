@@ -32,12 +32,13 @@ export function useSmeCopy(section,enabled=true){
 export function useSmeFormat(enabled=true){
  const context=useContext(SMELocalizationContext);
  const language=enabled&&context?normalizeSmeLanguage(context.language):'en';
- return useMemo(()=>({
+ // Read language at call time so language toggles never leave a stale formatter closure.
+ return {
   language,
   money:amount=>formatMmk(amount,language),
   when:(seconds,options)=>formatSmeDateTime(seconds,language,options),
   phone:value=>formatSmePhone(value,language)
- }),[language]);
+ };
 }
 
 const LANGUAGE_LABELS={my:'မြန်မာ',en:'English'};
