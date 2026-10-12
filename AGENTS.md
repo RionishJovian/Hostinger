@@ -38,9 +38,17 @@
 - Owner decision 2026-10-10: the dead historical tunnel `mmh-8adfeb441215` may be **disabled** during an approved router window and **deleted** only after the new Hub connection is proven. This is the only exception to preserving it, and it applies only inside an approved window.
 - Current temporary transport plan and rollback: `docs/MAGIC-CONNECT-TRANSPORT-LAB.md`. Its commands are not authorization to contact or modify the router.
 
+## Mandatory local Mac housekeeping — owner decision 2026-10-12
+
+- Local `npm run dev`, Vite, uvicorn, scratch SQLite DBs, deploy locks, and long unit-test runs on this MacBook hurt performance and memory when left running after testing.
+- After every local test, browser walkthrough, or verification that started background processes: run `bash scripts/local-housekeeping.sh` before the final reply. Confirm ports `5173` / `8787` / `8788` are clear and report what was stopped/removed.
+- Do not leave `npm run dev`, Vite, Python unittest runners, or scratch `/tmp/mm-*` databases running when the task is done. Prefer foreground bounded commands; if a background server is required, stop it in the same turn.
+- Scope is this corrective checkout and known local scratch only. Never kill Cursor, unrelated apps, VPS processes, `/opt/build21`, `/opt/mikromagic-v8`, or co-hosted stacks.
+- Lima `mikromagic-wg-dev` stop policy is owned by `should_stop_lima_after_tests` in `scripts/local-housekeeping.sh`; do not invent a different Lima cleanup path.
+
 # Prototype Instructions
 
-Run the local server yourself and open the preview in the browser available to this environment. Do not give the user server-start instructions when you can run it.
+Run the local server yourself and open the preview in the browser available to this environment. Do not give the user server-start instructions when you can run it. After the preview/test is finished, run local housekeeping so the Mac is not left with leftover servers.
 
 Before making substantial visual changes, use the Product Design plugin's `get-context` skill when the visual source is unclear or no longer matches the current goal. When the user gives durable prototype-specific design feedback, preferences, or decisions, record them in `AGENTS.md`.
 
