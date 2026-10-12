@@ -75,3 +75,14 @@ test('Revenue and Payments page copy exists in English and Burmese',()=>{
  assert.match(SME_MESSAGES.en.revenue.periodLine('All time','Asia/Yangon','All shops'),/All time/);
  assert.match(SME_MESSAGES.my.payments.reviewTitle('Cafe'),/Cafe/);
 });
+
+test('Packages / Passes page copy exists in English and Burmese',()=>{
+ assert.equal(getSmeMessage('en','packages','listTitle'),'Passes');
+ assert.equal(getSmeMessage('en','packages','create'),'Create pass');
+ assert.equal(getSmeMessage('en','packages','internetPass'),'Internet Pass');
+ assert.match(getSmeMessage('my','packages','listTitle'),/[\u1000-\u109F]/);
+ assert.match(getSmeMessage('my','packages','create'),/[\u1000-\u109F]/);
+ assert.match(getSmeMessage('my','packages','createTitle'),/[\u1000-\u109F]/);
+ assert.equal(getSmeMessage('my','packages','internetPass'),'Internet Pass');
+ assert.equal(SME_MESSAGES.my.packages.policyBoth(1,2),'1 GB / 2 နာရီ');
+});

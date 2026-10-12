@@ -444,6 +444,31 @@ export const SME_PAGE_COPY={
    refund:'Record refund & revoke pass',
    refundOwner:' · refunds require owner/manager',
    reviewNote:'Confirm receipt independently before approval. Recording a refund revokes the stored pass; it does not return funds. Receipt images support manual inspection; no automatic payment verification is performed. Payment instructions are snapshotted from the published portal.'
+  },
+  packages:{
+   listTitle:'Passes',createTitle:'Create a pass',
+   heads:['Pass','Service','Policy','Price'],
+   vipBadge:'VIP · custom codes allowed',
+   passName:'Pass name',service:'Service',accessPolicy:'Access policy',timeClock:'Time clock',
+   internetPass:'Internet Pass',mediaPass:'Media Pass',
+   combinedPass:'Internet + Media (no longer sold)',
+   modes:{library:'Timed library',title:'One title',hybrid:'Timed library + one title',category:'Selected categories',
+    data:'Data',time:'Time',both:'Data + time'},
+   clockElapsed:'Elapsed after activation',clockConnected:'Connected usage time',
+   price:'Price (MMK)',dataGb:'Data allowance (GB)',
+   hoursInternet:'Internet window (hours)',hoursLibrary:'Library window (hours)',
+   hoursTitle:'Title window (hours)',hoursCategory:'Category window (hours)',
+   hoursMediaSeparate:'Separate library window (hours)',hoursTitleSeparate:'Separate title window (hours)',
+   speed:'Speed (Mbps)',devices:'Device limit',
+   categories:'Categories included (from your catalogue genres)',
+   categoriesEmpty:'Add titles with a genre in Media first.',
+   purchasedTitle:'Purchased catalogue title',chooseTitle:'Choose an active title',
+   draft:' · draft, not yet purchasable',
+   vipCheck:'VIP pass — allows a fully custom voucher code when issuing one voucher',
+   note:'Internet data + time stops at the first limit. Hybrid media uses independent library and title windows from activation; combined internet/media uses an independent library window. Publish a title before selling its pass or issuing a voucher. Live enforcement and playback await adapters.',
+   create:'Create pass',
+   policyData:gb=>`${gb} GB`,policyTime:h=>`${h} h`,policyBoth:(gb,h)=>`${gb} GB / ${h} h`,
+   combinedInternet:(mode,gb,h)=>`${mode} · ${gb} GB / ${h} h internet`
   }
  },
  my:{
@@ -886,6 +911,31 @@ export const SME_PAGE_COPY={
    refund:'ပြန်အမ်း မှတ်ပြီး Pass ရုပ်သိမ်းရန်',
    refundOwner:' · ပြန်အမ်းရန် ပိုင်ရှင်/မန်နေဂျာ လိုအပ်သည်',
    reviewNote:'မခွင့်ပြုမီ ပြေစာကို သီးခြား စစ်ဆေးပါ။ ပြန်အမ်း မှတ်ခြင်းသည် သိမ်းထားသော Pass ကို ရုပ်သိမ်းပါသည်။ ငွေကို ပြန်မပေးပါ။ ပြေစာပုံများသည် ကိုယ်တိုင် စစ်ဆေးရန်သာ ဖြစ်ပါသည်။ အလိုအလျောက် ငွေပေးချေမှု စစ်ဆေးခြင်း မရှိပါ။ ငွေပေးချေရန် ညွှန်ကြားချက်များကို ထုတ်ဝေထားသော portal မှ snapshot လုပ်ထားပါသည်။'
+  },
+  packages:{
+   listTitle:'Pass များ',createTitle:'Pass တစ်ခု ဖန်တီးရန်',
+   heads:['Pass','ဝန်ဆောင်မှု','မူဝါဒ','စျေး'],
+   vipBadge:'VIP · စိတ်ကြိုက် ကုဒ် ခွင့်ပြု',
+   passName:'Pass အမည်',service:'ဝန်ဆောင်မှု',accessPolicy:'ဝင်ရောက်ခွင့် မူဝါဒ',timeClock:'အချိန် နာရီ',
+   internetPass:'Internet Pass',mediaPass:'Media Pass',
+   combinedPass:'Internet + Media (ယခု မရောင်းတော့ပါ)',
+   modes:{library:'အချိန်သတ်မှတ်ထားသော စာကြည့်တိုက်',title:'ခေါင်းစဉ် တစ်ခု',hybrid:'စာကြည့်တိုက် + ခေါင်းစဉ် တစ်ခု',category:'ရွေးထားသော အမျိုးအစားများ',
+    data:'ဒေတာ',time:'အချိန်',both:'ဒေတာ + အချိန်'},
+   clockElapsed:'အသက်သွင်းပြီးနောက် ကုန်ဆုံးသော အချိန်',clockConnected:'ချိတ်ဆက် အသုံးပြုသည့် အချိန်',
+   price:'စျေး (ကျပ်)',dataGb:'ဒေတာ ခွင့်ပြုချက် (GB)',
+   hoursInternet:'အင်တာနက် ပြတင်းပေါက် (နာရီ)',hoursLibrary:'စာကြည့်တိုက် ပြတင်းပေါက် (နာရီ)',
+   hoursTitle:'ခေါင်းစဉ် ပြတင်းပေါက် (နာရီ)',hoursCategory:'အမျိုးအစား ပြတင်းပေါက် (နာရီ)',
+   hoursMediaSeparate:'သီးခြား စာကြည့်တိုက် ပြတင်းပေါက် (နာရီ)',hoursTitleSeparate:'သီးခြား ခေါင်းစဉ် ပြတင်းပေါက် (နာရီ)',
+   speed:'မြန်နှုန်း (Mbps)',devices:'စက် အရေအတွက် ကန့်သတ်',
+   categories:'ပါဝင်သော အမျိုးအစားများ (သင့် catalogue genre များမှ)',
+   categoriesEmpty:'Media တွင် genre ပါသော ခေါင်းစဉ်များ အရင် ထည့်ပါ။',
+   purchasedTitle:'ဝယ်ယူမည့် catalogue ခေါင်းစဉ်',chooseTitle:'အသက်ဝင်သော ခေါင်းစဉ် ရွေးပါ',
+   draft:' · draft၊ မရောင်းရသေး',
+   vipCheck:'VIP pass — voucher တစ်ခု ထုတ်သည့်အခါ စိတ်ကြိုက် ကုဒ် အပြည့် အသုံးပြုခွင့်',
+   note:'အင်တာနက် ဒေတာ + အချိန်သည် ပထမ ကန့်သတ်ချက်တွင် ရပ်ပါသည်။ Hybrid media သည် အသက်သွင်းချိန်မှ စာကြည့်တိုက်နှင့် ခေါင်းစဉ် ပြတင်းပေါက်များကို သီးခြား သုံးပါသည်။ Combined internet/media သည် သီးခြား စာကြည့်တိုက် ပြတင်းပေါက် သုံးပါသည်။ Pass ရောင်းမည် သို့မဟုတ် voucher မထုတ်မီ ခေါင်းစဉ်ကို Publish လုပ်ပါ။ တကယ့် ကန့်သတ်ချက်နှင့် ဖွင့်ပြခြင်းအတွက် adapter များ လိုအပ်ပါသည်။',
+   create:'Pass ဖန်တီးရန်',
+   policyData:gb=>`${gb} GB`,policyTime:h=>`${h} နာရီ`,policyBoth:(gb,h)=>`${gb} GB / ${h} နာရီ`,
+   combinedInternet:(mode,gb,h)=>`${mode} · ${gb} GB / ${h} နာရီ အင်တာနက်`
   }
  }
 };
