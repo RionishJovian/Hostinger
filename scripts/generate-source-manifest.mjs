@@ -15,7 +15,7 @@ async function walk(directory) {
       if (!excludedDirectories.has(entry.name)) await walk(join(directory, entry.name));
       continue;
     }
-    if (!entry.isFile() || excludedFiles.has(entry.name) || entry.name.endsWith('.pyc')) continue;
+    if (!entry.isFile() || excludedFiles.has(entry.name) || entry.name.endsWith('.pyc') || entry.name.endsWith('.sqlite3') || entry.name.includes('.sqlite3-')) continue;
     const path = relative(root, join(directory, entry.name)).split(sep).join('/');
     files.push(path);
   }
