@@ -97,3 +97,19 @@ test('Sites and SiteHours page copy exists in English and Burmese',()=>{
  assert.match(SME_MESSAGES.my.siteHours.days.mon,/[\u1000-\u109F]/);
  assert.match(SME_MESSAGES.my.siteHours.needBusinessFirst,/[\u1000-\u109F]/);
 });
+
+test('Media and Account page copy exists in English and Burmese',()=>{
+ assert.equal(getSmeMessage('en','media','catalogueTitle'),'Media catalogue');
+ assert.equal(getSmeMessage('en','media','createDraft'),'Create draft title');
+ assert.equal(getSmeMessage('en','media','startsFirstUse'),'Starts at your first use');
+ assert.equal(getSmeMessage('en','account','sessionsTitle'),'Signed-in devices');
+ assert.equal(getSmeMessage('en','account','setPassword'),'Set your personal password');
+ assert.match(getSmeMessage('my','media','catalogueTitle'),/[\u1000-\u109F]/);
+ assert.match(getSmeMessage('my','media','createDraft'),/[\u1000-\u109F]/);
+ assert.match(getSmeMessage('my','media','rulesTitle'),/[\u1000-\u109F]/);
+ assert.match(getSmeMessage('my','account','sessionsTitle'),/[\u1000-\u109F]/);
+ assert.match(getSmeMessage('my','account','changePassword'),/[\u1000-\u109F]/);
+ assert.match(SME_MESSAGES.my.media.libraryCombined(72),/[\u1000-\u109F]/);
+ assert.equal(SME_MESSAGES.en.media.ops.publish,'Publish');
+ assert.match(SME_MESSAGES.my.media.ops.publish,/[\u1000-\u109F]/);
+});

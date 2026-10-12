@@ -3,7 +3,7 @@ import {mkdir,writeFile,readFile,rm} from 'node:fs/promises';
 import assert from 'node:assert/strict';
 const dir='.ui-check';await mkdir(dir,{recursive:true});
 try{
- const bundle=await build({entryPoints:['src/MediaCatalogue.jsx'],bundle:true,platform:'node',format:'esm',external:['react'],write:false});await writeFile(dir+'/media.mjs',bundle.outputFiles[0].text);
+ const bundle=await build({entryPoints:['src/MediaCatalogue.jsx'],bundle:true,platform:'node',format:'esm',external:['react'],loader:{'.css':'empty'},write:false});await writeFile(dir+'/media.mjs',bundle.outputFiles[0].text);
  const {OwnerMediaCatalogue,GuestMediaCatalogue,packageMediaDescription}=await import('../'+dir+'/media.mjs');const React=await import('react');const {renderToStaticMarkup}=await import('react-dom/server');
  const titles=[{id:'sample-film',name:'Mountain journey',description:'A sample catalogue title for reviewing the interface.',genre:'Adventure',runtime_minutes:94,release_year:2022,published:true,archived:false,revision:2},{id:'sample-draft',name:'City lights',description:'Draft metadata',genre:'Drama',runtime_minutes:110,published:false,archived:false,revision:1}];
  const policy={name:'Evening media pass',service:'media',mode:'hybrid',price:2000,hours:4,title_hours:48,title:'sample-film',title_snapshot:{id:'sample-film',name:'Mountain journey'}};

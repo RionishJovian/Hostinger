@@ -179,12 +179,12 @@ function AccountWorkspaceContent({onDemo,onPrototype,demo=false,onExitDemo,brand
 }
 function Login({signIn,busy,unavailable}){const [username,setUsername]=useState(''),[password,setPassword]=useState('');return <form onSubmit={e=>{e.preventDefault();signIn({username,password});setPassword('')}}><Field label="Username"><input autoComplete="username" required maxLength={160} value={username} onChange={e=>setUsername(e.target.value)}/></Field><Field label="Password"><input type="password" autoComplete="current-password" required maxLength={256} value={password} onChange={e=>setPassword(e.target.value)}/></Field><button className="button" disabled={busy||unavailable}>{busy?'Signing in…':'Sign in'}</button></form>}
 function Packages({packages,titles,act,busy}){
- const c=useSmeCopy('packages');const {money}=useSmeFormat();
+ const c=useSmeCopy('packages');const mediaCopy=useSmeCopy('media');const {money}=useSmeFormat();
  const serviceName=s=>s==='internet'?c.internetPass:s==='media'?c.mediaPass:s==='combined'?c.combinedPass:passServiceName(s);
  const modeLabel=m=>c.modes[m]||m;
  const hoursLabel=media=>media?(p.mode==='title'?c.hoursTitle:p.mode==='category'?c.hoursCategory:c.hoursLibrary):c.hoursInternet;
  const policyText=pkg=>{
-  if(['media','combined'].includes(pkg.service))return <>{packageMediaDescription(pkg)}{pkg.service==='combined'&&<small>{c.combinedInternet(pkg.mode,pkg.gb,pkg.hours)}</small>}</>;
+  if(['media','combined'].includes(pkg.service))return <>{packageMediaDescription(pkg,mediaCopy)}{pkg.service==='combined'&&<small>{c.combinedInternet(pkg.mode,pkg.gb,pkg.hours)}</small>}</>;
   const body=pkg.mode==='data'?c.policyData(pkg.gb):pkg.mode==='time'?c.policyTime(pkg.hours):c.policyBoth(pkg.gb,pkg.hours);
   return modeLabel(pkg.mode)+' · '+body;
  };

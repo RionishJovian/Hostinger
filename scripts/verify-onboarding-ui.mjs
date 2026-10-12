@@ -3,7 +3,7 @@ import {mkdir,writeFile,readFile,rm} from 'node:fs/promises';
 import assert from 'node:assert/strict';
 await mkdir('.ui-check',{recursive:true});
 try{
- const bundle=await build({entryPoints:['src/BusinessOnboarding.jsx'],bundle:true,platform:'node',format:'esm',external:['react'],write:false});await writeFile('.ui-check/onboarding.mjs',bundle.outputFiles[0].text);
+ const bundle=await build({entryPoints:['src/BusinessOnboarding.jsx'],bundle:true,platform:'node',format:'esm',external:['react'],loader:{'.css':'empty'},write:false});await writeFile('.ui-check/onboarding.mjs',bundle.outputFiles[0].text);
  const {default:BusinessOnboarding,PasswordChange}=await import('../.ui-check/onboarding.mjs');const React=await import('react');const {renderToStaticMarkup}=await import('react-dom/server');
  const owner={id:'sample-owner',username:'cafe.owner',active:true,must_change_password:true,temporary_password_expires:1791417600};const businesses=[{id:'sample-business',name:'Sample cafe',owners:[owner]}];const resets=[{id:'sample-reset',username:owner.username,tenant_id:'sample-business',actor_id:'sample-operator',reason:'Verified recovery request (sample)',created:1791331200}];
  const platform=renderToStaticMarkup(React.createElement(BusinessOnboarding,{businesses,resets,act:()=>{},busy:true}));assert.match(platform,/Create business &amp; owner/);assert.match(platform,/Reset owner password/);assert.match(platform,/Owner password reset history/);assert.match(platform,/24 hours/);assert.match(platform,/disabled=""/);assert.doesNotMatch(platform,/temporary_password"|password_hash|shown_once/);

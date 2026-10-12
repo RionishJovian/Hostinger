@@ -1,15 +1,93 @@
 import React,{useState} from 'react';
+import {useSmeCopy,useSmeFormat} from './SMELocalization.jsx';
+
 const Field=({label,children})=><label className="field"><span>{label}</span>{children}</label>;
-export function packageMediaDescription(p){if(p.service==='combined')return 'Library access: '+p.media_hours+' hours, independent of internet limits';if(p.service!=='media')return '';if(p.mode==='category')return 'Categories ('+(p.categories||[]).join(', ')+'): '+p.hours+' hours';const name=p.title_snapshot?.name||p.title||'Selected title';if(p.mode==='hybrid')return 'Library: '+p.hours+' hours + '+name+': '+(p.title_hours??48)+' hours';if(p.mode==='title')return name+': '+p.hours+' hours';return 'Library access: '+p.hours+' hours'}
-function TitleEditor({title,act,busy}){
- const [form,setForm]=useState(title?Object.fromEntries(['name','description','genre','runtime_minutes','release_year'].map(k=>[k,title[k]??''])):{name:'',description:'',genre:'',runtime_minutes:90,release_year:''});return <section className="panel"><h2>{title?'Edit '+title.name:'Add a media title'}</h2><form onSubmit={e=>{e.preventDefault();const settings={...form,release_year:form.release_year===''?null:Number(form.release_year)};act(title?'media/titles/'+title.id:'media/titles',title?{expected_revision:title.revision,settings}:settings)}}><div className="formgrid"><Field label="Title name"><input required maxLength={120} value={form.name} onChange={e=>setForm({...form,name:e.target.value})}/></Field><Field label="Genre"><input maxLength={80} value={form.genre} onChange={e=>setForm({...form,genre:e.target.value})}/></Field><Field label="Runtime (minutes)"><input required type="number" min={1} max={1440} value={form.runtime_minutes} onChange={e=>setForm({...form,runtime_minutes:Number(e.target.value)})}/></Field><Field label="Release year (optional)"><input type="number" min={1888} max={2100} value={form.release_year} onChange={e=>setForm({...form,release_year:e.target.value})}/></Field></div><Field label="Catalogue description"><textarea maxLength={4000} value={form.description} onChange={e=>setForm({...form,description:e.target.value})}/></Field><button className="button" disabled={busy||title?.archived}>{title?'Save title metadata':'Create draft title'}</button></form><p className="muted">New titles start as drafts. Catalogue publication is separate from connecting a playable media file. Saving edits returns the title to draft; publish it again when ready. Prior pass and purchase snapshots stay unchanged.</p></section>
+
+const EN_MEDIA={
+ selectedTitle:'Selected title',
+ libraryCombined:h=>`Library access: ${h} hours, independent of internet limits`,
+ categories:(list,h)=>`Categories (${list}): ${h} hours`,
+ hybrid:(libH,name,titleH)=>`Library: ${libH} hours + ${name}: ${titleH} hours`,
+ titleHours:(name,h)=>`${name}: ${h} hours`,
+ libraryAccess:h=>`Library access: ${h} hours`,
+ revoked:'Revoked',
+ activeUntil:when=>`Active until ${when}`,
+ expired:when=>`Expired ${when}`,
+ startsFirstUse:'Starts at your first use',
+ awaitingActivation:'Awaiting media activation'
+};
+
+export function packageMediaDescription(p,c=EN_MEDIA){
+ if(p.service==='combined')return (c.libraryCombined||EN_MEDIA.libraryCombined)(p.media_hours);
+ if(p.service!=='media')return '';
+ if(p.mode==='category')return (c.categories||EN_MEDIA.categories)((p.categories||[]).join(', '),p.hours);
+ const name=p.title_snapshot?.name||p.title||(c.selectedTitle||EN_MEDIA.selectedTitle);
+ if(p.mode==='hybrid')return (c.hybrid||EN_MEDIA.hybrid)(p.hours,name,p.title_hours??48);
+ if(p.mode==='title')return (c.titleHours||EN_MEDIA.titleHours)(name,p.hours);
+ return (c.libraryAccess||EN_MEDIA.libraryAccess)(p.hours);
 }
-const when=t=>new Date(t*1000).toLocaleString();
-export function passStatus(e){const m=e.media_policy||{};if(e.revoked)return 'Revoked';if(m.state==='active')return 'Active until '+when(m.valid_until);if(m.state==='expired')return 'Expired '+when(m.valid_until);return m.state==='not_started'?'Starts at your first use':'Awaiting media activation'}
-function PreviewSettings({settings,act,busy}){const [value,setValue]=useState(settings.catalog_preview);return <section className="panel"><h2>Catalogue preview for guests</h2><form onSubmit={e=>{e.preventDefault();act('media/settings',{expected_revision:settings.revision,catalog_preview:value})}}><label className="check"><input type="radio" name="preview" checked={value==='full'} onChange={()=>setValue('full')}/>Full catalogue preview: guests browse every published title before buying. Playback stays locked.</label><label className="check"><input type="radio" name="preview" checked={value==='featured'} onChange={()=>setValue('featured')}/>Featured titles only: guests without a Media Pass see only the titles you mark as featured.</label><button className="button" disabled={busy||value===settings.catalog_preview}>Save preview setting</button></form></section>}
+
+export function passStatus(e,c=EN_MEDIA,formatWhen=t=>new Date(t*1000).toLocaleString()){
+ const m=e.media_policy||{};
+ if(e.revoked)return c.revoked||EN_MEDIA.revoked;
+ if(m.state==='active')return (c.activeUntil||EN_MEDIA.activeUntil)(formatWhen(m.valid_until));
+ if(m.state==='expired')return (c.expired||EN_MEDIA.expired)(formatWhen(m.valid_until));
+ return m.state==='not_started'?(c.startsFirstUse||EN_MEDIA.startsFirstUse):(c.awaitingActivation||EN_MEDIA.awaitingActivation);
+}
+
+function TitleEditor({title,act,busy,c}){
+ const [form,setForm]=useState(title?Object.fromEntries(['name','description','genre','runtime_minutes','release_year'].map(k=>[k,title[k]??''])):{name:'',description:'',genre:'',runtime_minutes:90,release_year:''});
+ return <section className="panel"><h2>{title?c.editTitle(title.name):c.addTitle}</h2><form onSubmit={e=>{e.preventDefault();const settings={...form,release_year:form.release_year===''?null:Number(form.release_year)};act(title?'media/titles/'+title.id:'media/titles',title?{expected_revision:title.revision,settings}:settings)}}><div className="formgrid"><Field label={c.titleName}><input required maxLength={120} value={form.name} onChange={e=>setForm({...form,name:e.target.value})}/></Field><Field label={c.genre}><input maxLength={80} value={form.genre} onChange={e=>setForm({...form,genre:e.target.value})}/></Field><Field label={c.runtime}><input required type="number" min={1} max={1440} value={form.runtime_minutes} onChange={e=>setForm({...form,runtime_minutes:Number(e.target.value)})}/></Field><Field label={c.releaseYear}><input type="number" min={1888} max={2100} value={form.release_year} onChange={e=>setForm({...form,release_year:e.target.value})}/></Field></div><Field label={c.description}><textarea maxLength={4000} value={form.description} onChange={e=>setForm({...form,description:e.target.value})}/></Field><button className="button" disabled={busy||title?.archived}>{title?c.saveTitle:c.createDraft}</button></form><p className="muted">{c.editorNote}</p></section>;
+}
+
+function PreviewSettings({settings,act,busy,c}){
+ const [value,setValue]=useState(settings.catalog_preview);
+ return <section className="panel"><h2>{c.previewTitle}</h2><form onSubmit={e=>{e.preventDefault();act('media/settings',{expected_revision:settings.revision,catalog_preview:value})}}><label className="check"><input type="radio" name="preview" checked={value==='full'} onChange={()=>setValue('full')}/>{c.previewFull}</label><label className="check"><input type="radio" name="preview" checked={value==='featured'} onChange={()=>setValue('featured')}/>{c.previewFeatured}</label><button className="button" disabled={busy||value===settings.catalog_preview}>{c.savePreview}</button></form></section>;
+}
+
 export function OwnerMediaCatalogue({titles,act,busy,go,settings}){
- const [selected,setSelected]=useState('');const title=titles.find(t=>t.id===selected);return <><section className="panel"><div className="panelhead"><h2>Media catalogue</h2><button className="button secondary" disabled={busy} onClick={()=>{setSelected('');go?.('Packages')}}>Set pass prices</button></div><p>{titles.filter(t=>t.published&&!t.archived).length} published titles · {titles.filter(t=>!t.published&&!t.archived).length} drafts · {titles.filter(t=>t.archived).length} archived</p><div className="tablewrap"><table><thead><tr>{['Title','Details','Visibility','Manage'].map(h=><th key={h}>{h}</th>)}</tr></thead><tbody>{titles.map(t=><tr key={t.id}><td>{t.name}<small>{t.id}</small></td><td>{t.genre||'Uncategorized'} · {t.runtime_minutes} min<small>{t.release_year||'Year not entered'} · revision {t.revision}</small></td><td>{t.archived?'Archived':t.published?'Published':'Draft'}{t.featured&&<small>Featured</small>}</td><td><div className="buttons">{!t.archived&&<button className="button secondary" disabled={busy} onClick={()=>setSelected(t.id)}>Edit</button>}{(t.archived?['restore']:[...(t.published?['unpublish']:['publish']),t.featured?'unfeature':'feature','archive']).map(operation=><button className="button secondary" key={operation} disabled={busy} onClick={()=>act('media/titles/'+t.id+'/state',{expected_revision:t.revision,operation})}>{({unpublish:'Unpublish',publish:'Publish',archive:'Archive',feature:'Feature',unfeature:'Remove from featured',restore:'Restore as draft'})[operation]}</button>)}</div></td></tr>)}{!titles.length&&<tr><td colSpan={4}>No media titles yet. Add a draft below.</td></tr>}</tbody></table></div><p className="muted">Unpublished or archived titles cannot receive new title purchases or new vouchers. Existing orders and stored passes remain in history. Restored titles return as drafts.</p>{title&&<button className="button secondary" onClick={()=>setSelected('')}>Add another title</button>}</section><TitleEditor key={(title?.id||'new')+':'+(title?.revision||0)} title={title} act={act} busy={busy}/>{settings&&<PreviewSettings key={settings.revision} settings={settings} act={act} busy={busy}/>}<section className="panel"><h2>Media Pass rules</h2><p>Internet and Media passes are sold separately. A pass covers the whole library, one title (optionally with the library) or selected categories, for a set number of hours.</p><p>A voucher pass starts when the guest first redeems its code in the guest portal; redeeming again does not restart it. A pass bought online starts at the guest's first use. Each pass is for one device and cannot move to another device before it expires.</p><p className="muted">One-device enforcement and playback start once your Jellyfin or Plex server is connected; until then passes are recorded but nothing can be played.</p></section><section className="panel"><h2>Playback connection</h2><span className="pill warn">Media server not connected</span><p>Jellyfin synchronization, files, artwork, transcoding and protected playback remain pending. No stream URLs or media-server credentials are collected by this catalogue.</p></section></>
+ const c=useSmeCopy('media');
+ const [selected,setSelected]=useState('');
+ const title=titles.find(t=>t.id===selected);
+ const published=titles.filter(t=>t.published&&!t.archived).length;
+ const drafts=titles.filter(t=>!t.published&&!t.archived).length;
+ const archived=titles.filter(t=>t.archived).length;
+ return <>
+  <section className="panel"><div className="panelhead"><h2>{c.catalogueTitle}</h2><button className="button secondary" disabled={busy} onClick={()=>{setSelected('');go?.('Packages')}}>{c.setPassPrices}</button></div>
+   <p>{c.publishedCount(published,drafts,archived)}</p>
+   <div className="tablewrap"><table><thead><tr>{c.heads.map(h=><th key={h}>{h}</th>)}</tr></thead><tbody>
+    {titles.map(t=><tr key={t.id}><td>{t.name}<small>{t.id}</small></td><td>{t.genre||c.uncategorized} · {c.minutes(t.runtime_minutes)}<small>{t.release_year||c.yearMissing} · {c.revision(t.revision)}</small></td><td>{t.archived?c.archived:t.published?c.published:c.draft}{t.featured&&<small>{c.featured}</small>}</td><td><div className="buttons">{!t.archived&&<button className="button secondary" disabled={busy} onClick={()=>setSelected(t.id)}>{c.edit}</button>}{(t.archived?['restore']:[...(t.published?['unpublish']:['publish']),t.featured?'unfeature':'feature','archive']).map(operation=><button className="button secondary" key={operation} disabled={busy} onClick={()=>act('media/titles/'+t.id+'/state',{expected_revision:t.revision,operation})}>{c.ops[operation]}</button>)}</div></td></tr>)}
+    {!titles.length&&<tr><td colSpan={4}>{c.empty}</td></tr>}
+   </tbody></table></div>
+   <p className="muted">{c.catalogueNote}</p>
+   {title&&<button className="button secondary" onClick={()=>setSelected('')}>{c.addAnother}</button>}
+  </section>
+  <TitleEditor key={(title?.id||'new')+':'+(title?.revision||0)} title={title} act={act} busy={busy} c={c}/>
+  {settings&&<PreviewSettings key={settings.revision} settings={settings} act={act} busy={busy} c={c}/>}
+  <section className="panel"><h2>{c.rulesTitle}</h2><p>{c.rulesBody1}</p><p>{c.rulesBody2}</p><p className="muted">{c.rulesNote}</p></section>
+  <section className="panel"><h2>{c.playbackTitle}</h2><span className="pill warn">{c.serverDisconnected}</span><p>{c.playbackBody}</p></section>
+ </>;
 }
+
 export function GuestMediaCatalogue({titles,packages,entitlements,go,sites=[]}){
- const [search,setSearch]=useState('');const shown=titles.filter(t=>(t.name+' '+t.genre+' '+t.description).toLowerCase().includes(search.toLowerCase()));const passes=entitlements.filter(e=>e.media_policy);return <><section className="panel"><div className="panelhead"><h2>Browse the media library</h2><button className="button secondary" onClick={()=>go('Guest portal')}>Buy access or redeem voucher</button></div><Field label="Search titles or genre"><input type="search" maxLength={160} value={search} onChange={e=>setSearch(e.target.value)}/></Field><div className="formgrid">{shown.map(t=><article className="previewbox" key={t.id}><h3>{t.name}</h3><small>{t.genre||'Media'} · {t.runtime_minutes} min{t.release_year?' · '+t.release_year:''}</small><p>{t.description}</p><span className="pill warn">Playback unavailable</span></article>)}</div>{!shown.length&&<p>No published titles match this search.</p>}</section><section className="panel"><h2>Media access packages</h2>{packages.filter(p=>['media','combined'].includes(p.service)).map(p=><div className="pass" key={p.id}><h3>{p.name}</h3><p>{packageMediaDescription(p)}</p><small>MMK {new Intl.NumberFormat('en').format(p.price)} · a voucher pass starts when you first redeem its code in the guest portal; a pass bought online starts at your first use. One device only.</small></div>)}<p className="muted">Prices are paid to the business through its published portal. Browsing the catalogue does not grant playback.</p></section><section className="panel"><h2>Your stored media passes</h2>{passes.map(e=><div className="pass" key={e.id}><h3>{e.policy.name}</h3><small>Site: {sites.find(s=>s.id===e.site_id)?.name||e.site_id||'Business-wide'}</small><p>{packageMediaDescription(e.policy)}</p><span className={'pill '+(e.revoked||e.media_policy.state==='expired'?'warn':'')}>{passStatus(e)}</span>{e.media_policy.device_limit&&<small>One device · no transfer until expiry</small>}{e.media_policy.title&&!titles.some(t=>t.id===e.media_policy.title.id)&&<p className="muted">The purchased title is not currently listed. Its stored pass remains in your history; contact the business about availability.</p>}<p className="muted">Playback is not connected yet. A voucher pass's time starts when its code is first redeemed in the guest portal; a pass bought online starts at your first use, not on this screen.</p></div>)}{!passes.length&&<p>No media passes yet.</p>}</section></>
+ const c=useSmeCopy('media');
+ const {money,when}=useSmeFormat();
+ const [search,setSearch]=useState('');
+ const shown=titles.filter(t=>(t.name+' '+t.genre+' '+t.description).toLowerCase().includes(search.toLowerCase()));
+ const passes=entitlements.filter(e=>e.media_policy);
+ return <>
+  <section className="panel"><div className="panelhead"><h2>{c.guestBrowseTitle}</h2><button className="button secondary" onClick={()=>go('Guest portal')}>{c.buyOrRedeem}</button></div>
+   <Field label={c.search}><input type="search" maxLength={160} value={search} onChange={e=>setSearch(e.target.value)}/></Field>
+   <div className="formgrid">{shown.map(t=><article className="previewbox" key={t.id}><h3>{t.name}</h3><small>{t.genre||c.genreFallback} · {c.minutes(t.runtime_minutes)}{t.release_year?' · '+t.release_year:''}</small><p>{t.description}</p><span className="pill warn">{c.playbackUnavailable}</span></article>)}</div>
+   {!shown.length&&<p>{c.noMatch}</p>}
+  </section>
+  <section className="panel"><h2>{c.packagesTitle}</h2>
+   {packages.filter(p=>['media','combined'].includes(p.service)).map(p=><div className="pass" key={p.id}><h3>{p.name}</h3><p>{packageMediaDescription(p,c)}</p><small>{money(p.price)} · {c.packageMeta}</small></div>)}
+   <p className="muted">{c.packagesNote}</p>
+  </section>
+  <section className="panel"><h2>{c.storedTitle}</h2>
+   {passes.map(e=><div className="pass" key={e.id}><h3>{e.policy.name}</h3><small>{c.site} {sites.find(s=>s.id===e.site_id)?.name||e.site_id||c.businessWide}</small><p>{packageMediaDescription(e.policy,c)}</p><span className={'pill '+(e.revoked||e.media_policy.state==='expired'?'warn':'')}>{passStatus(e,c,when)}</span>{e.media_policy.device_limit&&<small>{c.oneDevice}</small>}{e.media_policy.title&&!titles.some(t=>t.id===e.media_policy.title.id)&&<p className="muted">{c.titleMissing}</p>}<p className="muted">{c.passPlaybackNote}</p></div>)}
+   {!passes.length&&<p>{c.noPasses}</p>}
+  </section>
+ </>;
 }
