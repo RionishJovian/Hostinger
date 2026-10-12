@@ -33,7 +33,7 @@ class EnrollmentMigrationTests(unittest.TestCase):
                     session.execute(text("INSERT INTO magic_connect_attempts (id,tenant_id,site_id,owner_id,router_name,code_hash,comparison_code,status,created,expires,approved_at) VALUES ('a','t','s','u','Synthetic',:hash,'000000','approved',1,601,2)"),{'hash':'d'*64});session.commit()
                 command.upgrade(cfg,'032');command.upgrade(cfg,'head')
                 with sqlite3.connect(database) as db:
-                    self.assertEqual(db.execute('SELECT version_num FROM alembic_version').fetchone()[0],'052')
+                    self.assertEqual(db.execute('SELECT version_num FROM alembic_version').fetchone()[0],'053')
                     self.assertEqual(db.execute('SELECT status FROM magic_connect_attempts').fetchone()[0],'approved')
                     self.assertEqual(db.execute('SELECT count(*) FROM users').fetchone()[0],1)
                 with Session(engine) as session:
