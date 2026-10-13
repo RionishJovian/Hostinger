@@ -154,7 +154,7 @@ def reconcile(s,router_id,client_factory=RouterOSClient,now=None,limit=BATCH):
  work,summary=plan_work(s,router);result={'applied':0,'failed':0,'aborted':None,'remaining':max(0,len(work)-limit),**summary}
  if not work:return result
  now=int(time.time() if now is None else now)
- try:client=client_factory(load_routeros_safe_change_credential(router.id))
+ try:client=client_factory(load_routeros_safe_change_credential(router.id),router_id=router.id)
  except RouterOSError as error:result['aborted']=error.code;return result
  with client:
   hotspot=RouterHotspot(client)

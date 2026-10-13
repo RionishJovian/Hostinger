@@ -139,7 +139,7 @@ def collect(s, router_id, client_factory=RouterOSClient, now=None):
         s.add(row)
     try:
         credential = load_routeros_monitoring_credential(router.id)
-        with client_factory(credential) as client:
+        with client_factory(credential, router_id=router.id) as client:
             active = list_hotspot_active(client)
             users = list_mikromagic_hotspot_users(client, USER_COMMENT)
     except RouterOSError as error:

@@ -10,7 +10,7 @@ from backend.voucher_vault import unseal
 class FakeHotspot:
  """RouterOS HotSpot REST stand-in: users, profiles, active sessions and the expiry scheduler."""
  def __init__(self):self.users={};self.profiles={};self.schedulers={};self.active=[];self.next=1;self.fail=None;self.writes=[]
- def client(self,credential):return FakeClient(self)
+ def client(self,credential,router_id=None,**kwargs):return FakeClient(self)
  def new_id(self):self.next+=1;return f'*{self.next:X}'
  def user(self,name):return next((u for u in self.users.values() if u['name']==name),None)
 

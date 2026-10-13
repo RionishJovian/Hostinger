@@ -100,6 +100,8 @@ def make_app(url=None,initialize=False):
   def foreign_keys(dbapi,record):dbapi.execute('PRAGMA foreign_keys=ON')
  if initialize:Base.metadata.create_all(engine)
  factory=sessionmaker(engine,expire_on_commit=False);app=FastAPI(title='MikroMagic account & payment API',version='0.2.0');app.state.engine=engine;app.state.factory=factory
+ from .routeros_lock import configure_routeros_lock
+ configure_routeros_lock(engine)
  isolated_pairing=(os.environ.get('MIKROMAGIC_ENVIRONMENT')=='isolated-magic-connect-test' and os.environ.get('MIKROMAGIC_MAGIC_CONNECT_TEST_MODE','').lower()=='true')
  dedicated_pairing=(os.environ.get('MIKROMAGIC_ENVIRONMENT')=='hostinger-public-test' and os.environ.get('MIKROMAGIC_HUB_MODE')=='dedicated-agent' and os.environ.get('MIKROMAGIC_MAGIC_CONNECT_ENABLED','').lower()=='true')
  app.state.magic_connect_pairing_enabled=isolated_pairing or dedicated_pairing

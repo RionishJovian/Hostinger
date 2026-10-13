@@ -52,7 +52,7 @@ class FakeGuestRouter:
         self.configs = {}
         self.securities = {}
 
-    def client(self, credential=None):
+    def client(self, credential=None, router_id=None, **kwargs):
         return FakeGuestClient(self)
 
 

@@ -15,7 +15,7 @@ Sources: MikroTik documentation ([REST API](https://help.mikrotik.com/docs/space
 ## Limits that shape the app
 
 - **60-second timeout per request**; long-running commands (ping without `count`, monitors) end with `Session closed`. Use `once`/`count`/`duration`.
-- **Requests are processed one at a time per router.** Parallel requests queue; a slow command delays everything behind it and aborting the client socket does not free the router ([forum #266665](https://forum.mikrotik.com/t/routeros-rest-api-requests-running-in-series/266665), [terraform-routeros #976](https://github.com/terraform-routeros/terraform-provider-routeros/issues/976)). MikroMagic should send one request at a time per router, prefer one bulk `GET` with `.proplist` over many per-id reads, and keep monitoring/collect intervals modest.
+- **Requests are processed one at a time per router.** Parallel requests queue; a slow command delays everything behind it and aborting the client socket does not free the router ([forum #266665](https://forum.mikrotik.com/t/routeros-rest-api-requests-running-in-series/266665), [terraform-routeros #976](https://github.com/terraform-routeros/terraform-provider-routeros/issues/976)). MikroMagic holds a **per-router REST lock** for the whole `RouterOSClient` session (PostgreSQL `pg_advisory_lock` across API workers / Safe Change worker; in-process lock for SQLite tests) so monitoring, HotSpot collect/sync and Safe Change never interleave. Prefer one bulk `GET` with `.proplist` over many per-id reads, and keep monitoring/collect intervals modest. Contended callers receive `409 router_busy`.
 - `www-ssl max-sessions` defaults to 20 (1–1000).
 - No continuous/streaming commands over REST.
 

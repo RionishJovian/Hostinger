@@ -24,7 +24,7 @@ class FakeAccountingRouter:
         self.fail = None
         self.next = 1
 
-    def client(self, credential):
+    def client(self, credential, router_id=None, **kwargs):
         return FakeAccountingClient(self)
 
     def add_user(self, name, *, comment=None, bytes_in=0, bytes_out=0, uptime='0s'):

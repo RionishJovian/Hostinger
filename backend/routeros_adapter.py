@@ -122,13 +122,31 @@ def fetch_router_certificate(address:str,port:int=443,timeout:float=8.0):
  return der
 
 class RouterOSClient:
- def __init__(self,credential:RouterOSCredential,transport=None,timeout=8.0):
+ def __init__(self,credential:RouterOSCredential,transport=None,timeout=8.0,router_id:str|None=None):
+  """REST client. Pass router_id so the session holds the per-router REST lock.
+
+  RouterOS serves one REST request at a time per router; aborted sockets do not
+  free the queue. Every production call site must pass router_id.
+  """
   proxy=None if transport else management_proxy_from_environment()
   verify=pinned_tls_context(credential.verify) if isinstance(credential.verify,str) else credential.verify
-  self.credential=credential;self.client=httpx.Client(base_url=credential.base_url,auth=(credential.username,credential.password),verify=verify,timeout=timeout,transport=transport,proxy=proxy,trust_env=False,follow_redirects=False,headers={'Accept':'application/json','User-Agent':'MikroMagic-Build21/1.0'})
+  self.credential=credential;self.router_id=router_id;self._lock_cm=None
+  # Cap a single HTTP call at 60s (RouterOS session limit); default stays short for probes.
+  timeout=min(float(timeout),60.0)
+  self.client=httpx.Client(base_url=credential.base_url,auth=(credential.username,credential.password),verify=verify,timeout=timeout,transport=transport,proxy=proxy,trust_env=False,follow_redirects=False,headers={'Accept':'application/json','User-Agent':'MikroMagic-Build21/1.0'})
  def close(self):self.client.close()
- def __enter__(self):return self
- def __exit__(self,*args):self.close()
+ def __enter__(self):
+  if self.router_id:
+   from .routeros_lock import hold_router_rest_lock
+   self._lock_cm=hold_router_rest_lock(self.router_id)
+   self._lock_cm.__enter__()
+  return self
+ def __exit__(self,exc_type,exc,tb):
+  try:self.close()
+  finally:
+   if self._lock_cm is not None:
+    cm=self._lock_cm;self._lock_cm=None
+    cm.__exit__(exc_type,exc,tb)
  def get(self,path,optional=False):
   try:r=self.client.get('/rest/'+path.lstrip('/'))
   except httpx.TimeoutException:raise RouterOSError('timeout','Router did not answer before the pre-flight timeout')

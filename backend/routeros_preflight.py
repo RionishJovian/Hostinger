@@ -50,7 +50,7 @@ def register_routeros_preflight(app,current,db,log):
    raise HTTPException(409,{'code':'fresh_hub_handshake_required','message':'Refresh the Hub handshake before verifying authenticated router management access.'})
   try:
    credential=load_routeros_monitoring_credential(id)
-   with RouterOSClient(credential) as client:evidence=discover_routeros(client)
+   with RouterOSClient(credential,router_id=id) as client:evidence=discover_routeros(client)
   except RouterOSError as e:raise HTTPException(e.status,{'code':e.code,'message':str(e)})
   observed=evidence.get('checked_at') or int(time.time())
   enrollment=s.get(MagicConnectEnrollment,plan.id);expected=enrollment.expected_identity_digest if enrollment else None;actual=router_identity_digest(evidence.get('identity') or {})
@@ -75,7 +75,7 @@ def register_routeros_preflight(app,current,db,log):
   if not plan or not plan.reviewed_at:raise HTTPException(409,'A reviewed immutable router plan is required before WireGuard evidence can be collected')
   try:
    credential=load_routeros_monitoring_credential(id)
-   with RouterOSClient(credential) as client:evidence=observe_wireguard_peer(client,plan.snapshot)
+   with RouterOSClient(credential,router_id=id) as client:evidence=observe_wireguard_peer(client,plan.snapshot)
   except RouterOSError as e:raise HTTPException(e.status,{'code':e.code,'message':str(e)})
   record=save(s,u,router,'wireguard_router_peer',evidence);log(s,u,'router_wireguard_evidence_read',id);s.commit()
   return {'router_id':id,'plan_id':plan.id,'evidence_id':record.id,'evidence':evidence,'next_gate':'verify_hub_side_peer_handshake_and_tunnel_management_reachability'}

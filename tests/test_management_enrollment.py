@@ -25,7 +25,7 @@ class FakeRouter:
   self.serial=serial;self.monitor_can_write=monitor_can_write;self.next=2;self.credentials=[]
   self.groups={'full':{'policy':'local,read,write,policy,rest-api'}};self.users={}
  def add_enrollment(self,password,name=ENROLL):self.users[name]={'.id':'*1','group':'full','password':password,'address':'10.90.1.1/32'}
- def client(self,credential):self.credentials.append(credential);return FakeClient(self,credential)
+ def client(self,credential,router_id=None,**kwargs):self.credentials.append(credential);return FakeClient(self,credential)
 
 class FakeClient:
  def __init__(self,router,credential):self.router=router;self.credential=credential

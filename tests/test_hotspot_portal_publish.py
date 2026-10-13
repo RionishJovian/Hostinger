@@ -39,7 +39,7 @@ class FakePortalRouter:
         self._count = 0
         self.profile_id = profile_id
 
-    def client(self, credential=None):
+    def client(self, credential=None, router_id=None, **kwargs):
         return FakePortalClient(self)
 
 
@@ -197,7 +197,7 @@ class HotspotPortalPublishTests(unittest.TestCase):
         return patch.multiple(
             'backend.safe_changes',
             load_routeros_safe_change_credential=lambda id: object(),
-            RouterOSClient=lambda credential: fake.client(),
+            RouterOSClient=lambda credential, router_id=None, **kwargs: fake.client(),
             EncryptedBackupStore=store,
         )
 

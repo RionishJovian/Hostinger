@@ -67,7 +67,7 @@ class FakeVlanRouter:
         self.next += 1
         return f'*{self.next}'
 
-    def client(self, credential=None):
+    def client(self, credential=None, router_id=None, **kwargs):
         return FakeVlanClient(self)
 
 

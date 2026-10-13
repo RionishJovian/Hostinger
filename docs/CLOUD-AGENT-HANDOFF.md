@@ -32,11 +32,14 @@ Start every task: `git fetch origin && git merge --ff-only origin/main`. Finish 
 
 Owner order: MikroTik / captive portal ahead of remaining P0a. ChatGPT owns G01–G06 presentation (Midnight Studio); Cursor/cloud owns C02 engine.
 
-1. ~~**Guest VLAN for external AP**~~ — implemented as Safe Change `guest_vlan_external_ap` behind the same `MIKROMAGIC_ROUTER_SETTINGS_CHANGES` flag (off on live). Q70 switch-port VLAN management stays later.
-2. Optional small docs already note CHAP fix needs portal revision publish when the router is on.
-3. Do **not** enable `MIKROMAGIC_ROUTER_SETTINGS_CHANGES` on production until the owner opens a hardware window.
-4. Do **not** add `safe_change_worker` to Hostinger compose without an explicit reviewed `ALLOW_INFRA_CHANGE=1` task.
-5. Leave ChatGPT presentation (G01+) alone unless reviewing a PR they open.
+1. ~~**Guest VLAN for external AP**~~ — shipped; flag off.
+2. **Per-router REST serialization** — in progress / next: DB advisory lock shared by monitoring, collect and Safe Change (`docs/ROUTEROS-REST-API-NOTES.md`).
+3. Safe Change backup completeness check for `execute as-string` truncation.
+4. `GET /v1/routers` real `connection_state` from plan freshness.
+5. HotSpot cookie removal on voucher disable/revoke.
+6. Add `safe_change_worker` to Hostinger compose with reviewed `ALLOW_INFRA_CHANGE=1`.
+7. Do **not** enable `MIKROMAGIC_ROUTER_SETTINGS_CHANGES` on production until the owner opens a hardware window.
+8. Leave ChatGPT presentation (G01+) alone unless reviewing a PR they open.
 
 ## Next hardware window (owner-gated — prepare only)
 

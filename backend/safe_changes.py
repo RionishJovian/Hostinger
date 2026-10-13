@@ -147,7 +147,7 @@ def process_due_changes(factory,now=None):
    hub_key=plan.snapshot['hub']['public_key'] if _hub_key_needed(x.operation) else None
    try:
     credential=load_routeros_safe_change_credential(x.router_id)
-    with RouterOSClient(credential) as client:
+    with RouterOSClient(credential,router_id=x.router_id) as client:
      if x.status=='recovery_required':
       try:actual=_read_live(client,x,hub_key)
       except RouterOSError as error:_evidence(x,'recovery_probe_unreachable',now,detail=error.code);x.updated=now;s.commit();processed.append((id,x.status));continue
@@ -223,7 +223,7 @@ def register_safe_changes(app,current,db,owner,log):
   now=int(time.time())
   try:
    credential=load_routeros_safe_change_credential(id)
-   with RouterOSClient(credential) as client:
+   with RouterOSClient(credential,router_id=id) as client:
     if b.operation=='hotspot_portal_publish':
      hotspot_plan,package,destination,profile_name=portal.load_reviewed_plan(s,u.tenant_id,id,b.hotspot_portal_plan_id)
      before,desired,diff,_files=portal.preview_state(client,hotspot_plan,package,destination,profile_name)
@@ -257,7 +257,7 @@ def register_safe_changes(app,current,db,owner,log):
   s.commit();s.refresh(x);hub_key=plan.snapshot['hub']['public_key'] if _hub_key_needed(x.operation) else None
   try:
    credential=load_routeros_safe_change_credential(router.id)
-   with RouterOSClient(credential) as client:
+   with RouterOSClient(credential,router_id=router.id) as client:
     if x.operation=='hotspot_portal_publish':
      live_before=portal.read_actual(client,{**x.before,'html_directory':x.before['html_directory'],'destination_present':False,'installed_file_names':[]})
      comparable={**x.before,'html_directory':live_before['html_directory'],'destination_present':live_before['destination_present'],'installed_file_names':live_before['installed_file_names'],'resource_id':live_before['resource_id']}
@@ -331,7 +331,7 @@ def register_safe_changes(app,current,db,owner,log):
   s.commit();s.refresh(x);router=visible_router(s,u,x.router_id);plan,_ev,_pl=plan_for(s,router);hub_key=plan.snapshot['hub']['public_key'] if _hub_key_needed(x.operation) else None
   try:
    credential=load_routeros_safe_change_credential(router.id)
-   with RouterOSClient(credential) as client:
+   with RouterOSClient(credential,router_id=router.id) as client:
     actual=_read_live(client,x,hub_key)
     if x.operation=='hotspot_portal_publish':
      actual=portal.read_actual(client,x.before)

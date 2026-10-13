@@ -91,7 +91,7 @@ def provision_management_identities(router_id,snapshot,expected_serial_digest,*,
  der=fetch(router_ip);pem=certificate_pem(der,router_ip,now);ca=router_id+'.pem'
  for role in STORES:_write(roots[role],ca,pem)
  base='https://'+router_ip;enroll=RouterOSCredential(base,ENROLL_PREFIX+id8,password,str(roots['enroll']/ca))
- with client_factory(enroll) as admin:
+ with client_factory(enroll,router_id=router_id) as admin:
   resource=_row(admin.get('system/resource')) or {};board=_row(admin.get('system/routerboard')) or {}
   identity={'serial_number':board.get('serial-number'),'model':board.get('model'),'architecture-name':resource.get('architecture-name')}
   if not hmac.compare_digest(serial_digest(identity['serial_number']) or '',expected_serial_digest):
@@ -109,19 +109,19 @@ def provision_management_identities(router_id,snapshot,expected_serial_digest,*,
    else:admin.write('PUT','user',{'name':name,'group':group,'comment':'MikroMagic '+role.replace('_',' '),**fields})
    _write(roots[role],router_id+'.json',json.dumps({'base_url':base,'username':name,'password':secret,'ca_bundle':ca}))
  checks={}
- with client_factory(load_routeros_monitoring_credential(router_id,str(roots['monitoring']))) as monitor:
+ with client_factory(load_routeros_monitoring_credential(router_id,str(roots['monitoring'])),router_id=router_id) as monitor:
   current=(_row(monitor.get('system/identity')) or {}).get('name')
   try:monitor.write('POST','system/identity/set',{'name':current});checks['monitoring_write_denied']=False
   except RouterOSError:checks['monitoring_write_denied']=True
  if not checks['monitoring_write_denied']:raise ManagementSetupError('monitoring_write_not_denied','The monitoring login could write to the router; setup stopped before removing the enrollment login')
- with client_factory(load_routeros_safe_change_credential(router_id,str(roots['safe_change']))) as change:change.get('system/resource');checks['safe_change_login']=True
- with client_factory(enroll) as admin:
+ with client_factory(load_routeros_safe_change_credential(router_id,str(roots['safe_change'])),router_id=router_id) as change:change.get('system/resource');checks['safe_change_login']=True
+ with client_factory(enroll,router_id=router_id) as admin:
   user=_row(admin.get('user?name='+ENROLL_PREFIX+id8))
   if user:
    try:admin.write('DELETE','user/'+user['.id'],None)
    except RouterOSError:pass
  try:
-  with client_factory(enroll) as admin:admin.get('system/resource')
+  with client_factory(enroll,router_id=router_id) as admin:admin.get('system/resource')
   raise ManagementSetupError('enrollment_login_not_removed','The temporary enrollment login still works; remove it with the rollback command')
  except RouterOSError as error:
   if error.code!='authentication_failed':raise ManagementSetupError('enrollment_cleanup_unverified','Could not confirm the temporary enrollment login was removed') from None
