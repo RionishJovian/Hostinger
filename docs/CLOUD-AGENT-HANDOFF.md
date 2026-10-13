@@ -8,7 +8,7 @@ Continuing MikroMagic Build 21 v8 corrective work on Cursor cloud. Do **not** ru
 |---|---|
 | Repo | private `RionishJovian/Hostinger` |
 | Branch | `main` |
-| Tip at previous handoff | `c362d5d` |
+| Tip at previous handoff | `e7c8eb3` |
 | Live public test | [megamagic.tech](https://megamagic.tech) |
 | Tracker | Notion page `3f2489e3-dbb6-81cc-9d2d-e66befe42255` (append-only execution checkpoints) |
 | REST notes | `docs/ROUTEROS-REST-API-NOTES.md` |
@@ -28,6 +28,7 @@ Start every task: `git fetch origin && git merge --ff-only origin/main`. Finish 
 | Guest VLAN for external AP Safe Change | `b4cdf1b` (handover `4f93e27`) @ 20261013T091431Z, migration **057** | Live; flag **`MIKROMAGIC_ROUTER_SETTINGS_CHANGES` off**; router not contacted |
 | Per-router REST serialization | `8f9e6e2` @ 20261013T093530Z | Live; flag off; advisory lock on `RouterOSClient` sessions |
 | Safe Change backup completeness | `c362d5d` @ 20261013T094841Z | Live; truncated exports refused (`backup_incomplete`) |
+| GET /v1/routers connection_state | `e7c8eb3` @ 20261013T100051Z | Live; Connected only with fresh plan evidence |
 | RouterOS REST study | `a362868` → `docs/ROUTEROS-REST-API-NOTES.md` | Written |
 
 ## Priority next (software, no router)
@@ -37,8 +38,8 @@ Owner order: MikroTik / captive portal ahead of remaining P0a. ChatGPT owns G01�
 1. ~~**Guest VLAN for external AP**~~ — shipped; flag off.
 2. ~~**Per-router REST serialization**~~ — shipped `8f9e6e2` @ 20261013T093530Z.
 3. ~~**Safe Change backup completeness**~~ — shipped `c362d5d` @ 20261013T094841Z.
-4. `GET /v1/routers` real `connection_state` from plan freshness — **in this increment**.
-5. HotSpot cookie removal on voucher disable/revoke.
+4. ~~**GET /v1/routers connection_state**~~ — shipped `e7c8eb3` @ 20261013T100051Z.
+5. HotSpot cookie removal on voucher disable/revoke — **next**.
 6. Add `safe_change_worker` to Hostinger compose with reviewed `ALLOW_INFRA_CHANGE=1`.
 7. Do **not** enable `MIKROMAGIC_ROUTER_SETTINGS_CHANGES` on production until the owner opens a hardware window.
 8. Leave ChatGPT presentation (G01+) alone unless reviewing a PR they open.
