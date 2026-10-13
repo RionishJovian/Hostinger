@@ -150,6 +150,9 @@ test('Integrations, Did you know?, first-site and Magic Boy copy exist in Englis
  assert.equal(getSmeMessage('en','integrations','create'),'Create credential');
  assert.match(getSmeMessage('en','integrations','connectNote'),/does not connect/);
  assert.equal(getSmeMessage('en','didYouKnow','explain'),'Explain with Magic Boy');
+ assert.equal(getSmeMessage('en','didYouKnow','moreDetails'),'Why it matters, limits and source');
+ assert.equal(getSmeMessage('en','didYouKnow','clearFilters'),'Clear search and topic');
+ assert.equal(getSmeMessage('en','didYouKnow','results')(2),'2 tips shown');
  assert.equal(getSmeMessage('en','firstSite','title'),'Set up your first shop');
  assert.equal(getSmeMessage('en','magicBoy','name'),'Magic Boy');
  assert.match(getSmeMessage('my','integrations','create'),/[\u1000-\u109F]/);

@@ -3,7 +3,7 @@
 // Every demoClient() starts from fresh sample data; changes are discarded with the client.
 import {shopTime} from './support-report.mjs';
 
-export const DEMO_PAGES=['Overview','Revenue','Sites','Routers','Packages','Vouchers','Payments','Get help'];
+export const DEMO_PAGES=['Overview','Revenue','Sites','Routers','Packages','Vouchers','Payments','Get help','Did you know?'];
 export const DEMO_BLOCKED='Not available in the demo — nothing was changed.';
 export const DEMO_CODE_PREFIX='DEMO';
 const ALPHABET='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -51,6 +51,12 @@ function seed(now){
  const order=(p,s,method,reference,status,hoursAgo)=>{const o={id:id(),tenant_id:tenant.id,guest_id:'demo-guest-'+(db.orders.length+1),site_id:sites[s].id,snapshot:policy(packages[p]),payment_context:{portal_revision:1,destination:'KBZPay 09-000 000 000 (sample)',instructions:'Send the exact amount, then enter the transaction ID.',business_name:tenant.name},amount:packages[p].price,currency:'MMK',method,reference,evidence:'Transaction ID entered by the guest',status,fulfillment:status==='approved'?'pending_adapter':'pending',reviewer_id:status==='approved'?user.id:null,reason:null,created:Math.round(now-hoursAgo*3600),receipt_revision:0};db.orders.unshift(o);if(status==='approved')event(db,{source:'guest_order',record:o,site_id:o.site_id,at:o.created+600});return o};
  order(1,0,'KBZPay','TXN-77120','approved',50);order(2,1,'WavePay','WP-30418','approved',26);order(1,0,'KBZPay','TXN-77981','pending',1.5);order(0,1,'WavePay','WP-31002','pending',0.4);
  db.audit.push(...[['site_registered',sites[0].id,30],['site_registered',sites[1].id,29],['router_registered',routers[0].id,20],['site_hours_updated',sites[0].id,7]].map(([action,target,daysAgo])=>({id:id(),actor_id:user.id,action,target,created:now-daysAgo*86400})));
+ // Sample published guidance only — demo never enables diagnostics or claims router checks.
+ db.knowledge=[
+  {id:id(),title:'Torch traffic detective',category:'MikroTik',fact:'Torch shows which devices use the most bandwidth on a MikroTik interface right now.',why:'When Wi-Fi feels slow, owners can see whether one guest is dominating the link before changing packages.',requirements:'Needs a Connected router with Torch available for that model and RouterOS version. MikroMagic does not run Torch from the cloud.',action:'Routers',source_url:'https://help.mikrotik.com/docs/display/ROS/Torch',verified_on:'2026-10-08',published:true,archived:false,revision:1},
+  {id:id(),title:'Netwatch service probes',category:'Internet access',fact:'Netwatch can probe whether an important service address stays reachable from the router.',why:'Owners learn outages may be upstream before blaming guest Wi-Fi settings.',requirements:'Probe targets and intervals must stay limited. Opening this tip never starts Netwatch or changes firewall rules.',action:'Routers',source_url:'https://help.mikrotik.com/docs/display/ROS/Netwatch',verified_on:'2026-10-08',published:true,archived:false,revision:1},
+  {id:id(),title:'Guest page is separate from cloud save',category:'Business',fact:'Saving the guest Wi-Fi page in MikroMagic does not install files on the router until you send them through Safe Change.',why:'Owners should not assume guests see a new login page after a cloud save alone.',requirements:'Requires a Connected router and an approved send. First Customer Test on a phone remains a separate step.',action:'Captive portal',source_url:'https://help.mikrotik.com/docs/display/ROS/Hotspot',verified_on:'2026-10-08',published:true,archived:false,revision:1},
+ ];
  return db;
 }
 const policy=p=>{const {id:_,...rest}=p;return clone(rest)};
@@ -152,7 +158,8 @@ function supportReport(db,site,description){
 function route(db,method,path,body){
  const [raw,query='']=path.split('?'),q=new URLSearchParams(query),parts=raw.split('/'),now=nowOf(db),is=(m,pattern)=>{if(m!==method||pattern.length!==parts.length)return false;return pattern.every((x,i)=>x==='*'||x===parts[i])};
  if(method==='GET'){
-  const lists={entitlements:[],'media/titles':[],'event-deliveries':[],'review-credentials':[],'external-review-actions':[],knowledge:[],hubs:[],'router-plans':[],'router-changes':[],'site-devices':[]};
+  const lists={entitlements:[],'media/titles':[],'event-deliveries':[],'review-credentials':[],'external-review-actions':[],hubs:[],'router-plans':[],'router-changes':[],'site-devices':[]};
+  if(raw==='knowledge')return clone(db.knowledge.filter(c=>c.published&&!c.archived));
   if(raw in lists)return lists[raw];
   if(raw==='health')return {status:'ok'};
   if(raw==='appearance/public'||raw==='appearance/effective')return clone(THEMES);

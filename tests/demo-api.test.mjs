@@ -106,7 +106,12 @@ test('shop schedules handle overnight hours in the shop timezone',()=>{
  assert.equal(inSchedule(week,'Asia/Yangon',at('2026-10-12T19:00:00+06:30')),true);
 });
 
-test('the demo navigation is limited to sample-safe pages',()=>{
+test('the demo navigation is limited to sample-safe pages',async()=>{
  for(const page of ['Staff','Subscription','Integrations','Media','Account','Audit','Captive portal','Network','Internet'])assert.ok(!DEMO_PAGES.includes(page),page);
- assert.deepEqual(DEMO_PAGES,['Overview','Revenue','Sites','Routers','Packages','Vouchers','Payments','Get help']);
+ assert.deepEqual(DEMO_PAGES,['Overview','Revenue','Sites','Routers','Packages','Vouchers','Payments','Get help','Did you know?']);
+ assert.ok(DEMO_PAGES.includes('Did you know?'));
+ const knowledge=await demoClient().request('knowledge');
+ assert.ok(knowledge.length>=2);
+ assert.ok(knowledge.every(c=>c.published&&!c.archived&&c.fact&&c.title));
+ assert.ok(knowledge.some(c=>/torch/i.test(c.title)));
 });
