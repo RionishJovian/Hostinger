@@ -716,8 +716,24 @@ Restore /opt/mikromagic-build21-public-test-20261012T215507Z/backups/pre-deploy.
 then cd /opt/mikromagic-build21-public-test-20261012T215507Z && docker compose -p mikromagic-build21-public-test -f compose.hostinger-public-test.yaml up -d --no-deps --force-recreate api web
 Restore /opt/mikromagic-build21-public-test-20261012T222601Z/backups/pre-deploy.dump only if the migration itself is at fault.
 
+### Scripted redeploy — P0a Integrations / Did you know? / first-site / Magic Boy (2026-10-12 23:59 UTC)
+
+| Item | Value |
+|---|---|
+| Source | Commit `f1ae785` on `origin/main`; artifact `352dd0ee7e345d7072ef911f7c2a6ad626aec8403351e28af034f76bbc8541ee` (213 files); local checks already recorded for this tree (674 backend tests with 12 skips, build, 92 Node tests) |
+| Directory | `/opt/mikromagic-build21-public-test-20261012T235906Z`; previous `-20261012T222601Z` |
+| Infra files | none |
+| Pre-deploy dump | `backups/pre-deploy.dump` (at 054, 490 restore-list entries) |
+| Migration | none (stays 054); rehearsal skipped |
+| Rollback images | `…-{api,web,magic-hub,migrate}:rollback-20261012T235906Z` |
+| Result | api and web recreated; db and Hub untouched (Hub key `TG1jLN13+hA1Eg9/1h0DykQ768ZHZO54WFGAZWhjL0o=`, UDP `156.67.216.128:51820` unchanged); bundle `index-DraCFI7I.js`. Remaining P0a Burmese chrome: Integrations, Did you know? (SME), guided first-shop acceptance labels/status, restrained Magic Boy helper. Platform Guidance publishing stays English; first-site stage detail lines still API English |
+
+**Rollback:** on the VPS, for s in api web magic-hub migrate; do docker tag mikromagic-build21-public-test-$s:rollback-20261012T235906Z mikromagic-build21-public-test-$s:latest; done
+then cd /opt/mikromagic-build21-public-test-20261012T222601Z && docker compose -p mikromagic-build21-public-test -f compose.hostinger-public-test.yaml up -d --no-deps --force-recreate api web
+Restore /opt/mikromagic-build21-public-test-20261012T235906Z/backups/pre-deploy.dump only if the migration itself is at fault.
+
 - Next app work (as of 2026-10-12 09:00 UTC+6:30, live at migration 049, commit `13d40af`):
-  - Terminology and Burmese (P0a) are live on SME owner pages including Media, Account, Sites shops/hours/maintenance, Revenue, Payments and Packages/Passes. Platform screens stay English. Integrations / Did you know? / guided setup / Magic Boy remain for later slices.
+  - Terminology and Burmese (P0a) owner-facing chrome is live across SME pages including Integrations, Did you know?, guided first-shop acceptance, Magic Boy, Media, Account, Sites, Revenue, Payments and Packages/Passes. Platform screens stay English. Native-speaker/mobile QA remains open.
   - Routers page guided (P0a step 5): Connect your router steps first; Magic Hub, connection plans and Safe RouterOS changes under a closed Advanced (technician) section that opens when a change needs attention.
   - Routers page guided (P0a step 5): Connect your router steps first; Magic Hub, connection plans and Safe RouterOS changes under a closed Advanced (technician) section that opens when a change needs attention.
   - Overview simplified (P0a step 4): the router state appears once, with its action; revenue detail stays on Revenue (a collections card links there).
