@@ -86,6 +86,10 @@ class RouterHealthTests(unittest.TestCase):
         self.assertEqual(self.client.post(f'/v1/routers/{plain}/health/collect', headers=owner).json()['detail']['code'], 'router_not_managed')
         self.assertFalse(self.client.get(f'/v1/routers/{plain}/health', headers=owner).json()['managed'])
         router = self.managed(owner, hub, site)
+        before = self.client.get(f'/v1/routers/{router}/health', headers=owner).json()
+        self.assertTrue(before['managed'])
+        self.assertEqual(before['status'], 'unable_to_verify')
+        self.assertIsNone(before['metrics'])
         fake = FakeHealthRouter()
         self.app.state.router_health_client_factory = fake.client
         with patch('backend.router_health.load_routeros_monitoring_credential', return_value=RouterOSCredential(

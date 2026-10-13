@@ -124,7 +124,11 @@ def register_router_wan(app, current, db, log):
                 'managed': False,
                 'detail': 'WAN reads require a Connected managed router.',
             }
-        return observation_json(s.get(RouterWanObservation, id))
+        row = s.get(RouterWanObservation, id)
+        result = observation_json(row)
+        if row is None:
+            result = result | {'managed': True}
+        return result
 
     @app.post('/v1/routers/{id}/wan/collect')
     def collect_now(id: str, u=Depends(current), s=Depends(db)):
@@ -133,6 +137,6 @@ def register_router_wan(app, current, db, log):
             app.state, 'router_health_client_factory', None
         ) or getattr(app.state, 'hotspot_client_factory', RouterOSClient)
         result = collect(s, id, factory)
-        log(s, u, 'router_wan_collected', id)
+        log(s, u, 'router_wan_collected' if result.get('collected') else 'router_wan_collect_failed', id)
         s.commit()
         return result

@@ -92,6 +92,10 @@ class RouterWanTests(unittest.TestCase):
         self.assertEqual(self.client.post(f'/v1/routers/{plain}/wan/collect', headers=owner).json()['detail']['code'], 'router_not_managed')
         self.assertFalse(self.client.get(f'/v1/routers/{plain}/wan', headers=owner).json()['managed'])
         router = self.managed(owner, hub, site)
+        before = self.client.get(f'/v1/routers/{router}/wan', headers=owner).json()
+        self.assertTrue(before['managed'])
+        self.assertEqual(before['status'], 'unable_to_verify')
+        self.assertIsNone(before['metrics'])
         fake = FakeWanRouter()
         self.app.state.router_wan_client_factory = fake.client
         with patch('backend.router_wan.load_routeros_monitoring_credential', return_value=RouterOSCredential(

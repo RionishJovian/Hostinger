@@ -123,13 +123,17 @@ def register_router_health(app, current, db, log):
                 'managed': False,
                 'detail': 'Health reads require a Connected managed router.',
             }
-        return observation_json(s.get(RouterHealthObservation, id))
+        row = s.get(RouterHealthObservation, id)
+        result = observation_json(row)
+        if row is None:
+            result = result | {'managed': True}
+        return result
 
     @app.post('/v1/routers/{id}/health/collect')
     def collect_now(id: str, u=Depends(current), s=Depends(db)):
         owner_router(s, u, id)
         factory = getattr(app.state, 'router_health_client_factory', None) or getattr(app.state, 'hotspot_client_factory', RouterOSClient)
         result = collect(s, id, factory)
-        log(s, u, 'router_health_collected', id)
+        log(s, u, 'router_health_collected' if result.get('collected') else 'router_health_collect_failed', id)
         s.commit()
         return result

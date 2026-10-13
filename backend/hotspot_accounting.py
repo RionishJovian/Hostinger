@@ -327,14 +327,18 @@ def register_hotspot_accounting(app, current, db, log):
         router, plan = managed_router(s, id, u.tenant_id)
         if not plan:
             return observation_json(None) | {'managed': False, 'detail': 'Session reads require a Connected managed router.'}
-        return observation_json(s.get(HotspotSessionObservation, id))
+        row = s.get(HotspotSessionObservation, id)
+        result = observation_json(row)
+        if row is None:
+            result = result | {'managed': True}
+        return result
 
     @app.post('/v1/routers/{id}/hotspot-sessions/collect')
     def collect_now(id: str, u=Depends(current), s=Depends(db)):
         owner_router(s, u, id)
         factory = getattr(app.state, 'hotspot_accounting_client_factory', None) or getattr(app.state, 'hotspot_client_factory', RouterOSClient)
         result = collect(s, id, factory)
-        log(s, u, 'router_hotspot_sessions_collected', id)
+        log(s, u, 'router_hotspot_sessions_collected' if result.get('collected') else 'router_hotspot_sessions_collect_failed', id)
         s.commit()
         return result
 
