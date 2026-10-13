@@ -1182,6 +1182,26 @@ artifact sha256 9ef1eeef6af5cd044df612218701555a6cb25afbab43eda625cc06874e492353
 
 **Note:** First attempt at `20261013T132847Z` stopped on a Docker container-removal race (`removal … already in progress`). Migration 061 and `router_wan_observations` had already applied; retry completed cleanly at `20261013T133119Z`.
 
+### Scripted redeploy — Magic Hub script www-ssl / public-key / bareword fixes (2026-10-13 13:38 UTC)
+
+| Item | Value |
+|---|---|
+| Source | Commit `6b3cf27` on `origin/main` (includes script fixes `ff16ddc`/`059133b`/`fc8da20`); artifact `9ef1eeef6af5cd044df612218701555a6cb25afbab43eda625cc06874e492353` (232 files) |
+| Directory | `/opt/mikromagic-build21-public-test-20261013T133802Z`; previous `-20261013T133119Z` |
+| Pre-deploy dump | `backups/pre-deploy.dump` (525 restore-list entries) |
+| Migration | **061 → 061** (no new revision); rehearsal skipped |
+| Rollback images | `…-{api,web,magic-hub,migrate}:rollback-20261013T133802Z` |
+| Result | api, web and safe-change-worker recreated; Hub untouched (`TG1jLN13+hA1Eg9/1h0DykQ768ZHZO54WFGAZWhjL0o=`, UDP `156.67.216.128:51820`). Bundle `index-D0qvSZgs.js`. Worker **running**. First attempt `20261013T132840Z` stopped on concurrent-deploy bundle mismatch; retry after race cleared verified clean. Live API confirms `mmGWwwChanged`, `mmUrlEnc`, and `unquote` public-key parse. |
+
+**Deployed 6b3cf27 at 20261013T133802Z**
+artifact sha256 9ef1eeef6af5cd044df612218701555a6cb25afbab43eda625cc06874e492353 (232 files), bundle index-D0qvSZgs.js
+
+**Rollback:** on the VPS, for s in api web magic-hub migrate; do docker tag mikromagic-build21-public-test-$s:rollback-20261013T133802Z mikromagic-build21-public-test-$s:latest; done
+          then cd /opt/mikromagic-build21-public-test-20261013T133119Z && docker compose -p mikromagic-build21-public-test -f compose.hostinger-public-test.yaml up -d --no-deps --force-recreate api web safe-change-worker
+          Restore /opt/mikromagic-build21-public-test-20261013T133802Z/backups/pre-deploy.dump only if the migration itself is at fault.
+
+**No router contact.** One-paste Magic Hub script no longer wipes owner www-ssl on early `mmFail`, URL-encodes enroll values so WireGuard `+`/`/` survive, and drops the bareword `no` that could stop the paste. Settings-changes flag remained off.
+
 - Next app work (as of 2026-10-12 09:00 UTC+6:30, live at migration 049, commit `13d40af`):
   - Terminology and Burmese (P0a) owner-facing chrome is live across SME pages including Integrations, Did you know?, guided first-shop acceptance, Magic Boy, Media, Account, Sites, Revenue, Payments and Packages/Passes. Platform screens stay English. Native-speaker/mobile QA remains open.
   - Routers page guided (P0a step 5): Connect your router steps first; Magic Hub, connection plans and Safe RouterOS changes under a closed Advanced (technician) section that opens when a change needs attention.
