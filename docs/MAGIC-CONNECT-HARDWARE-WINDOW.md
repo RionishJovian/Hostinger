@@ -128,7 +128,7 @@ These RouterOS behaviours are assumptions; each failure stops the window with a 
 - Disable in the app: background sync disabled the router user and removed the active session within 5 s; the guest was redirected to login again; re-login answered `invalid username or password`. App: `in_sync 1`, `failed 0`.
 - Clock: the router started at 2026-09-02 and IP Cloud `update-time` corrected it once online; the NTP client is disabled. A clock jump after first login would shift voucher expiry; an NTP check belongs in pre-Connected checks.
 - Still unverified: the scheduler actually expiring a user at `|exp=` (needs the hour to pass), data quotas (`limit-bytes-total`), `limit-uptime` (connected-clock plans), multi-device `shared-users`, and a real phone. HotSpot cookies (`/ip hotspot cookie`) remain after disable; the disabled user could not log in, but removing them on disable is a small follow-up.
-- Display gap: `GET /v1/routers` still reports `connection_state: unverified` for every router (hardcoded); the router plan carries the real state.
+- Display: `GET /v1/routers` reports `connection_state: connected` only when the plan has fresh handshake + management-read evidence (`connection_is_fresh`); otherwise `unverified` (Unable to Verify), with `last_handshake` from the plan when present.
 
 ### Later the same day — guest login page publish and extra checks
 

@@ -1,7 +1,8 @@
+import time
 import unittest
 import test_backend as fixture
 from sqlalchemy import select
-from backend.models import Site,RouterDevice
+from backend.models import Site,RouterDevice,RouterPlan,User
 class SiteTests(unittest.TestCase):
  setUp=fixture.AccountPaymentTests.setUp
  tearDown=fixture.AccountPaymentTests.tearDown
@@ -22,6 +23,21 @@ class SiteTests(unittest.TestCase):
   response=self.client.post('/v1/routers',headers=owner,json=body);self.assertEqual(response.status_code,201);self.assertEqual(response.json()['connection_state'],'unverified')
   self.assertEqual(self.client.get('/v1/routers',headers=other).json(),[]);self.assertEqual(self.client.get('/v1/routers',headers=guest).status_code,403)
   fleet=self.client.get('/v1/routers',headers=platform).json();self.assertEqual(len(fleet),1);self.assertIsNone(fleet[0]['last_handshake']);self.assertIsNone(fleet[0]['hub_id'])
+ def test_router_list_connection_state_follows_fresh_plan_evidence(self):
+  owner=self.login('owner');site=self.site(owner,'Plan shop')
+  router=self.client.post('/v1/routers',headers=owner,json={'site_id':site,'name':'Gateway','model':'hAP ax2','reported_routeros':''}).json()['id']
+  listed=self.client.get('/v1/routers',headers=owner).json()[0]
+  self.assertEqual(listed['connection_state'],'unverified');self.assertIsNone(listed['last_handshake'])
+  with self.app.state.factory() as s:
+   user=s.query(User).filter_by(username='owner').one();now=int(time.time())
+   s.connection().exec_driver_sql('PRAGMA foreign_keys=OFF')
+   s.add(RouterPlan(tenant_id=user.tenant_id,router_id=router,hub_id='hub-display',router_public_key='display-public-key',address='10.0.0.2',snapshot={'hub':{}},created=now,reviewed_at=now,lifecycle_state='connected',handshake_verified_at=now-30,management_read_verified_at=now-20));s.commit()
+  fresh=self.client.get('/v1/routers',headers=owner).json()[0]
+  self.assertEqual(fresh['connection_state'],'connected');self.assertEqual(fresh['hub_id'],'hub-display');self.assertIsNotNone(fresh['last_handshake'])
+  with self.app.state.factory() as s:
+   plan=s.query(RouterPlan).filter_by(router_id=router).one();plan.handshake_verified_at=int(time.time())-600;plan.management_read_verified_at=int(time.time())-600;s.commit()
+  stale=self.client.get('/v1/routers',headers=owner).json()[0]
+  self.assertEqual(stale['connection_state'],'unverified');self.assertEqual(stale['hub_id'],'hub-display');self.assertIsNotNone(stale['last_handshake'])
  def test_site_portals_are_independent_and_do_not_replace_legacy(self):
   owner=self.login('owner');guest=self.login('guest');other=self.login('other');a=self.site(owner,'A');b=self.site(owner,'B');self.publish(owner,a,'Counter A');self.publish(owner,b,'Counter B')
   def public(site):return self.client.get('/v1/portal/public',headers=guest,params={'site_id':site}).json()
