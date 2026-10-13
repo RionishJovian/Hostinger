@@ -973,6 +973,27 @@ artifact sha256 88d24c5cc670d8a29b565b8055dd5c7c90975dd3774f8079046b0ea68ff6a79e
 
 **Flag remained off.** Do not set `MIKROMAGIC_ROUTER_SETTINGS_CHANGES=true` until the owner opens a hardware window. Exact REST and manual rollback for guest VLAN: `docs/MAGIC-CONNECT-HARDWARE-WINDOW.md` § “Expected REST — guest_vlan_external_ap”. Q70 switch-port VLAN management was not built. Router not contacted in this deploy.
 
+### Scripted redeploy — per-router REST serialization (2026-10-13 09:35 UTC)
+
+| Item | Value |
+|---|---|
+| Source | Commit `8f9e6e2` on `origin/main`; artifact `768fd820fbdd9a174a6485ef9c4fe6b1dd08cdf019c828066f71008b000d79a3` (221 files) |
+| Directory | `/opt/mikromagic-build21-public-test-20261013T093530Z`; previous `-20261013T091431Z` |
+| Infra files | none (`infra_changed= none`) |
+| Pre-deploy dump | `backups/pre-deploy.dump` (490 restore-list entries) |
+| Migration | 057 → 057 (no new head); rehearsal skipped |
+| Rollback images | `…-{api,web,magic-hub,migrate}:rollback-20261013T093530Z` |
+| Result | api and web recreated; Hub untouched. Per-router REST advisory lock live; `router_settings_changes_available: false`; Alembic **057**; bundle `index-Bl6r2e59.js` |
+
+**Deployed 8f9e6e2 at 20261013T093530Z**
+artifact sha256 768fd820fbdd9a174a6485ef9c4fe6b1dd08cdf019c828066f71008b000d79a3 (221 files), bundle index-Bl6r2e59.js
+
+**Rollback:** on the VPS, for s in api web magic-hub migrate; do docker tag mikromagic-build21-public-test-$s:rollback-20261013T093530Z mikromagic-build21-public-test-$s:latest; done
+          then cd /opt/mikromagic-build21-public-test-20261013T091431Z && docker compose -p mikromagic-build21-public-test -f compose.hostinger-public-test.yaml up -d --no-deps --force-recreate api web
+          Restore /opt/mikromagic-build21-public-test-20261013T093530Z/backups/pre-deploy.dump only if the migration itself is at fault.
+
+**Flag remained off.** Router not contacted.
+
 - Next app work (as of 2026-10-12 09:00 UTC+6:30, live at migration 049, commit `13d40af`):
   - Terminology and Burmese (P0a) owner-facing chrome is live across SME pages including Integrations, Did you know?, guided first-shop acceptance, Magic Boy, Media, Account, Sites, Revenue, Payments and Packages/Passes. Platform screens stay English. Native-speaker/mobile QA remains open.
   - Routers page guided (P0a step 5): Connect your router steps first; Magic Hub, connection plans and Safe RouterOS changes under a closed Advanced (technician) section that opens when a change needs attention.

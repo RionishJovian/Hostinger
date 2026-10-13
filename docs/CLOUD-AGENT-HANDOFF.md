@@ -26,6 +26,7 @@ Start every task: `git fetch origin && git merge --ff-only origin/main`. Finish 
 | Guest CHAP md5 byte fix (`charCodeAt(i)&255`) | `79c93c6` @ 20261013T081929Z | In API package; **router still serves old page** until new revision Safe Change |
 | Guest Wi-Fi + guest addressing Safe Change | `7a24911` @ 20261013T083305Z, migration **056** | Live; flag **`MIKROMAGIC_ROUTER_SETTINGS_CHANGES` off** |
 | Guest VLAN for external AP Safe Change | `b4cdf1b` (handover `4f93e27`) @ 20261013T091431Z, migration **057** | Live; flag **`MIKROMAGIC_ROUTER_SETTINGS_CHANGES` off**; router not contacted |
+| Per-router REST serialization | `8f9e6e2` @ 20261013T093530Z | Live; flag off; advisory lock on `RouterOSClient` sessions |
 | RouterOS REST study | `a362868` → `docs/ROUTEROS-REST-API-NOTES.md` | Written |
 
 ## Priority next (software, no router)
@@ -33,8 +34,8 @@ Start every task: `git fetch origin && git merge --ff-only origin/main`. Finish 
 Owner order: MikroTik / captive portal ahead of remaining P0a. ChatGPT owns G01–G06 presentation (Midnight Studio); Cursor/cloud owns C02 engine.
 
 1. ~~**Guest VLAN for external AP**~~ — shipped; flag off.
-2. **Per-router REST serialization** — in progress / next: DB advisory lock shared by monitoring, collect and Safe Change (`docs/ROUTEROS-REST-API-NOTES.md`).
-3. Safe Change backup completeness check for `execute as-string` truncation.
+2. ~~**Per-router REST serialization**~~ — shipped `8f9e6e2` @ 20261013T093530Z.
+3. **Safe Change backup completeness** — next: refuse truncated `execute as-string` exports.
 4. `GET /v1/routers` real `connection_state` from plan freshness.
 5. HotSpot cookie removal on voucher disable/revoke.
 6. Add `safe_change_worker` to Hostinger compose with reviewed `ALLOW_INFRA_CHANGE=1`.
