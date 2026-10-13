@@ -98,6 +98,20 @@ class AccountPaymentTests(unittest.TestCase):
    with self.assertRaises(RuntimeError):trusted_proxy_networks(value)
  def test_password_only_login_rejects_legacy_mfa_field(self):
   self.assertEqual(self.client.post('/v1/auth/login',json={'username':'owner','password':'test-password-only','mfa_code':'000000'}).status_code,422)
+ def test_login_validation_errors_do_not_echo_password(self):
+  secret='unique-login-secret-must-not-echo-9f3a'
+  response=self.client.post('/v1/auth/login',json={'email':'owner@example.com','password':secret})
+  self.assertEqual(response.status_code,422)
+  self.assertNotIn(secret,response.text)
+  detail=response.json()['detail']
+  self.assertIsInstance(detail,list)
+  self.assertTrue(detail)
+  for item in detail:
+   self.assertNotIn('input',item)
+   self.assertIn('loc',item)
+   self.assertIn('msg',item)
+   self.assertIn('type',item)
+
  def test_invalid_login_response_does_not_reveal_account_existence(self):
   known=self.client.post('/v1/auth/login',json={'username':'owner','password':'wrong'})
   unknown=self.client.post('/v1/auth/login',json={'username':'not-a-real-account','password':'wrong'})

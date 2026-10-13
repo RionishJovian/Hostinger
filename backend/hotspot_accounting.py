@@ -36,6 +36,24 @@ def _has_exp_marker(comment: str) -> bool:
     return '|exp=' in (comment or '')
 
 
+def _apply_router_usage(target, policy, *, bytes_total, uptime=None, now=None, activate=True):
+    """Monotonic first-login activation and usage on an entitlement or voucher row."""
+    activations = 0
+    usage_updates = 0
+    service = (policy or {}).get('service')
+    if activate and service in ('internet', 'combined') and target.activated is None:
+        target.activated = now
+        activations = 1
+    if bytes_total > (target.used_bytes or 0):
+        target.used_bytes = bytes_total
+        usage_updates += 1
+    if uptime is not None and (policy or {}).get('clock') == 'connected':
+        if uptime > (target.connected_seconds or 0):
+            target.connected_seconds = uptime
+            usage_updates += 1
+    return activations, usage_updates
+
+
 def _freshness(observed_at: int | None, now: int) -> str:
     if not observed_at:
         return 'none'
@@ -150,22 +168,23 @@ def collect(s, router_id, client_factory=RouterOSClient, now=None):
             continue
         seen_codes.add(code)
         guests.append(_sanitize_guest(session, voucher))
+        bytes_total = int(user['bytes_in'] + user['bytes_out']) if user else int(session['bytes_in'] + session['bytes_out'])
+        uptime = int(user['uptime_seconds'] if user else session['uptime_seconds'])
         entitlement = s.scalar(select(Entitlement).where(Entitlement.voucher_id == voucher.id))
         if entitlement and not entitlement.revoked:
-            service = (entitlement.policy or {}).get('service')
-            if service in ('internet', 'combined') and entitlement.activated is None:
-                # First-login evidence: an active MikroMagic HotSpot session.
-                entitlement.activated = now
-                activations += 1
-            bytes_total = int(user['bytes_in'] + user['bytes_out']) if user else int(session['bytes_in'] + session['bytes_out'])
-            if bytes_total > (entitlement.used_bytes or 0):
-                entitlement.used_bytes = bytes_total
-                usage_updates += 1
-            if (entitlement.policy or {}).get('clock') == 'connected':
-                uptime = int(user['uptime_seconds'] if user else session['uptime_seconds'])
-                if uptime > (entitlement.connected_seconds or 0):
-                    entitlement.connected_seconds = uptime
-                    usage_updates += 1
+            # App-redeemed path: keep activation/usage on the entitlement only.
+            a, u = _apply_router_usage(
+                entitlement, entitlement.policy, bytes_total=bytes_total, uptime=uptime, now=now,
+            )
+            activations += a
+            usage_updates += u
+        elif not entitlement:
+            # Café / router HotSpot login: no guest redemption, record on the voucher.
+            a, u = _apply_router_usage(
+                voucher, voucher.policy, bytes_total=bytes_total, uptime=uptime, now=now,
+            )
+            activations += a
+            usage_updates += u
 
     # Users with |exp= but not currently active still count as first-login activated.
     for user in users:
@@ -175,16 +194,20 @@ def collect(s, router_id, client_factory=RouterOSClient, now=None):
         voucher = find_voucher(s, router.tenant_id, code)
         if not voucher:
             continue
+        bytes_total = int(user['bytes_in'] + user['bytes_out'])
         entitlement = s.scalar(select(Entitlement).where(Entitlement.voucher_id == voucher.id))
-        if entitlement and not entitlement.revoked and entitlement.activated is None:
-            if (entitlement.policy or {}).get('service') in ('internet', 'combined'):
-                entitlement.activated = now
-                activations += 1
         if entitlement and not entitlement.revoked:
-            bytes_total = int(user['bytes_in'] + user['bytes_out'])
-            if bytes_total > (entitlement.used_bytes or 0):
-                entitlement.used_bytes = bytes_total
-                usage_updates += 1
+            a, u = _apply_router_usage(
+                entitlement, entitlement.policy, bytes_total=bytes_total, now=now,
+            )
+            activations += a
+            usage_updates += u
+        elif not entitlement:
+            a, u = _apply_router_usage(
+                voucher, voucher.policy, bytes_total=bytes_total, now=now,
+            )
+            activations += a
+            usage_updates += u
 
     row.tenant_id = router.tenant_id
     row.site_id = router.site_id

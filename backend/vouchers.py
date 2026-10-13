@@ -11,8 +11,9 @@ from .voucher_vault import seal
 
 def digest(code):return hashlib.sha256(code.encode()).hexdigest()
 def voucher_json(v):
- status='revoked' if v.revoked else 'deleted' if v.deleted_at else 'disabled' if v.disabled_at else 'redeemed' if v.redeemed_by else 'expired' if v.expires<=time.time() else 'unused'
- return {k:getattr(v,k) for k in ['id','site_id','package_id','policy','code_hint','code_prefix','code_format','created','expires','redeemed_at','redeemed_by','reason','disabled_at','disabled_reason','router_sync','serial_no','production_job_id','sheet_no','dealer_id']}|{'status':status,'enforcement':'not_connected'}
+ # Router-only HotSpot use sets activated without redeemed_by; show as active (not unused).
+ status='revoked' if v.revoked else 'deleted' if v.deleted_at else 'disabled' if v.disabled_at else 'redeemed' if v.redeemed_by else 'active' if v.activated else 'expired' if v.expires<=time.time() else 'unused'
+ return {k:getattr(v,k) for k in ['id','site_id','package_id','policy','code_hint','code_prefix','code_format','created','expires','redeemed_at','redeemed_by','reason','disabled_at','disabled_reason','router_sync','serial_no','production_job_id','sheet_no','dealer_id','activated','used_bytes','connected_seconds']}|{'status':status,'enforcement':'not_connected'}
 def register_vouchers(app,current,db,owner,log):
  @app.get('/v1/vouchers')
  def inventory(u=Depends(current),s=Depends(db)):

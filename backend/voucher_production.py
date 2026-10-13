@@ -200,7 +200,7 @@ def register_voucher_production(app,current,db,owner,log):
   if job.status not in ('generated','verified','distributed'):raise HTTPException(409,'Only generated jobs have printed sheets')
   sheets=sheet_states(job,[sheet])
   if sheets[str(sheet)]['state']=='lost':raise HTTPException(409,'Sheet is already marked lost')
-  now=int(time.time());unused=(Voucher.production_job_id==job.id,Voucher.sheet_no==sheet,Voucher.redeemed_by.is_(None),Voucher.revoked==False,Voucher.disabled_at.is_(None),Voucher.deleted_at.is_(None),Voucher.expires>now)
+  now=int(time.time());unused=(Voucher.production_job_id==job.id,Voucher.sheet_no==sheet,Voucher.redeemed_by.is_(None),Voucher.activated.is_(None),Voucher.revoked==False,Voucher.disabled_at.is_(None),Voucher.deleted_at.is_(None),Voucher.expires>now)
   ids=list(s.scalars(select(Voucher.id).where(*unused)))
   if ids:s.execute(update(Voucher).where(Voucher.id.in_(ids),*unused).values(disabled_at=now,disabled_reason=f'Lost sheet {sheet} of {ref(job)}: {b.reason}',router_sync='disable'))
   for vid in ids:log(s,u,'voucher_disabled',vid)
@@ -217,7 +217,7 @@ def register_voucher_production(app,current,db,owner,log):
    if b.unit_price is None or not b.request_key:raise HTTPException(422,'Enter the dealer price for this handover')
    from .dealers import hand_over
    dealer=dealer_for(s,u,dealer_id,lock=True);now=int(time.time())
-   candidates=list(s.scalars(select(Voucher).where(Voucher.production_job_id==job.id,Voucher.dealer_id.is_(None),Voucher.redeemed_by.is_(None),Voucher.revoked==False,Voucher.disabled_at.is_(None),Voucher.deleted_at.is_(None),Voucher.expires>now).order_by(Voucher.serial_no)))
+   candidates=list(s.scalars(select(Voucher).where(Voucher.production_job_id==job.id,Voucher.dealer_id.is_(None),Voucher.redeemed_by.is_(None),Voucher.activated.is_(None),Voucher.revoked==False,Voucher.disabled_at.is_(None),Voucher.deleted_at.is_(None),Voucher.expires>now).order_by(Voucher.serial_no)))
    sold=set(s.scalars(select(VoucherSale.voucher_id).where(VoucherSale.voucher_id.in_([v.id for v in candidates]),VoucherSale.cancelled_at.is_(None))))
    stock=[v for v in candidates if v.id not in sold]
    if not stock:raise HTTPException(409,'No unused vouchers are left in this job to hand to the dealer')

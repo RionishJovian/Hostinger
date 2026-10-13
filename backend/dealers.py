@@ -78,7 +78,7 @@ class ReverseIn(Strict):
  reason:str=Field(min_length=1,max_length=500)
  request_key:str=request_key()
 
-def usable(now):return (Voucher.redeemed_by.is_(None),Voucher.revoked==False,Voucher.disabled_at.is_(None),Voucher.deleted_at.is_(None),Voucher.expires>now)
+def usable(now):return (Voucher.redeemed_by.is_(None),Voucher.activated.is_(None),Voucher.revoked==False,Voucher.disabled_at.is_(None),Voucher.deleted_at.is_(None),Voucher.expires>now)
 def serial(n):return f'{n:06d}' if n else '—'
 def span(vouchers):
  numbers=sorted({v.serial_no for v in vouchers if v.serial_no});parts=[];i=0
@@ -110,7 +110,7 @@ def money_check(dealer,current,charge):
  if dealer.settlement=='credit' and dealer.credit_limit is not None and after>dealer.credit_limit:raise HTTPException(409,f'This would bring the balance owed to {after} MMK, above the {dealer.credit_limit} MMK credit limit. Record a payment or raise the limit first')
 def assign_problem(v,sold):
  status=voucher_json(v)['status']
- if status!='unused':return {'redeemed':'already activated'}.get(status,status)
+ if status!='unused':return {'redeemed':'already activated','active':'already activated'}.get(status,status)
  if v.dealer_id:return 'already with a dealer'
  if v.id in sold:return 'already sold at the counter'
 
@@ -137,12 +137,12 @@ def take_back(s,u,log,dealer,vouchers,key,credit,kind='return',note=None,counter
  def problem(v):
   if v.dealer_id!=dealer.id:return 'not held by this dealer'
   if v.revoked:return 'revoked'
-  if v.redeemed_by:return 'already activated'
+  if v.redeemed_by or v.activated:return 'already activated'
   if v.expires<=now:return 'expired'
  bad=problems(vouchers,problem)
  if bad:refuse(bad,'return')
  ids=[v.id for v in vouchers];credited=sum(v.dealer_price or 0 for v in vouchers) if credit else 0
- result=s.execute(update(Voucher).where(Voucher.id.in_(ids),Voucher.dealer_id==dealer.id,Voucher.redeemed_by.is_(None),Voucher.revoked==False,Voucher.deleted_at.is_(None),Voucher.expires>now).values(dealer_id=None,dealer_price=None).execution_options(synchronize_session=False))
+ result=s.execute(update(Voucher).where(Voucher.id.in_(ids),Voucher.dealer_id==dealer.id,Voucher.redeemed_by.is_(None),Voucher.activated.is_(None),Voucher.revoked==False,Voucher.deleted_at.is_(None),Voucher.expires>now).values(dealer_id=None,dealer_price=None).execution_options(synchronize_session=False))
  if result.rowcount!=len(ids):s.rollback();raise HTTPException(409,'Some vouchers were activated or changed at the same time; refresh and try again')
  movement=record(s,DealerMovement,tenant_id=u.tenant_id,dealer_id=dealer.id,kind=kind,voucher_ids=ids,count=len(ids),counterpart_dealer_id=counterpart,note=note,details={'serials':span(vouchers),'credited':credited},request_key=key,actor_id=u.id,created=now)
  if credited:record(s,DealerLedgerEntry,tenant_id=u.tenant_id,dealer_id=dealer.id,kind='return_credit',delta=-credited,movement_id=movement.id,note=f'{len(ids)} unused vouchers returned',request_key=key+':credit',actor_id=u.id,created=now)
@@ -164,7 +164,7 @@ def register_dealers(app,current,db,owner,log):
   moved=dict(s.execute(select(DealerMovement.kind,func.sum(DealerMovement.count)).where(DealerMovement.dealer_id==d.id).group_by(DealerMovement.kind)).all())
   last=s.scalar(select(DealerMovement.count).where(DealerMovement.dealer_id==d.id,DealerMovement.kind.in_(['assign','reassign_in'])).order_by(DealerMovement.seq.desc()).limit(1))
   unused=counts.get('unused',0)
-  return {'holding':counts,'unused':unused,'activated':counts.get('redeemed',0),'received':int(moved.get('assign',0)+moved.get('reassign_in',0)),'returned':int(moved.get('return',0)+moved.get('reassign_out',0)),'balance':balance(s,d.id),'low_stock':bool(last) and unused<=last//5}
+  return {'holding':counts,'unused':unused,'activated':counts.get('redeemed',0)+counts.get('active',0),'received':int(moved.get('assign',0)+moved.get('reassign_in',0)),'returned':int(moved.get('return',0)+moved.get('reassign_out',0)),'balance':balance(s,d.id),'low_stock':bool(last) and unused<=last//5}
  def detail(s,d):
   held=list(s.scalars(select(Voucher).where(Voucher.dealer_id==d.id,Voucher.deleted_at.is_(None)).order_by(Voucher.serial_no)))
   moves=s.scalars(select(DealerMovement).where(DealerMovement.dealer_id==d.id).order_by(DealerMovement.seq.desc()))

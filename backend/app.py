@@ -1,5 +1,7 @@
 import os,time,secrets,hashlib,re,ipaddress
 from fastapi import FastAPI,Depends,HTTPException,Request,Response,Query
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
 from fastapi.security import HTTPBearer,HTTPAuthorizationCredentials
 from sqlalchemy import create_engine,select,update,delete,event,or_
 from sqlalchemy.orm import Session,sessionmaker
@@ -19,6 +21,19 @@ from .subscription_renewal import renewal_allowed,RESTRICTED_MESSAGE
 from .agents import agent_allowed
 from .auth_metadata import client_labels,approximate_source
 HASHER=PasswordHasher();DUMMY=HASHER.hash(secrets.token_urlsafe(24));auth=HTTPBearer(auto_error=False)
+
+def _validation_detail_without_input(errors):
+ """Keep loc/msg/type; never echo submitted body fields (passwords, tokens, secrets)."""
+ safe=[]
+ for error in errors:
+  item={key:error[key] for key in ('type','loc','msg') if key in error}
+  if 'ctx' in error and isinstance(error['ctx'],dict):
+   # Drop ctx values that might mirror user input; keep non-input hints when present.
+   ctx={k:v for k,v in error['ctx'].items() if k not in ('error','input')}
+   if ctx:item['ctx']=ctx
+  safe.append(item)
+ return safe
+
 def digest(value):return hashlib.sha256(value.encode()).hexdigest()
 def check(ok,msg,code=403):
  if not ok:raise HTTPException(code,msg)
@@ -91,6 +106,9 @@ def make_app(url=None,initialize=False):
  # Off until a hardware window; enabling it is a reviewed environment change.
  app.state.magic_connect_router_setup_enabled=app.state.magic_connect_pairing_enabled and os.environ.get('MIKROMAGIC_MAGIC_CONNECT_ROUTER_SETUP','').lower()=='true'
  app.state.trusted_proxy_networks=trusted_proxy_networks(os.environ.get('MIKROMAGIC_TRUSTED_PROXY_CIDRS',''))
+ @app.exception_handler(RequestValidationError)
+ async def validation_errors_without_input(request:Request,exc:RequestValidationError):
+  return JSONResponse(status_code=422,content={'detail':_validation_detail_without_input(exc.errors())})
  @app.middleware('http')
  async def safety(request,call_next):
   limit=5*1024*1024 if request.method=='POST' and re.fullmatch(r'/v1/orders/[^/]+/receipts',request.url.path) else 1024*1024+1024 if request.method=='POST' and request.url.path=='/v1/developer/application/logo' else 64_000

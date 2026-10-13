@@ -154,6 +154,10 @@ class Voucher(Base):
  sheet_no:Mapped[int|None]=mapped_column(Integer,nullable=True)
  dealer_id:Mapped[str|None]=mapped_column(ForeignKey('dealers.id',name='fk_vouchers_dealer'),nullable=True,index=True)
  dealer_price:Mapped[int|None]=mapped_column(BigInteger,nullable=True)
+ # Router-only HotSpot first login (no app entitlement): activation and monotonic usage.
+ activated:Mapped[int|None]=mapped_column(BigInteger,nullable=True)
+ used_bytes:Mapped[int]=mapped_column(BigInteger,default=0,server_default='0')
+ connected_seconds:Mapped[int]=mapped_column(BigInteger,default=0,server_default='0')
  __table_args__=(UniqueConstraint('issued_by','request_key'),Index('uq_vouchers_tenant_serial','tenant_id','serial_no',unique=True),CheckConstraint('expires > created'))
 
 class Dealer(Base):

@@ -47,10 +47,10 @@ def register_voucher_lifecycle(app,current,db,owner,log):
  @app.post('/v1/vouchers/{id}/delete')
  def delete(id:str,u=Depends(current),s=Depends(db)):
   owner(u);v=load(s,u,id)
-  if v.redeemed_by:raise HTTPException(409,'Activated vouchers cannot be deleted; disable it instead')
+  if v.redeemed_by or v.activated:raise HTTPException(409,'Activated vouchers cannot be deleted; disable it instead')
   if v.revoked:raise HTTPException(409,'Revoked vouchers stay in permanent voucher history')
   if v.dealer_id:raise HTTPException(409,'This voucher is with a dealer; return it to your stock or disable it instead')
-  result=s.execute(update(Voucher).where(Voucher.id==id,Voucher.redeemed_by.is_(None),Voucher.revoked==False,Voucher.deleted_at.is_(None),Voucher.dealer_id.is_(None)).values(deleted_at=int(time.time()),router_sync='delete'))
+  result=s.execute(update(Voucher).where(Voucher.id==id,Voucher.redeemed_by.is_(None),Voucher.activated.is_(None),Voucher.revoked==False,Voucher.deleted_at.is_(None),Voucher.dealer_id.is_(None)).values(deleted_at=int(time.time()),router_sync='delete'))
   # The row lock above is shared with sale recording, so a concurrent sale is visible here.
   if result.rowcount==1 and s.scalar(select(VoucherSale.id).where(VoucherSale.voucher_id==id,VoucherSale.cancelled_at.is_(None))):
    s.rollback();raise HTTPException(409,'A payment is recorded for this voucher; disable it or record a refund instead')
