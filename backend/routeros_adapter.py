@@ -378,7 +378,8 @@ def install_hotspot_portal_files(client:RouterOSClient,destination:str,files:dic
    raise RouterOSError('package_invalid','Portal package file name is unsafe',409)
   if not isinstance(contents,str):raise RouterOSError('package_invalid','Portal package file contents must be text',409)
   path=destination.rstrip('/')+'/'+name
-  client.write('PUT','file/'+quote(path,safe=''),{'contents':contents})
+  # RouterOS creates the parent directory and refuses to replace an existing file.
+  client.write('PUT','file',{'name':path,'contents':contents})
  after=client.get(FILE_LIST,optional=True)
  missing=[name for name in files if not any(item.get('name')==destination.rstrip('/')+'/'+name for item in _destination_files(after,destination))]
  if missing:raise RouterOSError('install_incomplete','Portal files were not all present after create-only upload',409)
@@ -398,5 +399,9 @@ def remove_hotspot_portal_files(client:RouterOSClient,destination:str,names:list
   except RouterOSError as error:
    if error.code not in ('router_write_failed',):raise
  remaining=_destination_files(client.get(FILE_LIST,optional=True),destination)
+ directory=next((item for item in remaining if item.get('name')==destination and item.get('type')=='directory' and item.get('.id')),None)
+ if directory and len(remaining)==1:
+  client.write('POST','file/remove',{'.id':directory['.id']})
+  remaining=_destination_files(client.get(FILE_LIST,optional=True),destination)
  if remaining:raise RouterOSError('cleanup_incomplete','Newly created portal files remain after rollback cleanup',409)
  return {'destination':destination,'removed':list(names)}

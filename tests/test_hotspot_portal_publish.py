@@ -32,6 +32,7 @@ class FakePortalRouter:
     def __init__(self, profile_name='guest-main', html_directory='hotspot', profile_id='*A1'):
         self.profiles = {profile_id: {'.id': profile_id, 'name': profile_name, 'html-directory': html_directory, 'login-by': 'http-chap'}}
         self.files = {}
+        self.dirs = set()
         self.writes = []
         self.fail = None
         self.fail_after = None
@@ -63,7 +64,9 @@ class FakePortalClient:
         if path == 'ip/hotspot/profile':
             return [dict(x) for x in self.router.profiles.values()]
         if path == 'file' or path.startswith('file'):
-            return [{'name': name, 'type': 'file', 'size': str(len(body))} for name, body in self.router.files.items()]
+            dirs = sorted({name.rsplit('/', 1)[0] for name in self.router.files if '/' in name} | self.router.dirs)
+            return [{'.id': '*D' + d, 'name': d, 'type': 'directory'} for d in dirs] + [
+                {'.id': '*F' + name, 'name': name, 'type': 'file', 'size': str(len(body))} for name, body in self.router.files.items()]
         raise AssertionError(path)
 
     def write(self, method, path, payload):
@@ -73,13 +76,20 @@ class FakePortalClient:
         if self.router.fail == 'write':
             raise RouterOSError('router_write_failed', 'simulated')
         self.router.writes.append((method, path, dict(payload or {})))
-        if method == 'PUT' and path.startswith('file/'):
-            from urllib.parse import unquote
-            name = unquote(path[len('file/'):])
+        if method == 'PUT' and path == 'file':
+            name = payload['name']
             if name in self.router.files:
                 raise RouterOSError('router_write_failed', 'exists')
             self.router.files[name] = payload.get('contents') or ''
+            if '/' in name:
+                self.router.dirs.add(name.rsplit('/', 1)[0])
             return {}
+        if method == 'POST' and path == 'file/remove':
+            name = payload['.id'][2:]
+            if payload['.id'].startswith('*D') and not any(f.startswith(name + '/') for f in self.router.files):
+                self.router.dirs.discard(name)
+                return []
+            raise RouterOSError('router_write_failed', 'cannot remove')
         if method == 'PATCH' and path.startswith('ip/hotspot/profile/'):
             from urllib.parse import unquote
             rid = unquote(path.rsplit('/', 1)[-1])
@@ -272,6 +282,7 @@ class HotspotPortalPublishTests(unittest.TestCase):
         self.assertEqual(result.json()['status'], 'rolled_back')
         self.assertEqual(fake.profiles[fake.profile_id]['html-directory'], 'hotspot')
         self.assertEqual(fake.files, {})
+        self.assertEqual(fake.dirs, set())
 
     def test_stale_profile_directory_is_conflict(self):
         owner, router, plan, fake, site, digest = self.fixture()
