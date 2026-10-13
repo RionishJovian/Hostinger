@@ -18,6 +18,25 @@
 - Notion owner direction 2026-10-10: work in small increments of build → deploy to the `megamagic.tech` public test → owner-visible test → fix; do not ask the owner to repeat requirements or manage agents. Report as Changed / Deployed / Owner action (only if required) / Blockers, verified results only.
 - Each VPS change still follows its documented procedure: verify first, back up before writing, change only MikroMagic Build 21 resources, keep rollback, record evidence, and stop on anomalies. Co-hosted legacy stacks, `/opt/build21`, `/opt/mikromagic-v8` and router configuration stay untouched unless separately required.
 
+## Mandatory before every requirement build — Notion page 07 (synced 2026-10-13)
+
+Source: Notion tracker index + page **07 — Mandatory before-build reconciliation and QA procedure** (consolidated 2026-10-13). Applies to Cursor and ChatGPT. Grants no new infrastructure or account permissions. Preserve every other repository safety/check rule; conflicts need explicit reconciliation.
+
+**Before changing scope, before handoff/merge/deploy, and during QA:**
+
+1. **Read current Notion.** Fetch the control-room index (`3f2489e3-dbb6-81cc-9d2d-e66befe42255`), the applicable domain page (01–06), page 07 (this procedure), and page 08 (evidence/gaps). On first onboarding read all six domain specs once; do not reload the full historical archive for every small task. Record page revision/time and requirement IDs. Never build from an old summary or conversation memory alone.
+2. **Read actual GitHub/source.** Confirm repo `RionishJovian/Hostinger`, current `main`/target branch and exact full SHA. Inspect `AGENTS.md`, `MIKROMAGIC-REQUIREMENTS.md`, `REQUIREMENTS-GAP.md`, current handoff, relevant implementation/tests and active changes/PRs. Record owned/reserved files. Do not treat a CSS-only zip or old archive as the whole current app.
+3. **Check the live app and deployed source identity.** Observe the real relevant route/role/state and served bundle; compare release directory/commit/image, migration and flags with authorized read access. GitHub main, a docs tip, API image, web bundle and router-installed portal can differ. No deploy/router/settings mutation during a read-only precheck. A public bundle proves neither backend source nor physical-router installation.
+4. **Reconcile requirement versus code versus live.** For each acceptance clause mark Present / Partial / Missing / Conflict / Not verifiable. Newer explicit owner decision overrides older decision; later code or a test does not redefine policy. Preserve unresolved questions. If Notion and repo diverge, sync requirement/gap docs in the authorized ownership lane first.
+5. **Declare the small build task.** Record owner, requirement IDs, scope, base SHA/Notion revision, intended files, dependencies, planned positive/negative tests and rollback/merge impact. Check active-file ownership. Cursor leads engine/backend/integrations/releases; ChatGPT supports handed-off presentation files only.
+6. **Apply the readiness decision.** Missing current source, unresolved critical spec/ownership or unsafe authority blocks affected code edits. Missing live/backend access blocks live-verification claims, not independent documentation or a safely scoped offline task on verified source. Never imply background coding/testing is happening.
+
+**Implementation and QA:** implement minimally; run baseline and focused checks; add meaningful tests including denial/failure/idempotency. Passing mocks or string checks are not end-to-end acceptance. Validate the real user flow (roles, EN/MY, desktop/mobile, themes, empty/loading/error/stale, reduced motion) without mutating production payments or router config for UI QA. Measure before/after performance deltas when the change can affect load/interaction. Use feature-specific acceptance (vouchers, payments, devices, media, hardware windows). Before merge/deploy refresh Notion and target main, detect drift, deploy only through `scripts/deploy-hostinger-public-test.sh` under current authorization, and prove served code matches release. Router portal publication remains a separate install/readback step.
+
+**Status vocabulary:** Not Done · Ongoing/Partial · Implemented/Tested · Deployed · Verified · Blocked/Deferred — keep software, live-flow and hardware columns separate.
+
+**Minimal task record:** requirement IDs; Notion revision; source full SHA/branch; owned files; deployed identity/flags; current gaps; planned checks; actual results; merge/deploy/hardware state; blocker/next action. No secrets, credentials or customer financial details in evidence.
+
 ## Cursor Cloud specific instructions — owner decision 2026-10-11
 
 - The owner works from the Mac or, when it is unavailable, from a phone through Cursor cloud agents. Both use this GitHub repository (`RionishJovian/Hostinger`, private). It is the only source of truth for code and docs; the Mac copy must `git pull` before starting work.

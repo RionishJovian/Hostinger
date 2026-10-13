@@ -1242,6 +1242,13 @@ artifact sha256 f0c1b306216acddd7b2e80f5865b8c0048b2c301435feaf9e91eb0cb0cbb04ca
 
 **No router contact.** First-shop setup screen now uses B2B owner language (save guest Wi-Fi page in MikroMagic vs send to router). Settings-changes flag remained off.
 
+### Notion consolidation acknowledgement — 2026-10-13
+
+- Re-fetched Notion START HERE index, page **07** (mandatory before-build/QA) and page **08** (evidence/gaps) after the 2026-10-13 consolidation.
+- Installed page 07 into repository `AGENTS.md` (section *Mandatory before every requirement build*), `MIKROMAGIC-REQUIREMENTS.md` (Notion consolidation section), and `REQUIREMENTS-GAP.md` (process sync + A09 conflict note).
+- Baseline unchanged for live product: tip recorded here was handoff commit `689da39` documenting deploy of feature `ffeb131` at `20261013T140828Z`, migration **061**, public bundle `index-CeJ3d2Kb.js`. No deploy or router contact in this docs-only acknowledgement.
+- Open for later work (not resolved here): A09 renewal-only vs Subscription+Account; ChatGPT G01 still needs owner-granted full source access beyond the CSS-only zip.
+
 - Next app work (as of 2026-10-12 09:00 UTC+6:30, live at migration 049, commit `13d40af`):
   - Terminology and Burmese (P0a) owner-facing chrome is live across SME pages including Integrations, Did you know?, guided first-shop acceptance, Magic Boy, Media, Account, Sites, Revenue, Payments and Packages/Passes. Platform screens stay English. Native-speaker/mobile QA remains open.
   - Routers page guided (P0a step 5): Connect your router steps first; Magic Hub, connection plans and Safe RouterOS changes under a closed Advanced (technician) section that opens when a change needs attention.

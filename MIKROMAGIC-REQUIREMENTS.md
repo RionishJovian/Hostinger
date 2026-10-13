@@ -4,7 +4,18 @@ _Source: authoritative Notion page, frozen 2026-10-08. Synced 2026-10-08._
 
 _Clarification synced 2026-10-09 from the authoritative Notion tracker; frozen v1 scope remains in force._
 
+_Notion consolidation synced 2026-10-13: tracker is a short index (pages 01–09); mandatory before-build procedure is Notion page 07 and `AGENTS.md`._
+
 > **Authoritative product requirements — updated 2026-10-07.** Build against the confirmed rules below. Future decisions should be added incrementally instead of blocking implementation.
+
+## Notion consolidation — 2026-10-13 (START HERE + domain pages)
+
+- Official tracker index: [MikroMagic — Requirements & Implementation Tracker](https://www.notion.so/3f2489e3dbb681cc9d2de66befe42255). Read current requirements by domain; use the preserved original archive only for provenance/conflicts.
+- Domain pages: **01** Architecture/MikroTik/Safe Change · **02** Internet vouchers/printing/dealers · **03** Accounts/subscriptions/Developer/Agents · **04** Managed devices/topology/monitoring · **05** App-wide UX/Midnight Studio/localization · **06** Jellyfin Media Passes · **07** Mandatory before-build reconciliation and QA · **08** Current evidence and gaps · **09** Source coverage register (lookup only).
+- **Mandatory before every requirement build:** refresh Notion index + applicable domain + page 07/08 → inspect GitHub full SHA, instructions, tests, ownership → inspect live route/bundle/release/migration/flags → reconcile Present/Partial/Missing/Conflict/Not verifiable → declare the small task and acceptance checks → then build. Repeat before merge/deploy. Mocks or screenshots cannot stand in for real workflow/hardware verification. Full procedure text lives in repository `AGENTS.md` (section *Mandatory before every requirement build*).
+- Ownership: Cursor leads C01–C07 (workflows/engine/backend/security/device/Jellyfin, merge/deploy; shared localization dictionaries/formatters and router UI/infra reserved). ChatGPT supports G01–G06 on handed-off presentation files only; current G01 handoff is `src/styles.css` + `src/sme-localization.css` only.
+- Product boundaries (index): Hostinger / `megamagic.tech`; MikroTik local HotSpot enforcement; one SME Owner/Admin; hybrid minimalist UX with Midnight Studio selected; Internet Pass and Media Pass separate; Jellyfin-only; Router Connected requires fresh authenticated device evidence; portal cloud save ≠ router-installed files ≠ First Customer Test.
+- Priority: owner-directed P0b connection/HotSpot/portal/customer gates first; independent P0a support may proceed on handed-off files; then P1–P4. Preserve working functions and confirmed scope.
 ## Product architecture
 - **MikroTik = local gateway + HotSpot authentication/enforcement engine.**
 - **MikroMagic = cloud control plane + synchronization + monitoring + multi-site coordination.**

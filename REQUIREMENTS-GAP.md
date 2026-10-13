@@ -4,6 +4,15 @@ Audit date: 2026-10-08 (stale rows corrected 2026-10-10; see "Corrections — 20
 Authority: [`MIKROMAGIC-REQUIREMENTS.md`](MIKROMAGIC-REQUIREMENTS.md), synchronized from the frozen Notion tracker.  
 Baseline preserved: Build 21; 281 Python tests and the production frontend build passed before this audit. Current regression figures are recorded after the fourth frozen-v1 P0 implementation pass below; real infrastructure acceptance remains separate.
 
+## Notion process sync — 2026-10-13
+
+- Tracker consolidated into START HERE + domain pages 01–09. Current evidence and clause-level gaps for agents: Notion page **08**; mandatory pre-build/QA gate: Notion page **07** and repository `AGENTS.md`.
+- Before every requirement build and before merge/deploy: reconcile Notion ↔ source full SHA ↔ live release/bundle/migration/flags. Keep Not Done / Partial / Implemented+Tested / Deployed / Verified / Blocked / Deferred separate for software, live-flow and hardware.
+- **A09 open conflict (do not silently resolve):** owner expiry wording says renewal-only sign-in; deployed checkpoint (migration 044 / `SubscriptionRenewal`) allows **Subscription + Account** while other business APIs return 403. Treat as a documented Conflict until the owner confirms whether Account is an intentional security exception to renewal-only.
+- **Q74:** answered A (client-count groups collapsed by default) — do not re-ask.
+- **G01:** CSS-only zip tip `689da39` is not a full checkout; ChatGPT needs owner-granted GitHub read or a secret-free full archive of current `main` before claiming full-app build/QA.
+- Previous coarse overall percentages (e.g. 15.9%) are not current; do not invent a new overall percentage from mixed subtask counts.
+
 ## Classification
 
 - ✅ Implemented and verified — implemented in Build 21 and covered by local automated verification.
