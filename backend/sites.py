@@ -5,11 +5,26 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from .models import Site,SiteMaintenance,RouterDevice,RouterPlan
 from .schemas import SiteIn,SiteSettingsIn,RouterIn
+from .hub_orchestrator import connection_is_fresh
 
 def allowed_site(s,u,id):
  site=s.get(Site,id)
  if not site or site.tenant_id!=u.tenant_id:raise HTTPException(404,'Site not found')
  return site
+
+def router_list_fields(plan,now=None):
+ """Derive list connection fields from the router plan; never invent Connected."""
+ if not plan:
+  return {'connection_state':'unverified','connection_verified':False,'hub_id':None,'last_handshake':None,'lifecycle_state':None,'management_read_verified_at':None}
+ verified=connection_is_fresh(plan,now)
+ return {
+  'connection_state':'verified' if verified else 'unverified',
+  'connection_verified':verified,
+  'hub_id':plan.hub_id,
+  'last_handshake':plan.handshake_verified_at,
+  'lifecycle_state':plan.lifecycle_state,
+  'management_read_verified_at':plan.management_read_verified_at,
+ }
 
 def register_sites(app,current,db,owner,log):
  @app.get('/v1/sites')
@@ -38,11 +53,14 @@ def register_sites(app,current,db,owner,log):
   if u.role not in ['sme','platform']:raise HTTPException(403,'Router registry permission required')
   q=select(RouterDevice)
   if u.role=='sme':q=q.where(RouterDevice.tenant_id==u.tenant_id)
-  planned={p.router_id:p.hub_id for p in s.scalars(select(RouterPlan).where(RouterPlan.tenant_id==u.tenant_id) if u.role=='sme' else select(RouterPlan))}
-  return [{k:getattr(x,k) for k in ['id','tenant_id','site_id','name','model','reported_routeros','created']}|{'connection_state':'unverified','hub_id':planned.get(x.id),'last_handshake':None,'metadata_source':'owner_reported'} for x in s.scalars(q.order_by(RouterDevice.created.desc()))]
+  plans=select(RouterPlan)
+  if u.role=='sme':plans=plans.where(RouterPlan.tenant_id==u.tenant_id)
+  planned={p.router_id:p for p in s.scalars(plans)}
+  now=int(time.time())
+  return [{k:getattr(x,k) for k in ['id','tenant_id','site_id','name','model','reported_routeros','created']}|router_list_fields(planned.get(x.id),now)|{'metadata_source':'owner_reported'} for x in s.scalars(q.order_by(RouterDevice.created.desc()))]
  @app.post('/v1/routers',status_code=201)
  def register_router(b:RouterIn,u=Depends(current),s=Depends(db)):
   owner(u);allowed_site(s,u,b.site_id);x=RouterDevice(tenant_id=u.tenant_id,**b.model_dump(),registered_by=u.id,created=int(time.time()));s.add(x)
   try:s.flush();log(s,u,'router_registered',x.id);s.commit()
   except IntegrityError:s.rollback();raise HTTPException(409,'Router name already registered at this site')
-  return {'id':x.id,'connection_state':'unverified','hub_id':None}
+  return {'id':x.id,'connection_state':'unverified','connection_verified':False,'hub_id':None,'lifecycle_state':None}

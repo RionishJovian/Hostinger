@@ -10,21 +10,32 @@ function SummaryCard({icon:Icon,label,value,note,onClick}){
 function useOverviewText(){
  const {t:message}=useSMELocalization();
  const t={};
- for(const key of ['health','question','attention','summary','shops','gateways','switches','aps','customers','vouchers','notConnected','unable','noRouter','unverified','siteNeeded','payments','paymentsHint','noKnown','routerAction','siteAction','paymentAction','networkAction','maintenance','maintenanceHint','getHelp','getHelpHint','countNote','apNote','switchNote','customerNote','voucherNote','unavailable','netCollections','revenueNote'])t[key]=message('overview',key);
+ for(const key of ['health','question','attention','summary','shops','gateways','switches','aps','customers','vouchers','notConnected','unable','connected','noRouter','unverified','connectedBody','siteNeeded','payments','paymentsHint','noKnown','routerAction','siteAction','paymentAction','networkAction','maintenance','maintenanceHint','getHelp','getHelpHint','countNote','apNote','switchNote','customerNote','voucherNote','unavailable','netCollections','revenueNote'])t[key]=message('overview',key);
  return t;
+}
+
+function routerConnectionTone(routers){
+ const fresh=routers.some(router=>router.connection_verified||router.connection_state==='verified');
+ const ever=routers.some(router=>router.lifecycle_state==='connected'||router.management_read_verified_at||router.connection_verified||router.connection_state==='verified');
+ if(fresh)return 'connected';
+ if(ever||routers.length)return 'unable';
+ return 'offline';
 }
 
 export default function OverviewHealth({sites=[],routers=[],pendingPayments,navigate}){
  const t=useOverviewText();
  const noRouter=routers.length===0;
- const fix=noRouter&&!sites.length?{message:`${t.siteNeeded} ${t.noRouter}`,action:t.siteAction,page:'Sites'}:{message:noRouter?t.noRouter:t.unverified,action:t.routerAction,page:'Routers'};
+ const tone=routerConnectionTone(routers);
+ const fix=noRouter&&!sites.length?{message:`${t.siteNeeded} ${t.noRouter}`,action:t.siteAction,page:'Sites'}:tone==='connected'?{message:t.connectedBody,action:t.routerAction,page:'Routers'}:{message:noRouter?t.noRouter:t.unverified,action:t.routerAction,page:'Routers'};
+ const healthLabel=noRouter?t.notConnected:tone==='connected'?t.connected:t.unable;
+ const healthDot=noRouter?'is-offline':tone==='connected'?'is-online':'is-unknown';
  const issues=[];
  const now=Date.now()/1000;
  for(const site of sites)if(site.maintenance_until>now)issues.push({message:t.maintenance(site.name,new Date(site.maintenance_until*1000).toLocaleTimeString('en-GB',{timeZone:site.timezone,hour:'2-digit',minute:'2-digit'})),detail:t.maintenanceHint,action:t.siteAction,page:'Sites'});
  if(Number.isFinite(pendingPayments)&&pendingPayments>0)issues.push({message:t.payments(pendingPayments),detail:t.paymentsHint,action:t.paymentAction,page:'Payments'});
  return <section className="overview-priorities" aria-label={t.health}>
   <div className="overview-health panel">
-   <div><span className="overview-kicker"><WifiHigh size={18}/>{t.health}</span><h2>{t.question}</h2><div className="overview-health-state"><span className={'overview-health-dot '+(noRouter?'is-offline':'is-unknown')}/><strong>{noRouter?t.notConnected:t.unable}</strong></div><p>{fix.message}</p><div className="buttons"><button type="button" className="button" onClick={()=>navigate(fix.page)}>{fix.action}<ArrowRight size={16}/></button><button type="button" className="button secondary" title={t.getHelpHint} onClick={()=>navigate('Get help')}>{t.getHelp}</button></div></div>
+   <div><span className="overview-kicker"><WifiHigh size={18}/>{t.health}</span><h2>{t.question}</h2><div className="overview-health-state"><span className={'overview-health-dot '+healthDot}/><strong>{healthLabel}</strong></div><p>{fix.message}</p><div className="buttons"><button type="button" className="button" onClick={()=>navigate(fix.page)}>{fix.action}<ArrowRight size={16}/></button><button type="button" className="button secondary" title={t.getHelpHint} onClick={()=>navigate('Get help')}>{t.getHelp}</button></div></div>
   </div>
   <section className="overview-attention panel" aria-labelledby="overview-attention-title">
    <div className="panelhead"><h2 id="overview-attention-title"><WarningCircle size={20}/>{t.attention}</h2></div>

@@ -19,9 +19,31 @@ class SiteTests(unittest.TestCase):
   body={'site_id':site,'name':'Gateway','model':'hAP ax3','reported_routeros':'owner reported'}
   self.assertEqual(self.client.post('/v1/routers',headers=other,json=body).status_code,404)
   self.assertEqual(self.client.post('/v1/routers',headers=owner,json={**body,'connection_state':'online'}).status_code,422)
-  response=self.client.post('/v1/routers',headers=owner,json=body);self.assertEqual(response.status_code,201);self.assertEqual(response.json()['connection_state'],'unverified')
+  response=self.client.post('/v1/routers',headers=owner,json=body);self.assertEqual(response.status_code,201);self.assertEqual(response.json()['connection_state'],'unverified');self.assertFalse(response.json()['connection_verified'])
   self.assertEqual(self.client.get('/v1/routers',headers=other).json(),[]);self.assertEqual(self.client.get('/v1/routers',headers=guest).status_code,403)
-  fleet=self.client.get('/v1/routers',headers=platform).json();self.assertEqual(len(fleet),1);self.assertIsNone(fleet[0]['last_handshake']);self.assertIsNone(fleet[0]['hub_id'])
+  fleet=self.client.get('/v1/routers',headers=platform).json();self.assertEqual(len(fleet),1);self.assertIsNone(fleet[0]['last_handshake']);self.assertIsNone(fleet[0]['hub_id']);self.assertFalse(fleet[0]['connection_verified']);self.assertIsNone(fleet[0]['lifecycle_state'])
+ def test_router_list_connection_state_follows_plan_freshness(self):
+  import base64,time
+  from backend.models import RouterPlan,MagicHub,HubAssignment,User
+  from sqlalchemy import select
+  owner=self.login('owner');platform=self.login('platform');site=self.site(owner,'Cafe')
+  router=self.client.post('/v1/routers',headers=owner,json={'site_id':site,'name':'Gateway','model':'hAP ax2','reported_routeros':'7.24'}).json()['id']
+  key=lambda n:base64.b64encode(bytes([n])*32).decode()
+  hub=self.client.post('/v1/hubs',headers=platform,json={'name':'Hub','endpoint':'hub.example.com','pool':'10.90.1.0/24','public_key':key(1),'interface_name':'wg-mm'}).json()['id']
+  with self.app.state.factory() as s:tenant=s.get(User,self.users['owner']).tenant_id
+  self.client.post('/v1/hubs/'+hub+'/assignments',headers=platform,json={'tenant_id':tenant})
+  plan=self.client.post('/v1/routers/'+router+'/plan',headers=owner,json={'hub_id':hub,'router_public_key':key(2)}).json()['id']
+  listed=self.client.get('/v1/routers',headers=owner).json()[0]
+  self.assertEqual(listed['hub_id'],hub);self.assertEqual(listed['connection_state'],'unverified');self.assertFalse(listed['connection_verified']);self.assertIsNone(listed['last_handshake'])
+  now=int(time.time())
+  with self.app.state.factory() as s:
+   row=s.get(RouterPlan,plan);row.lifecycle_state='connected';row.handshake_verified_at=now-30;row.management_read_verified_at=now-20;s.commit()
+  fresh=self.client.get('/v1/routers',headers=owner).json()[0]
+  self.assertEqual(fresh['connection_state'],'verified');self.assertTrue(fresh['connection_verified']);self.assertEqual(fresh['lifecycle_state'],'connected');self.assertEqual(fresh['last_handshake'],now-30);self.assertEqual(fresh['management_read_verified_at'],now-20)
+  with self.app.state.factory() as s:
+   row=s.get(RouterPlan,plan);row.handshake_verified_at=now-600;row.management_read_verified_at=now-500;s.commit()
+  stale=self.client.get('/v1/routers',headers=owner).json()[0]
+  self.assertEqual(stale['connection_state'],'unverified');self.assertFalse(stale['connection_verified']);self.assertEqual(stale['lifecycle_state'],'connected');self.assertEqual(stale['last_handshake'],now-600)
  def test_site_portals_are_independent_and_do_not_replace_legacy(self):
   owner=self.login('owner');guest=self.login('guest');other=self.login('other');a=self.site(owner,'A');b=self.site(owner,'B');self.publish(owner,a,'Counter A');self.publish(owner,b,'Counter B')
   def public(site):return self.client.get('/v1/portal/public',headers=guest,params={'site_id':site}).json()
