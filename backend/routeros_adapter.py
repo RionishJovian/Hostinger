@@ -564,6 +564,51 @@ def list_dhcp_networks(client:RouterOSClient):
  return _records(client.get('ip/dhcp-server/network',optional=True))
 
 
+def _health_temperature(rows):
+ """Pick a Celsius reading from /system/health when the board exposes one."""
+ for item in _records(rows):
+  name=str(item.get('name') or item.get('type') or '').lower()
+  if 'temp' not in name and 'temperature' not in name:continue
+  value=item.get('value') if item.get('value') is not None else item.get('temperature')
+  try:return float(value)
+  except (TypeError,ValueError):continue
+ return None
+
+
+def _optional_int(value):
+ if value is None or value=='':return None
+ try:return max(0,int(float(str(value))))
+ except (TypeError,ValueError):return None
+
+
+def read_router_health(client:RouterOSClient):
+ """Monitoring read of resource, optional sensors and DHCP server presence."""
+ resource=_first(client.get('system/resource')) or {}
+ health_rows=client.get('system/health',optional=True)
+ dhcp=list_dhcp_servers(client)
+ leases=client.get('ip/dhcp-server/lease?.proplist=.id,address,status,server',optional=True)
+ lease_rows=_records(leases) if leases is not None else None
+ active_leases=None
+ if lease_rows is not None:
+  active_leases=sum(1 for item in lease_rows if item.get('address') or str(item.get('status') or '').lower()=='bound')
+ return {
+  'cpu_load_percent':_optional_int(resource.get('cpu-load')),
+  'cpu_count':_optional_int(resource.get('cpu-count')),
+  'free_memory_bytes':_optional_int(resource.get('free-memory')),
+  'total_memory_bytes':_optional_int(resource.get('total-memory')),
+  'free_hdd_bytes':_optional_int(resource.get('free-hdd-space')),
+  'total_hdd_bytes':_optional_int(resource.get('total-hdd-space')),
+  'uptime_seconds':_duration_seconds(str(resource.get('uptime') or '')),
+  'temperature_c':_health_temperature(health_rows),
+  'board_name':resource.get('board-name') or None,
+  'version':resource.get('version') or None,
+  'architecture':resource.get('architecture-name') or None,
+  'dhcp_server_count':len(dhcp),
+  'dhcp_lease_count':active_leases,
+  'health_sensors_available':health_rows is not None,
+ }
+
+
 def list_hotspot_servers(client:RouterOSClient):
  return _records(client.get('ip/hotspot',optional=True))
 

@@ -315,6 +315,8 @@ def make_app(url=None,initialize=False):
  register_hotspot_sync(app,current,db,log)
  from .hotspot_accounting import register_hotspot_accounting
  register_hotspot_accounting(app,current,db,log)
+ from .router_health import register_router_health
+ register_router_health(app,current,db,log)
  from .routeros_preflight import register_routeros_preflight
  register_routeros_preflight(app,current,db,log)
  from .safe_changes import register_safe_changes

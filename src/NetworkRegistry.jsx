@@ -77,6 +77,7 @@ export function RouterRegistry({ sites, routers, act, api, busy, platform = fals
   const [preflight, setPreflight] = useState(null);
   const [sync, setSync] = useState(null);
   const [sessions, setSessions] = useState(null);
+  const [health, setHealth] = useState(null);
   const [hubSetup, setHubSetup] = useState(false);
 
   useEffect(() => {
@@ -145,12 +146,29 @@ export function RouterRegistry({ sites, routers, act, api, busy, platform = fals
             }}>{c.syncVouchers}</button> <button className="button secondary" disabled={busy} onClick={async () => {
               const result = await act(`routers/${router.id}/hotspot-sessions/collect`, {});
               if (result) setSessions({ ...result, router: router.name });
-            }}>{c.collectSessions}</button></td>}
+            }}>{c.collectSessions}</button> <button className="button secondary" disabled={busy} onClick={async () => {
+              const result = await act(`routers/${router.id}/health/collect`, {});
+              if (result) setHealth({ ...result, router: router.name });
+            }}>{c.collectHealth}</button></td>}
           </tr>)}
           {!routers.length && <tr><td colSpan={platform ? 5 : 6}>{c.empty}</td></tr>}</tbody>
         </table>
       </div>
     </section>
+    {health && <section className="panel">
+      <div className="panelhead"><h2>{c.healthTitle} · {health.router}</h2><button className="button secondary" onClick={() => setHealth(null)}>{c.close}</button></div>
+      <div className="details">
+        <p><b>{c.healthStatus}</b>{health.status}</p>
+        <p><b>{c.healthFreshness}</b>{health.freshness}</p>
+        <p><b>{c.healthCpu}</b>{health.metrics?.cpu_load_percent == null ? c.sessionsUnavailable : `${health.metrics.cpu_load_percent}%`}</p>
+        <p><b>{c.healthMemory}</b>{health.metrics?.free_memory_bytes == null || health.metrics?.total_memory_bytes == null ? c.sessionsUnavailable : c.healthBytes(health.metrics.free_memory_bytes, health.metrics.total_memory_bytes)}</p>
+        <p><b>{c.healthTemp}</b>{health.metrics?.temperature_c == null ? c.healthTempMissing : `${health.metrics.temperature_c} °C`}</p>
+        <p><b>{c.healthDhcp}</b>{health.metrics == null ? c.sessionsUnavailable : c.healthDhcpDetail(health.metrics.dhcp_server_count, health.metrics.dhcp_lease_count)}</p>
+        <p><b>{c.healthUptime}</b>{health.metrics?.uptime_seconds == null ? c.sessionsUnavailable : c.healthUptimeDetail(health.metrics.uptime_seconds)}</p>
+      </div>
+      {health.aborted && <div className="callout">{c.healthAborted}</div>}
+      <div className="callout">{health.detail || c.healthNote}</div>
+    </section>}
     {sync && <section className="panel">
       <div className="panelhead"><h2>{c.syncTitle} · {sync.router}</h2><button className="button secondary" onClick={() => setSync(null)}>{c.close}</button></div>
       <div className="details">

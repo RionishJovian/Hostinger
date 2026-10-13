@@ -32,7 +32,7 @@ class GuestVlanMigrationTests(unittest.TestCase):
                         )
                 command.upgrade(cfg, 'head')
                 with sqlite3.connect(database) as db:
-                    self.assertEqual(db.execute('SELECT version_num FROM alembic_version').fetchone()[0], '059')
+                    self.assertEqual(db.execute('SELECT version_num FROM alembic_version').fetchone()[0], '060')
                     db.execute(
                         "INSERT INTO router_changes (id,tenant_id,router_id,operation,resource_id,risk,status,revision,before,desired,actual,expected,diff,before_fingerprint,backup_id,safety_backup_verified,confirmed_at,gateway_deadline,last_probe_at,recovery_evidence,conflict_detected_at,conflict_history_until,resolution_choice,rollback_attempted,created_by,created,updated,error_code) "
                         "VALUES ('c','t','r','guest_vlan_external_ap','*A','high','previewed',1,'{}','{}',NULL,NULL,'{}','digest',NULL,0,NULL,NULL,NULL,NULL,NULL,NULL,NULL,0,'u',1,1,NULL)"
