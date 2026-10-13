@@ -3,6 +3,7 @@ import {VoucherPayment} from './VoucherPayments.jsx';
 import {saleLabel} from './voucher-sales.mjs';
 import {passServiceName} from './sme-terms.mjs';
 import {useSmeCopy,useSmeFormat} from './SMELocalization.jsx';
+import {getGuestMessage} from './guest-localization.mjs';
 function Field({label,children}){return <label className="field"><span>{label}</span>{children}</label>}
 function VoucherActions({v,reason,setReason,act,busy}){
  const c=useSmeCopy('vouchers');
@@ -29,6 +30,8 @@ export function VoucherInventory({sites=[],packages,vouchers,act,busy,view='all'
   {list&&<><section className="panel"><div className="panelhead"><h2>{c.inventory}</h2></div><div className="tablewrap"><table><thead><tr>{[c.colCode,c.colStatus,c.colDeadline,c.colPayment,c.colActions].map(h=><th key={h}>{h}</th>)}</tr></thead><tbody>{vouchers.map(v=><tr key={v.id}><td>{v.code_prefix?v.code_prefix+'-':''}•••• {v.code_hint}<small>{v.policy.name}{v.serial_no!=null?' · SN '+String(v.serial_no).padStart(6,'0'):''}</small><small>{sites.find(s=>s.id===v.site_id)?.name||v.site_id||c.businessWide}</small><small>{v.id}</small></td><td>{status(v.status)}<small>{c.activation}</small></td><td>{when(v.expires)}</td><td><small>{saleLabel(v.sale)}{v.cancelled_sales?.length?c.cancelled(v.cancelled_sales.length):''}</small><button className="button secondary" onClick={()=>setReview(v.id)}>{c.openSale}</button></td><td>{v.status!=='revoked'?<VoucherActions v={v} reason={reasons[v.id]||''} setReason={value=>setReasons({...reasons,[v.id]:value})} act={act} busy={busy}/>:v.reason}{v.router_sync&&<small>{c.pending(v.router_sync)}</small>}</td></tr>)}{!vouchers.length&&<tr><td colSpan={5}>{c.empty}</td></tr>}</tbody></table></div></section>{reviewed&&<VoucherPayment key={reviewed.id} voucher={reviewed} act={act} busy={busy}/>}</>}
  </>
 }
-export function RedeemVoucher({act,busy,go,siteId=null}){
- const [code,setCode]=useState('');return <section className="voucher-redeem"><h3>Already have a voucher?</h3><form onSubmit={async e=>{e.preventDefault();if(await act('vouchers/redeem',{code,site_id:siteId})){setCode('');go('My access')}}}><Field label="Voucher code"><input required minLength={6} maxLength={64} autoComplete="off" spellCheck={false} value={code} onChange={e=>setCode(e.target.value.toUpperCase())} placeholder="Enter the complete code"/></Field><button className="button" disabled={busy||!code.trim()}>Redeem voucher</button></form><p className="muted">Redemption creates your stored pass. Internet and playback access await the shop's router.</p></section>
+export function RedeemVoucher({act,busy,go,siteId=null,language='my'}){
+ const [code,setCode]=useState('');
+ const t=(key)=>getGuestMessage(language,'redeem',key);
+ return <section className="voucher-redeem"><h3>{t('title')}</h3><form onSubmit={async e=>{e.preventDefault();if(await act('vouchers/redeem',{code,site_id:siteId})){setCode('');go('My access')}}}><Field label={t('code')}><input required minLength={6} maxLength={64} autoComplete="off" spellCheck={false} value={code} onChange={e=>setCode(e.target.value.toUpperCase())} placeholder={t('placeholder')}/></Field><button className="button" disabled={busy||!code.trim()}>{t('submit')}</button></form><p className="muted">{t('note')}</p></section>
 }
