@@ -345,6 +345,8 @@ def make_app(url=None,initialize=False):
  register_hubs(app,current,db,owner,log)
  from .magic_connect import register_magic_connect
  register_magic_connect(app,current,db,owner,log,resolve_client_ip,digest)
+ from .magic_hub_connect import register_magic_hub_connect
+ register_magic_hub_connect(app,current,db,owner,log)
  from .revenue import register_revenue
  register_revenue(app,current,db,owner)
  from .appearance import register_appearance

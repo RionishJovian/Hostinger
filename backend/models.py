@@ -630,6 +630,50 @@ class MagicConnectEvent(Base):
  created:Mapped[int]=mapped_column(BigInteger)
  __table_args__=(CheckConstraint("actor_kind in ('owner','technician','system')"),)
 
+class MagicHubConnectToken(Base):
+ """One-paste Magic Hub enrollment token (owner click = approval). Not Connected evidence."""
+ __tablename__='magic_hub_connect_tokens'
+ id:Mapped[str]=mapped_column(String(36),primary_key=True,default=uid)
+ tenant_id:Mapped[str]=mapped_column(ForeignKey('tenants.id'),index=True)
+ router_id:Mapped[str]=mapped_column(ForeignKey('router_devices.id'),index=True)
+ owner_id:Mapped[str]=mapped_column(ForeignKey('users.id'))
+ attempt_id:Mapped[str]=mapped_column(ForeignKey('magic_connect_attempts.id'),index=True)
+ token_hash:Mapped[str]=mapped_column(String(64),unique=True)
+ status:Mapped[str]=mapped_column(String(32),default='waiting',server_default='waiting')
+ failure_code:Mapped[str|None]=mapped_column(String(60),nullable=True)
+ failure_message:Mapped[str|None]=mapped_column(String(500),nullable=True)
+ detection_facts:Mapped[dict|None]=mapped_column(JSON,nullable=True)
+ model_mismatch:Mapped[bool]=mapped_column(Boolean,default=False,server_default='0')
+ version_mismatch:Mapped[bool]=mapped_column(Boolean,default=False,server_default='0')
+ created:Mapped[int]=mapped_column(BigInteger)
+ expires:Mapped[int]=mapped_column(BigInteger)
+ consumed_at:Mapped[int|None]=mapped_column(BigInteger,nullable=True)
+ peer_provisioned_at:Mapped[int|None]=mapped_column(BigInteger,nullable=True)
+ management_applied_at:Mapped[int|None]=mapped_column(BigInteger,nullable=True)
+ connected_at:Mapped[int|None]=mapped_column(BigInteger,nullable=True)
+ __table_args__=(
+  CheckConstraint("status in ('waiting','reported','peer_added','awaiting_handshake','management_applied','finishing','connected','failed','expired','revoked')",name='ck_magic_hub_connect_tokens_status'),
+  CheckConstraint('expires > created',name='ck_magic_hub_connect_tokens_expires'),
+ )
+
+class RouterPlanRetirement(Base):
+ """Archive when a plan is revoked so a reset router can re-run one-paste connect."""
+ __tablename__='router_plan_retirements'
+ id:Mapped[str]=mapped_column(String(36),primary_key=True,default=uid)
+ tenant_id:Mapped[str]=mapped_column(ForeignKey('tenants.id'),index=True)
+ router_id:Mapped[str]=mapped_column(ForeignKey('router_devices.id'),index=True)
+ plan_id:Mapped[str]=mapped_column(String(36))
+ hub_id:Mapped[str]=mapped_column(String(36))
+ router_public_key:Mapped[str]=mapped_column(String(44))
+ address:Mapped[str]=mapped_column(String(15))
+ snapshot:Mapped[dict]=mapped_column(JSON)
+ lifecycle_state:Mapped[str]=mapped_column(String(32))
+ lock_reason:Mapped[str|None]=mapped_column(String(500),nullable=True)
+ attempt_id:Mapped[str|None]=mapped_column(String(36),nullable=True)
+ retired_by:Mapped[str]=mapped_column(ForeignKey('users.id'))
+ retired_at:Mapped[int]=mapped_column(BigInteger)
+ reason:Mapped[str]=mapped_column(String(500))
+
 class RouterEvidence(Base):
  __tablename__='router_evidence'
  id:Mapped[str]=mapped_column(String(36),primary_key=True,default=uid)

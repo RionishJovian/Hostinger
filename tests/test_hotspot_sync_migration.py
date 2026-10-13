@@ -24,7 +24,7 @@ class HotspotSyncMigrationTests(unittest.TestCase):
                     before = db.execute("SELECT sql FROM sqlite_master WHERE name='vouchers'").fetchone()[0]
                 command.upgrade(cfg, 'head')
                 with sqlite3.connect(database) as db:
-                    self.assertEqual(db.execute('SELECT version_num FROM alembic_version').fetchone()[0], '057')
+                    self.assertEqual(db.execute('SELECT version_num FROM alembic_version').fetchone()[0], '058')
                     after = db.execute("SELECT sql FROM sqlite_master WHERE name='vouchers'").fetchone()[0]
                     self.assertEqual(before.count('CHECK'), after.count('CHECK'))
                     self.assertIn('code_sealed', {row[1] for row in db.execute('PRAGMA table_info(vouchers)')})
