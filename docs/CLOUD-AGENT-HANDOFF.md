@@ -29,6 +29,7 @@ Start every task: `git fetch origin && git merge --ff-only origin/main`. Finish 
 | Per-router REST serialization | `8f9e6e2` @ 20261013T093530Z | Live; flag off; advisory lock on `RouterOSClient` sessions |
 | Safe Change backup completeness | `c362d5d` @ 20261013T094841Z | Live; truncated exports refused (`backup_incomplete`) |
 | GET /v1/routers connection_state | `e7c8eb3` @ 20261013T100051Z | Live; Connected only with fresh plan evidence |
+| Router list / Overview connection UI | this branch | Connected / Unable to Verify / Unverified from plan lifecycle + freshness |
 | RouterOS REST study | `a362868` → `docs/ROUTEROS-REST-API-NOTES.md` | Written |
 
 ## Priority next (software, no router)
@@ -38,7 +39,7 @@ Owner order: MikroTik / captive portal ahead of remaining P0a. ChatGPT owns G01�
 1. ~~**Guest VLAN for external AP**~~ — shipped; flag off.
 2. ~~**Per-router REST serialization**~~ — shipped `8f9e6e2` @ 20261013T093530Z.
 3. ~~**Safe Change backup completeness**~~ — shipped `c362d5d` @ 20261013T094841Z.
-4. ~~**GET /v1/routers connection_state**~~ — shipped `e7c8eb3` @ 20261013T100051Z.
+4. ~~**GET /v1/routers connection_state**~~ — shipped `e7c8eb3` @ 20261013T100051Z; UI wired on this branch.
 5. HotSpot cookie removal on voucher disable/revoke — **next**.
 6. Add `safe_change_worker` to Hostinger compose with reviewed `ALLOW_INFRA_CHANGE=1`.
 7. Do **not** enable `MIKROMAGIC_ROUTER_SETTINGS_CHANGES` on production until the owner opens a hardware window.
