@@ -35,18 +35,23 @@ class LocalPortalPackageTests(unittest.TestCase):
             self.assertIn('lang="my"', login)
             self.assertIn('data-lang="my"', login)
             self.assertIn('data-lang="en"', login)
-            self.assertIn('Voucher', login)
+            self.assertIn('Wi-Fi ကုဒ်', login)
             self.assertIn('ချိတ်ဆက်ရန်', login)
+            self.assertIn('class="sheet"', login)
+            self.assertIn('class="seal"', login)
+            self.assertIn('lantern', manifest.get('theme', ''))
             self.assertIn('$(chap-id)', login)
             self.assertIn('$(chap-challenge)', login)
             self.assertIn('$(username)', login)
             self.assertNotIn('http-pap', login)
+            self.assertNotIn('https://', login)
             self.assertNotRegex(login, r'<input[^>]*type="password"', 'single voucher field only')
             self.assertIn('$(error)', flogin)
             self.assertIn('ကုဒ် မှားနေပါသည်', flogin)
             self.assertIn('Too many devices', flogin)
-            self.assertEqual(manifest.get('guest_ui'), 'burmese_first_single_voucher_field')
+            self.assertEqual(manifest.get('guest_ui'), 'lantern_leaf_burmese_first_single_voucher_field')
             self.assertEqual(manifest.get('guest_language'), 'both')
+            self.assertEqual(manifest.get('theme'), 'lantern_leaf')
             self.assertIn('router_compatibility_verified', manifest)
             self.assertFalse(manifest['router_compatibility_verified'])
             self.assertLess(len(package), 128_000)
@@ -62,7 +67,7 @@ class LocalPortalPackageTests(unittest.TestCase):
             login = archive.read('login.html').decode()
             flogin = archive.read('flogin.html').decode()
             self.assertEqual(manifest['guest_language'], 'my')
-            self.assertEqual(manifest['guest_ui'], 'myanmar_only_single_voucher_field')
+            self.assertEqual(manifest['guest_ui'], 'lantern_leaf_myanmar_only_single_voucher_field')
             self.assertIn('lang="my"', login)
             self.assertNotIn('data-lang', login)
             self.assertIn('ချိတ်ဆက်ရန်', login)
@@ -81,7 +86,7 @@ class LocalPortalPackageTests(unittest.TestCase):
             login = archive.read('login.html').decode()
             flogin = archive.read('flogin.html').decode()
             self.assertEqual(manifest['guest_language'], 'en')
-            self.assertEqual(manifest['guest_ui'], 'english_only_single_voucher_field')
+            self.assertEqual(manifest['guest_ui'], 'lantern_leaf_english_only_single_voucher_field')
             self.assertIn('lang="en"', login)
             self.assertNotIn('data-lang', login)
             self.assertIn('Connect', login)
@@ -148,6 +153,41 @@ class LocalPortalPackageTests(unittest.TestCase):
         chap_id, challenge = '\xa7', '\x01\x80\xff\x10abc\x9e\x00z'
         result = subprocess.run(['node', '-e', script + ';process.stdout.write(md5(%s+"6ZYRPM"+%s))' % (json.dumps(chap_id), json.dumps(challenge))], capture_output=True, text=True, check=True)
         self.assertEqual(result.stdout, hashlib.md5((chap_id + '6ZYRPM' + challenge).encode('latin-1')).hexdigest())
+
+    def test_payment_card_uses_customizable_bank_fields_without_remote_links(self):
+        settings = PortalConfig(
+            business_name='မင်းလှ Teashop',
+            language='both',
+            direct_purchase=True,
+            voucher_login=True,
+            payment_destination='KBZPay 09 123 456 789',
+            payment_instructions='Send exact amount. Then tell the counter your transaction ID. See also https://example.com/pay',
+            payment_methods=['KBZPay', 'WavePay'],
+        )
+        package = build_local_hotspot_package(settings, tenant_id='tenant_01', site_id='site_01', revision=4)
+        report = validate_local_hotspot_package(package)
+        self.assertTrue(report['valid'])
+        with zipfile.ZipFile(io.BytesIO(package)) as archive:
+            manifest = json.loads(archive.read('portal-manifest.json'))
+            login = archive.read('login.html').decode()
+            self.assertTrue(manifest['payment_card'])
+            self.assertIn('class="pay"', login)
+            self.assertIn('KBZPay 09 123 456 789', login)
+            self.assertIn('Send exact amount', login)
+            self.assertIn('example.com/pay', login)
+            self.assertNotIn('https://', login)
+            self.assertIn('KBZPay', login)
+            self.assertIn('WavePay', login)
+            self.assertIn('ကုဒ် မရှိသေးဘူးလား', login)
+
+    def test_payment_card_hidden_when_direct_purchase_off(self):
+        settings = PortalConfig(business_name='Shop', direct_purchase=False, voucher_login=True)
+        package = build_local_hotspot_package(settings, tenant_id='tenant_01', site_id=None, revision=1)
+        with zipfile.ZipFile(io.BytesIO(package)) as archive:
+            manifest = json.loads(archive.read('portal-manifest.json'))
+            login = archive.read('login.html').decode()
+            self.assertFalse(manifest['payment_card'])
+            self.assertNotIn('class="pay"', login)
 
 
 if __name__ == '__main__': unittest.main()

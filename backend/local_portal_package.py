@@ -15,29 +15,59 @@ FILES = ("login.html", "alogin.html", "flogin.html", "status.html", "logout.html
 MAX_ARCHIVE_BYTES = 128_000
 MAX_FILE_BYTES = 32_000
 
-# Compact guest UI. No remote fonts/CDN; system stack only.
-# `both` keeps Burmese-first toggle CSS; single-language modes omit the toggle rules.
+# Lantern Leaf guest UI — ink/amber/emerald, system fonts only, no CDN/remote assets.
+# Compatible with RouterOS HotSpot servlet HTML size and offline CHAP login.
 _CSS_BASE = (
-    'body{font:16px/1.45 system-ui,sans-serif;margin:0;min-height:100vh;color:#14261f;'
-    'background:linear-gradient(160deg,#e8f3ee 0%,#f7f4ec 55%,#efe8d8 100%)}'
-    'main{max-width:22rem;margin:0 auto;padding:1.25rem 1rem 2rem}'
-    '.brand{font-size:1.35rem;font-weight:700;letter-spacing:-.02em;margin:0 0 .35rem}'
-    '.lead{margin:0 0 1rem;color:#3a5348;font-size:.95rem}'
-    'label{display:block;font-weight:600;margin:.2rem 0}'
-    'input,button.primary{display:block;width:100%;box-sizing:border-box;font:inherit;'
-    'padding:.85rem;margin:.35rem 0 1rem;min-height:48px;border-radius:.55rem;border:1px solid #b7c9bf}'
-    'button.primary{background:#176b50;color:#fff;border:0;font-weight:600}'
-    '#voucher{text-transform:uppercase;letter-spacing:.14em;text-align:center;font-size:1.3rem;font-weight:600}'
+    '*{box-sizing:border-box}html{color-scheme:dark}'
+    'body{margin:0;min-height:100vh;font:16px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,'
+    '"Noto Sans Myanmar","Myanmar Text","Padauk",sans-serif;color:#F3ECDD;'
+    'background:#0A1210;background-image:'
+    'radial-gradient(ellipse 90% 55% at 92% 0%,rgba(242,179,90,.42),transparent 58%),'
+    'radial-gradient(ellipse 70% 45% at 8% 18%,rgba(140,74,28,.28),transparent 55%),'
+    'radial-gradient(ellipse 85% 50% at 20% 100%,rgba(18,73,58,.55),transparent 60%),'
+    'linear-gradient(180deg,#0A1210 0%,#0E1D18 100%)}'
+    '.wrap{min-height:100vh;display:flex;flex-direction:column;padding:1rem 1rem 0;'
+    'max-width:26rem;margin:0 auto}'
+    '.top{display:flex;align-items:center;justify-content:space-between;gap:.75rem;margin:0 0 1rem}'
+    '.seal{width:3rem;height:3rem;border-radius:50%;display:flex;align-items:center;justify-content:center;'
+    'font-weight:700;font-size:1.25rem;color:#FBF4E4;background:rgba(217,138,50,.18);'
+    'border:2px solid #D98A32;box-shadow:inset 0 0 0 1px rgba(242,179,90,.45)}'
+    '.brand{font-size:1.7rem;font-weight:700;line-height:1.3;margin:0 0 .4rem;letter-spacing:0}'
+    '.lead{margin:0 0 1.25rem;color:#CFC6B3;font-size:.95rem;line-height:1.65}'
+    '.sheet{margin-top:auto;background:rgba(14,29,24,.92);border:1px solid rgba(243,236,221,.12);'
+    'border-bottom:0;border-radius:1.35rem 1.35rem 0 0;padding:1.25rem 1.1rem calc(1.25rem + env(safe-area-inset-bottom,0px));'
+    'box-shadow:0 -12px 40px rgba(0,0,0,.35)}'
+    'label{display:block;font-weight:600;margin:0 0 .35rem;color:#F3ECDD;font-size:.9rem}'
+    'input,button.primary,button.secondary{display:block;width:100%;font:inherit;'
+    'padding:.9rem .85rem;margin:0 0 .75rem;min-height:52px;border-radius:.75rem}'
+    'input{background:rgba(243,236,221,.06);color:#F3ECDD;border:1.5px solid rgba(243,236,221,.22)}'
+    'input::placeholder{color:#9A9384}'
+    'button.primary{background:linear-gradient(180deg,#1F7F5C,#145C45);color:#FBF4E4;border:0;font-weight:700}'
+    'button.primary:disabled{opacity:.65}'
+    '#voucher{text-transform:uppercase;letter-spacing:.14em;text-align:center;font-size:1.25rem;font-weight:700}'
     '#voucher::placeholder{text-transform:none;letter-spacing:normal;font-weight:400;font-size:1rem}'
-    'a{color:#176b50}.err{color:#8b1e1e;margin:0 0 1rem}.ok{color:#176b50;margin:0 0 1rem}'
-    '.mm{margin:2rem 0 0;text-align:center;font-size:.78rem;color:#5d7368;letter-spacing:.04em}'
+    '.hint{margin:-.35rem 0 .9rem;color:#9A9384;font-size:.8rem;line-height:1.55}'
+    '.divider{display:flex;align-items:center;gap:.6rem;margin:1rem 0 .85rem;color:#CFC6B3;font-size:.85rem}'
+    '.divider:before,.divider:after{content:"";flex:1;height:1px;background:rgba(243,236,221,.14)}'
+    '.pay{margin:0 0 .85rem;padding:.9rem;border-radius:.85rem;background:rgba(217,138,50,.1);'
+    'border:1px solid rgba(242,179,90,.45)}'
+    '.pay h2{margin:0 0 .45rem;font-size:.95rem;color:#F2C27B;font-weight:700}'
+    '.pay .dest{margin:0 0 .4rem;font-size:1.05rem;font-weight:700;color:#F3ECDD;white-space:pre-wrap}'
+    '.pay .instr{margin:0 0 .45rem;color:#CFC6B3;font-size:.88rem;line-height:1.55;white-space:pre-wrap}'
+    '.pay .methods{margin:0;color:#9A9384;font-size:.78rem}'
+    '.fair{margin:.85rem 0 0;color:#9A9384;font-size:.75rem;line-height:1.5}'
+    'a{color:#5FD3A2}.err{color:#E9856B;margin:0 0 .85rem}.ok{color:#5FD3A2;margin:0 0 .85rem}'
+    '.mm{margin:.9rem 0 0;text-align:center;font-size:.72rem;color:#9A9384;letter-spacing:.08em}'
+    '.mm:before{content:"";display:inline-block;width:.35rem;height:.35rem;border-radius:50%;'
+    'background:#176B50;margin-right:.4rem;vertical-align:middle}'
 )
 _CSS_BOTH = (
     _CSS_BASE
-    + '.langs{display:flex;gap:.5rem;margin:0 0 1rem}'
-    + '.langs button{flex:0;min-width:4.5rem;padding:.45rem .7rem;font:inherit;border:1px solid #9bb5a8;'
-    + 'background:#fff;border-radius:.45rem;color:#16382b;min-height:40px}'
-    + '.langs button[aria-pressed="true"]{background:#176b50;border-color:#176b50;color:#fff}'
+    + '.langs{display:flex;gap:0;margin:0;border:1px solid rgba(243,236,221,.18);border-radius:.7rem;'
+    + 'overflow:hidden;background:rgba(12,26,21,.72)}'
+    + '.langs button{flex:1;min-width:4.2rem;padding:.45rem .65rem;font:inherit;border:0;'
+    + 'background:transparent;color:#9A9384;min-height:40px}'
+    + '.langs button[aria-pressed="true"]{background:rgba(243,236,221,.14);color:#F3ECDD;font-weight:700}'
     + '.my{display:none}html[lang="my"] .my{display:inline}html[lang="my"] .en{display:none}'
     + 'html[lang="en"] .en{display:inline}html[lang="en"] .my{display:none}'
     + 'html[lang="my"] .my-block{display:block}html[lang="my"] .en-block{display:none}'
@@ -54,7 +84,9 @@ _LANG_JS = (
     '<script>(function(){var h=document.documentElement,k="mm-hs-lang";'
     'function set(l){h.lang=l==="en"?"en":"my";try{sessionStorage.setItem(k,h.lang)}catch(e){}'
     'document.querySelectorAll(".langs button").forEach(function(b){'
-    'b.setAttribute("aria-pressed",b.getAttribute("data-lang")===h.lang?"true":"false")})}'
+    'b.setAttribute("aria-pressed",b.getAttribute("data-lang")===h.lang?"true":"false")});'
+    'var v=document.getElementById("voucher");'
+    'if(v){v.placeholder=h.lang==="en"?"Type your code":"ကုဒ် ရိုက်ထည့်ပါ"}}'
     'var s;try{s=sessionStorage.getItem(k)}catch(e){}'
     'set(s==="en"?"en":"my");'
     'document.querySelectorAll(".langs button").forEach(function(b){'
@@ -68,10 +100,61 @@ def _language_mode(cfg: PortalConfig) -> str:
 
 def _guest_ui_label(mode: str) -> str:
     if mode == 'en':
-        return 'english_only_single_voucher_field'
+        return 'lantern_leaf_english_only_single_voucher_field'
     if mode == 'my':
-        return 'myanmar_only_single_voucher_field'
-    return 'burmese_first_single_voucher_field'
+        return 'lantern_leaf_myanmar_only_single_voucher_field'
+    return 'lantern_leaf_burmese_first_single_voucher_field'
+
+
+def _local_text(value: str) -> str:
+    """Escape owner text and strip URL schemes so the offline package stays link-free."""
+    cleaned = re.sub(r'https?://', '', value or '', flags=re.I)
+    return html.escape(cleaned)
+
+
+def _seal_letter(business_name: str) -> str:
+    name = (business_name or '?').strip() or '?'
+    return html.escape(name[0])
+
+
+def _default_welcome(mode: str) -> str:
+    return _phrase(
+        'ကုဒ်ထည့်ရုံနဲ့ Wi-Fi သုံးနိုင်ပါပြီ။',
+        'Just enter your code to use the Wi-Fi.',
+        mode,
+        block=True,
+    )
+
+
+def _payment_card(cfg: PortalConfig, mode: str) -> str:
+    if not cfg.direct_purchase:
+        return ''
+    destination = (cfg.payment_destination or '').strip()
+    instructions = (cfg.payment_instructions or '').strip()
+    methods = [m.strip() for m in (cfg.payment_methods or []) if m and m.strip()]
+    if not destination or not instructions:
+        return ''
+    title = _phrase('ဘဏ် / ဝေါလက် အချက်အလက်', 'Bank / wallet details', mode, block=True)
+    methods_line = ' · '.join(_local_text(m) for m in methods) if methods else ''
+    return (
+        f'<div class="divider">{_phrase("ကုဒ် မရှိသေးဘူးလား။", "No code yet?", mode)}</div>'
+        f'<aside class="pay" aria-label="Payment">'
+        f'<h2>{title}</h2>'
+        f'<p class="dest">{_local_text(destination)}</p>'
+        f'<p class="instr">{_local_text(instructions)}</p>'
+        + (f'<p class="methods">{methods_line}</p>' if methods_line else '')
+        + '</aside>'
+    )
+
+
+def _fair_use(cfg: PortalConfig, mode: str) -> str:
+    if (cfg.terms or '').strip():
+        text = _local_text(cfg.terms.strip())
+        return f'<p class="fair">{text}</p>'
+    return (
+        f'<p class="fair">{_phrase("လူတိုင်း အဆင်ပြေအောင် သင့်တင့်စွာ သုံးပေးပါ။", "Please share the Wi-Fi fairly with everyone here.", mode)}</p>'
+    )
+
 
 # Inline MD5 for RouterOS HTTP-CHAP (must stay local; no PAP fallback).
 _MD5_JS = (
@@ -95,34 +178,42 @@ def _page(title_my: str, title_en: str, content: str, cfg: PortalConfig) -> str:
     # Owner-controlled text is escaped. Pages use only RouterOS-local template
     # variables and inline CSS/JS; no cloud origin, CDN, or PAP fallback.
     mode = _language_mode(cfg)
-    brand = html.escape(cfg.business_name)
-    welcome = html.escape(cfg.welcome) if cfg.welcome else ''
+    brand = _local_text(cfg.business_name)
+    welcome_raw = (cfg.welcome or '').strip()
+    # Schema default is English; use Lantern Leaf bilingual job line until the owner customizes it.
+    if not welcome_raw or welcome_raw == 'Welcome. Choose internet or media access.':
+        welcome = _default_welcome(mode)
+    else:
+        welcome = _local_text(welcome_raw)
+    seal = _seal_letter(cfg.business_name)
     if mode == 'en':
-        lang, title, heading = 'en', title_en, html.escape(title_en)
+        lang, title = 'en', title_en
         lang_bar, lang_js, css = '', '', _CSS_BASE
-        headings = f'<h1 style="font-size:1.1rem;margin:0 0 .5rem">{heading}</h1>'
+        headings = f'<h1 class="lead" style="font-weight:700;color:#F3ECDD;margin:0 0 .35rem">{html.escape(title_en)}</h1>'
     elif mode == 'my':
-        lang, title, heading = 'my', title_my, html.escape(title_my)
+        lang, title = 'my', title_my
         lang_bar, lang_js, css = '', '', _CSS_BASE
-        headings = f'<h1 style="font-size:1.1rem;margin:0 0 .5rem">{heading}</h1>'
+        headings = f'<h1 class="lead" style="font-weight:700;color:#F3ECDD;margin:0 0 .35rem">{html.escape(title_my)}</h1>'
     else:
         lang, title = 'my', title_my
         lang_bar, lang_js, css = _LANG_BAR, _LANG_JS, _CSS_BOTH
         headings = (
-            f'<h1 class="my-block" style="font-size:1.1rem;margin:0 0 .5rem">{html.escape(title_my)}</h1>'
-            f'<h1 class="en-block" style="font-size:1.1rem;margin:0 0 .5rem">{html.escape(title_en)}</h1>'
+            f'<h1 class="my-block lead" style="font-weight:700;color:#F3ECDD;margin:0 0 .35rem">{html.escape(title_my)}</h1>'
+            f'<h1 class="en-block lead" style="font-weight:700;color:#F3ECDD;margin:0 0 .35rem">{html.escape(title_en)}</h1>'
         )
+    top = f'<div class="top"><div class="seal" aria-hidden="true">{seal}</div>{lang_bar}</div>' if lang_bar else f'<div class="top"><div class="seal" aria-hidden="true">{seal}</div></div>'
     return (
         f'<!doctype html><html lang="{lang}"><head><meta charset="utf-8">'
         '<meta name="viewport" content="width=device-width,initial-scale=1">'
+        f'<meta name="color-scheme" content="dark">'
         f'<title>{html.escape(title)} · {brand}</title>'
-        f'<style>{css}</style></head><body><main>'
-        f'{lang_bar}<p class="brand">{brand}</p>'
+        f'<style>{css}</style></head><body><div class="wrap">'
+        f'{top}<p class="brand">{brand}</p>'
         + headings
-        + (f'<p class="lead">{welcome}</p>' if welcome else '')
-        + content
+        + f'<p class="lead">{welcome}</p>'
+        + f'<div class="sheet">{content}{_fair_use(cfg, mode)}'
         + lang_js
-        + '<p class="mm">MikroMagic</p></main></body></html>'
+        + '<p class="mm">MikroMagic</p></div></div></body></html>'
     )
 
 
@@ -187,6 +278,7 @@ def build_local_hotspot_package(settings: PortalConfig | dict, *, tenant_id: str
     if revision < 1:
         raise ValueError("A published portal revision is required")
 
+    pay = _payment_card(cfg, mode)
     login = (
         '<form name="sendin" action="$(link-login-only)" method="post" style="display:none">'
         '<input name="username"><input name="password">'
@@ -194,13 +286,14 @@ def build_local_hotspot_package(settings: PortalConfig | dict, *, tenant_id: str
         '<form name="login" action="$(link-login-only)" method="post" onsubmit="return doLogin()">'
         '<input type="hidden" name="dst" value="$(link-orig-esc)">'
         '<input type="hidden" name="popup" value="true">'
-        f'<label>{_phrase("Voucher ကုဒ်", "Voucher code", mode)}'
+        f'<label>{_phrase("Wi-Fi ကုဒ်", "Wi-Fi code", mode)}'
         '<input name="username" id="voucher" autocomplete="username" required '
         'inputmode="text" autocapitalize="characters" spellcheck="false" '
-        'placeholder="$(username)" value="$(username)"></label>'
+        f'placeholder="{html.escape("Type your code" if mode == "en" else "ကုဒ် ရိုက်ထည့်ပါ")}" value="$(username)"></label>'
+        f'<p class="hint">{_phrase("စာလုံးအကြီး/အသေး၊ (-) ပါ/မပါ ရိုက်နိုင်ပါတယ်။", "Capital or small letters, with or without the dash.", mode)}</p>'
         f'<button class="primary" type="submit">{_phrase("ချိတ်ဆက်ရန်", "Connect", mode)}</button></form>'
-        f'<p class="lead">{_phrase("ကုဒ်ကို ရိုက်ထည့်ပါ။ QR ဖြင့် ဖွင့်ထားလျှင် ကုဒ် ဖြည့်ပြီး ဖြစ်နိုင်သည်။", "Enter your code. A QR link may fill it for you.", mode)}</p>'
-        '<noscript><p class="err">JavaScript is required for the router challenge login.</p></noscript>'
+        + pay
+        + '<noscript><p class="err">JavaScript is required for the router challenge login.</p></noscript>'
         '<script>' + _MD5_JS +
         # Codes are stored upper-case without spaces/hyphens; RouterOS user names are case-sensitive.
         'function norm(v){return (v||"").replace(/[\\s-]+/g,"").toUpperCase()}'
@@ -270,9 +363,9 @@ def build_local_hotspot_package(settings: PortalConfig | dict, *, tenant_id: str
         "api.json": '{"captive":$(if logged-in == \'yes\')false$(else)true$(endif),"user-portal-url":"$(link-login-only)","can-extend-session":false}',
     }
     ui_note = {
-        'both': 'Burmese first with English toggle',
-        'my': 'Myanmar only (no language toggle)',
-        'en': 'English only (no language toggle)',
+        'both': 'Lantern Leaf · Burmese first with English toggle',
+        'my': 'Lantern Leaf · Myanmar only (no language toggle)',
+        'en': 'Lantern Leaf · English only (no language toggle)',
     }[mode]
     manifest = {
         "format": FORMAT,
@@ -284,12 +377,15 @@ def build_local_hotspot_package(settings: PortalConfig | dict, *, tenant_id: str
         "authentication": "RouterOS local HotSpot HTTP-CHAP template; no PAP fallback",
         "guest_language": mode,
         "guest_ui": _guest_ui_label(mode),
+        "theme": "lantern_leaf",
+        "payment_card": bool(pay),
     }
     readme = (
         "MikroMagic local HotSpot content package\n\n"
         "Content-only review artifact. It has NOT been installed or verified on a router.\n"
         "No RouterOS commands, profile changes, credentials, remote assets, or cloud dependencies are included.\n"
-        f"Guest UI: {ui_note}; one voucher field (CHAP username=password); QR username= prefill.\n"
+        f"Guest UI: {ui_note}; Lantern Leaf theme; one voucher field (CHAP username=password); "
+        "optional bank/wallet card from published portal payment fields; QR username= prefill.\n"
         "The login template requires RouterOS HTTP-CHAP variables and a compatible HotSpot profile.\n"
         "Before any future deployment: inspect target/version/profile sharing/storage/file collisions, explain the exact diff, obtain owner confirmation, back up if required, install only into a new unique persistent directory, update only the selected profile directory if justified, then verify.\n"
         "Never overwrite existing portal files or change auth methods, firewall, DHCP, DNS, users, sessions, or unrelated HotSpot settings.\n"
