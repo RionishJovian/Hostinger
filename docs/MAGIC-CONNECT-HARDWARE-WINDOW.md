@@ -54,31 +54,28 @@ The router still has the dead tunnel `mmh-8adfeb441215` towards the same Hub add
 
 Rollback: `/interface wireguard enable [find where name="mmh-8adfeb441215"]`
 
-## Sequence
+## Sequence (one-paste Connect with Magic Hub — preferred for the next window)
+
+Owner decision 2026-10-13: connect through the **one-paste script** from Routers → **Connect with Magic Hub**, not hand-written multi-step technician QR commands. The QR technician flow may still exist for recovery, but Routers leads with the popup.
 
 | # | Who | Action | Expected |
 |---|---|---|---|
-| 1 | Owner | Routers → Magic Connect: create a pairing for the shop | QR and manual code, 10 minutes |
-| 2 | Technician | Open the pairing link, claim | Same six-digit phrase on both screens |
-| 3 | Owner | Compare the phrase, pick the router, approve | Technician page shows Step 1 and Step 2 |
-| 4 | Technician | Step 1 read-only check, Step 2 create `mm-<id8>`, send the public key | Owner sees the key |
-| 5 | Owner | Pick the Hub, create the plan, enter the serial number from the router label, tick review, approve | Hub peer added; technician session extended to 30 minutes |
-| 6 | Technician | Disable `mmh-8adfeb441215` (above), Step 3: peer, `/32` address, Hub route, ping | Ping to `10.90.1.1` answers |
-| 7 | Owner | Check handshake | "Handshake received", not Connected |
-| 8 | Technician | Step 4 read-only check, then certificate, `www-ssl` for the Hub only, one input rule, temporary `mm-enroll-<id8>` login | — |
-| 9 | Owner | Within three minutes of a handshake check: Finish management setup and verify | Logins created, temporary login removed, then **Connected** |
-| 10 | Owner | Issue one test voucher for the shop (a 1-hour plan), then Routers → Sync vouchers | "Updated on router" 1; Need attention 0 |
-| 11 | Owner | Disable that voucher, then Sync vouchers again | The router login is disabled and any active session for it is removed |
+| 1 | Owner | Routers: register device name, model, RouterOS version on the shop | Router listed, Unverified |
+| 2 | Owner | Press **Connect with Magic Hub** | Popup with one RouterOS script + Copy; progress starts at Waiting for router (token ~30 min, single-use) |
+| 3 | Owner / on-site | WinBox → New Terminal: paste the script once (Safe Mode recommended for writes) | Script checks RouterOS ≥ 7 + WireGuard; checks internet (DHCP only on unused running Ethernet if needed); creates WG; HTTPS enroll to MikroMagic; applies peer/address/route; management (cert, www-ssl Hub-only, input rule, temporary enroll user) |
+| 4 | App | Popup advances: Router reported → Hub peer added → Handshake → Management ready → Finishing logins → **Connected** | Connected only after fresh verified management read (same evidence rules as before) |
+| 5 | Owner | If the router was reset / needs a new key: Connect again → confirm replace | Old Hub peer revoked via emergency lock; plan archived; new script issued |
+| 6 | Owner | Issue one test voucher, Sync vouchers | "Updated on router" 1; Need attention 0 |
+| 7 | Owner | Disable that voucher, Sync again | Router login disabled; active session removed |
 
-All router commands are generated per router on the technician page; the rollback block there removes everything MikroMagic added.
+Historical dead peer `mmh-8adfeb441215`: disable inside the window before or during the script if it still conflicts on `156.67.216.128:51820` (see above). The popup rollback script removes only MikroMagic enroll/management objects.
 
-## Stop at once if
+### Stop at once if
 
-- Step 1 or Step 4 checks show a conflict listed on the technician page (existing `mm-` names, port 13239 in use, the tunnel pool already used, `www-ssl` already enabled).
-- The ping in step 6 fails after the owner added the Hub peer, or the handshake does not appear within two minutes.
-- Finish management setup returns `router_serial_mismatch`, `certificate_name_mismatch`, `group_conflict`, `user_conflict` or `monitoring_write_not_denied`. Do not retry with changes; record the code.
-- Anything touches WAN, LAN, Wi-Fi, HotSpot servers, other VPNs or unrelated firewall rules. Voucher sync may only add or change HotSpot users with the comment `MikroMagic voucher`, user profiles named `mm-<hash>` (RouterOS profiles have no comment field), and the scheduler `mm-voucher-expiry`.
-- Sync vouchers reports `hotspot_user_conflict` or `hotspot_profile_conflict`: a login or profile with that name already exists and was not created by MikroMagic. Leave it and record the name.
+- Script prints `MM-FAIL: Upgrade RouterOS to v7` or `Connect the router to the internet first`.
+- Popup shows failed with Hub/enroll error codes; use the rollback script in the popup, then retry.
+- Script would change working customer WAN/LAN/Wi-Fi/HotSpot beyond MikroMagic-tagged get-online DHCP on unused Ethernet.
+- Anything outside MikroMagic-tagged objects is touched. Voucher sync may only change HotSpot users with comment `MikroMagic voucher`, profiles `mm-<hash>`, scheduler `mm-voucher-expiry`.
 
 ## Evidence to record
 
