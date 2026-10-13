@@ -16,8 +16,9 @@ Baseline preserved: Build 21; 281 Python tests and the production frontend build
 ## Portal language → local package — 2026-10-13
 
 - **Was:** `PortalConfig.language` (`en` / `my` / `both`) was ignored by `build_local_hotspot_package`; every package was bilingual Burmese-first with a toggle; owner preview said “translation is pending.”
-- **Now (software):** package generation and validation honor the owner language setting; manifest records `guest_language`. The Guest Wi-Fi page shows the actual Lantern Leaf HotSpot pages (login, connected, could not connect, status, signed out) in a phone frame. The cloud order link is labeled separately from that preview.
-- **Still open:** on-router install and phone captive-browser acceptance require a Connected router and owner republish/Safe Change; hardware evidence separate.
+- **Now (software):** package generation and validation honor the owner language setting; manifest records `guest_language`.
+- **Owner decision 2026-10-13:** the Guest Wi-Fi page is removed from the shop-owner app. The menu item, phone preview, “Publish to MikroMagic,” and Deploy to RouterBoard on that screen are gone. Shops no longer shows “Set up your first shop” for saving or sending that page. Stored portal rows and the router HotSpot package code stay in the backend. The guest sign-in order page (`Guest portal`) is unchanged.
+- **Still open:** on-router HotSpot serving and a phone test are not claimed. Hardware evidence remains separate.
 
 ## G01–G06 presentation track — 2026-10-13
 

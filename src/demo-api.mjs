@@ -3,7 +3,7 @@
 // Every demoClient() starts from fresh sample data; changes are discarded with the client.
 import {shopTime} from './support-report.mjs';
 
-export const DEMO_PAGES=['Overview','Revenue','Sites','Routers','Captive portal','Packages','Vouchers','Payments','Get help','Did you know?'];
+export const DEMO_PAGES=['Overview','Revenue','Sites','Routers','Packages','Vouchers','Payments','Get help','Did you know?'];
 export const DEMO_BLOCKED='Not available in the demo — nothing was changed.';
 export const DEMO_CODE_PREFIX='DEMO';
 const ALPHABET='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -55,7 +55,6 @@ function seed(now){
  db.knowledge=[
   {id:id(),title:'Torch traffic detective',category:'MikroTik',fact:'Torch shows which devices use the most bandwidth on a MikroTik interface right now.',why:'When Wi-Fi feels slow, owners can see whether one guest is dominating the link before changing packages.',requirements:'Needs a Connected router with Torch available for that model and RouterOS version. MikroMagic does not run Torch from the cloud.',action:'Routers',source_url:'https://help.mikrotik.com/docs/display/ROS/Torch',verified_on:'2026-10-08',published:true,archived:false,revision:1},
   {id:id(),title:'Netwatch service probes',category:'Internet access',fact:'Netwatch can probe whether an important service address stays reachable from the router.',why:'Owners learn outages may be upstream before blaming guest Wi-Fi settings.',requirements:'Probe targets and intervals must stay limited. Opening this tip never starts Netwatch or changes firewall rules.',action:'Routers',source_url:'https://help.mikrotik.com/docs/display/ROS/Netwatch',verified_on:'2026-10-08',published:true,archived:false,revision:1},
-  {id:id(),title:'Guest page is separate from cloud save',category:'Business',fact:'Saving the guest Wi-Fi page in MikroMagic does not install files on the router until you send them through Safe Change.',why:'Owners should not assume guests see a new login page after a cloud save alone.',requirements:'Requires a Connected router and an approved send. First Customer Test on a phone remains a separate step.',action:'Captive portal',source_url:'https://help.mikrotik.com/docs/display/ROS/Hotspot',verified_on:'2026-10-08',published:true,archived:false,revision:1},
  ];
  return db;
 }

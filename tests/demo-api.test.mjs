@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
 import {demoClient,DEMO_PAGES,DEMO_BLOCKED,scrubDemoText,inSchedule} from '../src/demo-api.mjs';
 
 const SME_LOAD=['tenants','packages','orders','entitlements','audit','appearance/effective','media/titles','event-deliveries','review-credentials','external-review-actions','knowledge','revenue','vouchers','sites','routers','hubs','router-plans','router-changes','site-devices','hotspot-sessions/summary','portal'];
@@ -108,9 +109,12 @@ test('shop schedules handle overnight hours in the shop timezone',()=>{
 
 test('the demo navigation is limited to sample-safe pages',async()=>{
  for(const page of ['Staff','Subscription','Integrations','Media','Account','Audit','Network','Internet'])assert.ok(!DEMO_PAGES.includes(page),page);
- assert.deepEqual(DEMO_PAGES,['Overview','Revenue','Sites','Routers','Captive portal','Packages','Vouchers','Payments','Get help','Did you know?']);
+ assert.deepEqual(DEMO_PAGES,['Overview','Revenue','Sites','Routers','Packages','Vouchers','Payments','Get help','Did you know?']);
  assert.ok(DEMO_PAGES.includes('Did you know?'));
- assert.ok(DEMO_PAGES.includes('Captive portal'));
+ assert.ok(!DEMO_PAGES.includes('Captive portal'));
+ const workspace=readFileSync(new URL('../src/AccountWorkspace.jsx',import.meta.url),'utf8');
+ assert.match(workspace,/network',\['Sites','Routers','Network','Internet'\]\]/);
+ assert.doesNotMatch(workspace,/PortalEditor|FirstSiteAcceptance|Guest Wi-Fi page for/);
  const knowledge=await demoClient().request('knowledge');
  assert.ok(knowledge.length>=2);
  assert.ok(knowledge.every(c=>c.published&&!c.archived&&c.fact&&c.title));

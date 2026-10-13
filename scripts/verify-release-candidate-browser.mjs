@@ -104,12 +104,12 @@ try{
  await ownerA.page.getByText('RC Internet '+suffix).first().waitFor();
  result.workflows.package_creation_in_browser='PASS';
 
- await ownerA.page.getByRole('button',{name:'Guest Wi-Fi page',exact:true}).click();
+ assert.equal(await ownerA.page.getByRole('button',{name:'Guest Wi-Fi page',exact:true}).count(),0);
  const welcome='Welcome to RC Cafe A '+suffix;
- await ownerA.page.getByLabel('Welcome message').fill(welcome);
- const draftResponse=ownerA.page.waitForResponse(r=>r.url().endsWith('/v1/portal/draft')&&r.request().method()==='POST');
- await ownerA.page.getByRole('button',{name:'Save draft'}).click();
- assert.equal((await draftResponse).status(),200);
+ const current=await api(ownerA.page,ownerA.token,'GET','portal');
+ assert.equal(current.status,200);
+ const saved=await api(ownerA.page,ownerA.token,'POST','portal/draft',{expected_revision:current.body.revision,settings:{...current.body.draft,welcome}});
+ assert.equal(saved.status,200);
  const portal=await api(ownerA.page,ownerA.token,'GET','portal');
  assert.equal(portal.status,200);assert.equal(portal.body.draft.welcome,welcome);
  result.workflows.portal_update_and_api_readback='PASS';
