@@ -748,6 +748,22 @@ Restore /opt/mikromagic-build21-public-test-20261012T235906Z/backups/pre-deploy.
 then cd /opt/mikromagic-build21-public-test-20261012T235906Z && docker compose -p mikromagic-build21-public-test -f compose.hostinger-public-test.yaml up -d --no-deps --force-recreate api web
 Restore /opt/mikromagic-build21-public-test-20261013T043734Z/backups/pre-deploy.dump only if the migration itself is at fault.
 
+### Scripted redeploy — SME Network switch/AP inventory UI (2026-10-13 05:09 UTC)
+
+| Item | Value |
+|---|---|
+| Source | Commit `e9fc94b` on `origin/main` (feature `5b288bd`); artifact `32b518f3b379bbf794011e91d78872a5a15e2ede9877eb8df86c25c3f7b06aa2` (214 files); local checks already recorded for this tree |
+| Directory | `/opt/mikromagic-build21-public-test-20261013T050941Z`; previous `-20261013T043734Z` |
+| Infra files | none |
+| Pre-deploy dump | `backups/pre-deploy.dump` (at 054, 490 restore-list entries) |
+| Migration | none (stays 054); rehearsal skipped |
+| Rollback images | `…-{api,web,magic-hub,migrate}:rollback-20261013T050941Z` |
+| Result | api and web recreated; db and Hub untouched (Hub key `TG1jLN13+hA1Eg9/1h0DykQ768ZHZO54WFGAZWhjL0o=`, UDP `156.67.216.128:51820` unchanged); bundle `index-CNwmMELv.js`. SME Network page registers/lists owner-reported switches and APs (EN/MY) with Unverified status, 1-switch/5-AP limits, and no remote PoE power-cycle. Discovery and live telemetry remain NOT DONE |
+
+**Rollback:** on the VPS, for s in api web magic-hub migrate; do docker tag mikromagic-build21-public-test-$s:rollback-20261013T050941Z mikromagic-build21-public-test-$s:latest; done
+then cd /opt/mikromagic-build21-public-test-20261013T043734Z && docker compose -p mikromagic-build21-public-test -f compose.hostinger-public-test.yaml up -d --no-deps --force-recreate api web
+Restore /opt/mikromagic-build21-public-test-20261013T050941Z/backups/pre-deploy.dump only if the migration itself is at fault.
+
 - Next app work (as of 2026-10-12 09:00 UTC+6:30, live at migration 049, commit `13d40af`):
   - Terminology and Burmese (P0a) owner-facing chrome is live across SME pages including Integrations, Did you know?, guided first-shop acceptance, Magic Boy, Media, Account, Sites, Revenue, Payments and Packages/Passes. Platform screens stay English. Native-speaker/mobile QA remains open.
   - Routers page guided (P0a step 5): Connect your router steps first; Magic Hub, connection plans and Safe RouterOS changes under a closed Advanced (technician) section that opens when a change needs attention.
