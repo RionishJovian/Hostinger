@@ -18,11 +18,15 @@ export function SafeRouterChanges({routers,plans,changes,act,busy,api,localize=t
  const [poolStart,setPoolStart]=useState('10.5.50.10');
  const [poolEnd,setPoolEnd]=useState('10.5.50.254');
  const [dns,setDns]=useState('10.5.50.1');
+ const [etherPort,setEtherPort]=useState('ether3');
+ const [vlanId,setVlanId]=useState('50');
+ const [vlanName,setVlanName]=useState('mm-guest-vlan-50');
  const change=changes.find(x=>x.id===selected);
  const eligible=routers.filter(r=>plans.some(p=>p.router_id===r.id&&p.reviewed_at));
  const portal=change?.operation==='hotspot_portal_publish';
  const guestWifi=change?.operation==='guest_wifi_settings';
  const guestNet=change?.operation==='guest_network_addressing';
+ const guestVlan=change?.operation==='guest_vlan_external_ap';
  const phase=c.phases[change?.phase]||c.statuses[change?.status]||change?.status;
  const summary=x=>{
   if(x.operation==='hotspot_portal_publish')
@@ -31,6 +35,8 @@ export function SafeRouterChanges({routers,plans,changes,act,busy,api,localize=t
    return `${x.diff?.ssid?.before||'?'} → ${x.diff?.ssid?.after||'?'} (${x.diff?.security_mode?.after||''})`;
   if(x.operation==='guest_network_addressing')
    return `${x.diff?.interface_address?.before||'?'} → ${x.diff?.interface_address?.after||'?'}`;
+  if(x.operation==='guest_vlan_external_ap')
+   return `${x.diff?.ethernet_port||'?'} vlan ${x.diff?.vlan_id?.after||x.desired?.vlan_id||'?'} → ${x.diff?.guest_bridge?.after||x.desired?.guest_bridge||'?'}`;
   return `${x.before?.persistent_keepalive_seconds} → ${x.desired?.persistent_keepalive_seconds} ${c.sec}`;
  };
 
@@ -63,6 +69,16 @@ export function SafeRouterChanges({routers,plans,changes,act,busy,api,localize=t
    operation:'guest_network_addressing',wifi_interface:wifiIface,
    network_cidr:netCidr,gateway,pool_start:poolStart,pool_end:poolEnd,dns:dns||undefined,
   });
+  if(result){setSelected(result.id);setConfirmed(false)}
+ }
+ async function previewVlan(e){
+  e.preventDefault();
+  const body={
+   operation:'guest_vlan_external_ap',ethernet_port:etherPort,vlan_id:Number(vlanId),
+  };
+  if(vlanName)body.vlan_name=vlanName;
+  if(wifiIface)body.hotspot_interface=wifiIface;
+  const result=await act('routers/'+router+'/changes/preview',body);
   if(result){setSelected(result.id);setConfirmed(false)}
  }
  async function apply(){
@@ -144,10 +160,30 @@ export function SafeRouterChanges({routers,plans,changes,act,busy,api,localize=t
     </div>
     <button className="button secondary" disabled={busy||!router}>{c.inspectNet}</button>
    </form>
+
+   <h3>{c.guestVlanTitle}</h3>
+   <p>{c.guestVlanIntro}</p>
+   <form onSubmit={previewVlan}>
+    <div className="formgrid">
+     <label className="field"><span>{c.ethernetPort}</span>
+      <input required maxLength={64} value={etherPort} onChange={e=>setEtherPort(e.target.value)}/>
+     </label>
+     <label className="field"><span>{c.vlanIdLabel}</span>
+      <input required type="number" min={2} max={4094} value={vlanId} onChange={e=>setVlanId(e.target.value)}/>
+     </label>
+     <label className="field"><span>{c.vlanNameLabel}</span>
+      <input maxLength={64} value={vlanName} onChange={e=>setVlanName(e.target.value)}/>
+     </label>
+     <label className="field"><span>{c.hotspotInterface}</span>
+      <input required maxLength={64} value={wifiIface} onChange={e=>setWifiIface(e.target.value)}/>
+     </label>
+    </div>
+    <button className="button secondary" disabled={busy||!router}>{c.inspectVlan}</button>
+   </form>
   </>}
 
   {change&&<div className="safechange">
-   <h3>{c.risk(change.risk.toUpperCase())}{portal?' · portal publish':''}{guestWifi?` · ${c.guestWifiTitle}`:''}{guestNet?` · ${c.guestNetTitle}`:''}</h3>
+   <h3>{c.risk(change.risk.toUpperCase())}{portal?' · portal publish':''}{guestWifi?` · ${c.guestWifiTitle}`:''}{guestNet?` · ${c.guestNetTitle}`:''}{guestVlan?` · ${c.guestVlanTitle}`:''}</h3>
    <div className="details">
     <p><b>{c.phase}</b>{phase}</p>
     {portal?<>
@@ -161,13 +197,18 @@ export function SafeRouterChanges({routers,plans,changes,act,busy,api,localize=t
      <p><b>{c.networkCidr}</b>{change.diff?.interface_address?.before} → {change.diff?.interface_address?.after}</p>
      <p><b>{c.poolStart}</b>{change.diff?.pool_ranges?.before} → {change.diff?.pool_ranges?.after}</p>
      <p><b>HotSpot</b>{change.diff?.hotspot_address?.before} → {change.diff?.hotspot_address?.after}</p>
+    </>:guestVlan?<>
+     <p><b>{c.ethernetPort}</b>{change.diff?.ethernet_port}</p>
+     <p><b>{c.vlanIdLabel}</b>{change.diff?.vlan_id?.before ?? '—'} → {change.diff?.vlan_id?.after}</p>
+     <p><b>{c.vlanNameLabel}</b>{change.diff?.vlan_name?.before ?? '—'} → {change.diff?.vlan_name?.after}</p>
+     <p><b>{c.guestBridge}</b>{change.diff?.guest_bridge?.before ?? '—'} → {change.diff?.guest_bridge?.after}</p>
     </>:<>
      <p><b>{c.before}</b>{c.seconds(change.before.persistent_keepalive_seconds)}</p>
      <p><b>{c.mmVersion}</b>{c.seconds(change.desired.persistent_keepalive_seconds)}</p>
     </>}
     <p><b>{c.impact}</b>{change.diff.impact}</p>
     <p><b>{c.backup}</b>{change.safety_backup_verified?c.backupYes:c.backupNo}</p>
-    {!portal&&!guestWifi&&!guestNet&&<p><b>{c.actual}</b>{change.actual?.persistent_keepalive_seconds==null?c.notYet:c.seconds(change.actual.persistent_keepalive_seconds)}</p>}
+    {!portal&&!guestWifi&&!guestNet&&!guestVlan&&<p><b>{c.actual}</b>{change.actual?.persistent_keepalive_seconds==null?c.notYet:c.seconds(change.actual.persistent_keepalive_seconds)}</p>}
     {change.gateway_deadline&&change.status==='verifying'&&<p><b>{c.deadline}</b>{new Date(change.gateway_deadline*1000).toLocaleString()}</p>}
    </div>
    {change.status==='previewed'&&<>

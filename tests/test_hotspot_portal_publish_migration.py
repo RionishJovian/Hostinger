@@ -37,7 +37,7 @@ class HotspotPortalPublishMigrationTests(unittest.TestCase):
                     command.downgrade(cfg, '052')
                 with sqlite3.connect(database) as db:
                     db.execute("DELETE FROM router_changes WHERE operation='hotspot_portal_publish'")
-                    db.execute("DELETE FROM router_changes WHERE operation in ('guest_wifi_settings','guest_network_addressing')")
+                    db.execute("DELETE FROM router_changes WHERE operation in ('guest_wifi_settings','guest_network_addressing','guest_vlan_external_ap')")
                 command.downgrade(cfg, '052')
                 with sqlite3.connect(database) as db:
                     self.assertEqual(db.execute('SELECT version_num FROM alembic_version').fetchone()[0], '052')

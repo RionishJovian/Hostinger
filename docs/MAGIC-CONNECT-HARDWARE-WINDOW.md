@@ -147,9 +147,9 @@ These RouterOS behaviours are assumptions; each failure stops the window with a 
 - Security: the login API's validation error echoed the submitted request body, including the password (seen when a wrong field name was sent). **Fixed in `85de0a9` (not yet re-verified on the live login form):** 422 details keep `loc`/`msg`/`type` and strip `input` app-wide.
 - Still unverified: phone test of the new page, quota and device-limit enforcement, automatic Safe Change rollback, backup restore, the WireGuard keepalive Safe Change, gateway-loss timeout rollback, and Hub restart recovery.
 
-## Next window: guest Wi-Fi and addressing tests
+## Next window: guest Wi-Fi, addressing and VLAN tests
 
-Software-only Safe Change operations `guest_wifi_settings` and `guest_network_addressing` are built for the lab guest radio. **Do not contact the router until the owner starts the window.** The feature flag stays **off** in production until then.
+Software-only Safe Change operations `guest_wifi_settings`, `guest_network_addressing` and `guest_vlan_external_ap` are built for the lab guest radio / external AP path. **Do not contact the router until the owner starts the window.** The feature flag stays **off** in production until then. Switch-port VLAN management (Q70) is **not** included.
 
 ### Enable for the window only
 
@@ -157,7 +157,7 @@ Software-only Safe Change operations `guest_wifi_settings` and `guest_network_ad
    `MIKROMAGIC_ROUTER_SETTINGS_CHANGES: "true"`
 2. Deploy with `ALLOW_INFRA_CHANGE=1` (compose env change).
 3. Confirm `GET /v1/magic-connect/capability` shows `router_settings_changes_available: true`.
-4. Owner uses Routers → Safe RouterOS change → Guest Wi-Fi / Guest network forms (Burmese-first labels).
+4. Owner uses Routers → Safe RouterOS change → Guest Wi-Fi / Guest network / Guest VLAN forms (Burmese-first labels).
 5. After the window, remove the flag and redeploy so the UI and API stay closed.
 
 Design note — wifi configuration/security profiles: inline `configuration.ssid` / `security.*` on the interface are patched directly. Named `/interface/wifi/configuration` or `/interface/wifi/security` profiles are patched only when used solely by the selected interface; shared profiles are refused. Passphrases never appear in diffs, evidence or API JSON (set/changed/unset only); ciphertext for apply/rollback uses a purpose-bound Fernet key from `MIKROMAGIC_BACKUP_KEY`.
@@ -246,7 +246,71 @@ Manual rollback to the lab defaults:
 
 (If the DHCP network `.id` is clearer than `find address`, use `/ip dhcp-server network set *N1 ...` with the live id.)
 
+### Expected REST — `guest_vlan_external_ap` (example: ether3 VLAN 50 → HotSpot)
+
+Lab today runs HotSpot on `wifi2` (not a bridge). The Safe Change therefore creates `mm-guest-br`, moves guest IP/DHCP/HotSpot onto that bridge, creates the VLAN on the chosen Ethernet port, and adds the VLAN as a bridge port. WAN `ether1` (DHCP client), `wifi1`, Hub WireGuard `mm-97546f1a`, and LAN bridge `bridge` / `192.168.88.1/24` stay out of scope. Resource ids must be literal (`*1`, not `%2A1`). `DELETE` must have **no body**.
+
+Read:
+
+```
+GET /rest/interface
+GET /rest/interface/vlan
+GET /rest/interface/bridge
+GET /rest/interface/bridge/port
+GET /rest/interface/wifi
+GET /rest/ip/dhcp-client
+GET /rest/interface/pppoe-client
+GET /rest/ip/address
+GET /rest/ip/dhcp-server
+GET /rest/ip/hotspot
+```
+
+Write order after verified export backup (ids from live lab; replace `*…`):
+
+```
+PUT /rest/interface/bridge
+{"name":"mm-guest-br","comment":"MikroMagic guest HotSpot bridge"}
+
+PUT /rest/interface/bridge/port
+{"bridge":"mm-guest-br","interface":"wifi2","comment":"MikroMagic guest radio"}
+
+PATCH /rest/ip/address/*A1
+{"interface":"mm-guest-br"}
+
+PATCH /rest/ip/dhcp-server/*D1
+{"interface":"mm-guest-br"}
+
+PATCH /rest/ip/hotspot/*F1
+{"interface":"mm-guest-br"}
+
+PUT /rest/interface/vlan
+{"name":"mm-guest-vlan-50","vlan-id":"50","interface":"ether3","comment":"MikroMagic guest VLAN for external AP"}
+
+PUT /rest/interface/bridge/port
+{"bridge":"mm-guest-br","interface":"mm-guest-vlan-50","comment":"MikroMagic external AP guest VLAN"}
+```
+
+When HotSpot already runs on a bridge (for example `bridge-guest`), migration is skipped: only the VLAN create + bridge-port add run against that existing bridge.
+
+Verify: re-GET vlan / bridge port / HotSpot server; confirm VLAN parent=`ether3`, `vlan-id=50`, VLAN is a port of the guest bridge, HotSpot `interface` is the guest bridge.
+
+Manual rollback (lab defaults — HotSpot back on wifi2, remove VLAN):
+
+```
+/interface bridge port remove [find where bridge="mm-guest-br" and interface="mm-guest-vlan-50"]
+/interface vlan remove [find where name="mm-guest-vlan-50"]
+/ip hotspot set [find where name="mm-lab-hotspot"] interface=wifi2
+/ip dhcp-server set [find where name="mm-lab-guest"] interface=wifi2
+/ip address set [find where interface="mm-guest-br"] interface=wifi2
+/interface bridge port remove [find where bridge="mm-guest-br" and interface="wifi2"]
+/interface bridge remove [find where name="mm-guest-br"]
+```
+
+External AP note: the AP must send **tagged** VLAN 50 (or the chosen id) on the chosen Ethernet port. This operation does not change the AP’s own SSID/security and does not configure switch-chip VLAN membership (Q70).
+
 These Safe Changes create the normal encrypted safety backup before apply; they do **not** schedule an extra product backup beyond that (requirements § backup rules for SSID/LAN-style changes).
+
+CHAP guest-page fix (`charCodeAt(i)&255`) is already in the API package (commit `79c93c6`) but the router still serves the previous portal files until a new portal revision is published through Safe Change in the hardware window.
 
 ## Known gaps after the window
 

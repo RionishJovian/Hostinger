@@ -85,7 +85,7 @@ def redact_diff(diff):
 
 def require_flag(app):
     if not getattr(app.state, 'router_settings_changes_enabled', False):
-        raise HTTPException(503, 'Guest Wi-Fi and addressing Safe Changes are not enabled')
+        raise HTTPException(503, 'Guest Wi-Fi, addressing and VLAN Safe Changes are not enabled')
 
 
 def _hotspot_interfaces_from_evidence(evidence_payload: dict) -> set[str]:

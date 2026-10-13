@@ -38,7 +38,7 @@ def fingerprint(value):
 
 def require_flag(app):
     if not getattr(app.state, 'router_settings_changes_enabled', False):
-        raise HTTPException(503, 'Guest Wi-Fi and addressing Safe Changes are not enabled')
+        raise HTTPException(503, 'Guest Wi-Fi, addressing and VLAN Safe Changes are not enabled')
 
 
 def _parse_ipv4(value: str, label: str):

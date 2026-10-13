@@ -724,3 +724,321 @@ def restore_guest_network_addressing(client:RouterOSClient,before:dict):
  })
  client.write('PATCH',_resource_path('ip/address',ids['address']),{'address':before['address']})
  client.write('PATCH',_resource_path('ip/pool',ids['pool']),{'ranges':before['pool_ranges']})
+
+
+# --- Guest VLAN for external AP Safe Change helpers ---
+
+_ETHER_NAME=re.compile(r'^(ether|sfp|sfpplus|qsfp)[0-9]+$',re.I)
+_WG_TYPE=re.compile(r'wireguard',re.I)
+GUEST_BRIDGE_NAME='mm-guest-br'
+
+
+def list_interfaces(client:RouterOSClient):
+ return _records(client.get('interface',optional=True))
+
+
+def list_vlans(client:RouterOSClient):
+ return _records(client.get('interface/vlan',optional=True))
+
+
+def list_bridges(client:RouterOSClient):
+ return _records(client.get('interface/bridge',optional=True))
+
+
+def list_dhcp_clients(client:RouterOSClient):
+ return _records(client.get('ip/dhcp-client',optional=True))
+
+
+def list_pppoe_clients(client:RouterOSClient):
+ return _records(client.get('interface/pppoe-client',optional=True))
+
+
+def _is_bridge_type(iface:dict):
+ kind=str(iface.get('type') or '').lower()
+ return kind=='bridge' or bool(iface.get('actual-mtu') is not None and kind=='bridge')
+
+
+def _interface_by_name(interfaces:list[dict],name:str):
+ return next((i for i in interfaces if i.get('name')==name),None)
+
+
+def assert_ethernet_port_allowed(client:RouterOSClient,ethernet_port:str,*,hotspot_interface:str):
+ """Refuse WAN/uplink/wifi/Hub WireGuard and the HotSpot interface itself."""
+ if not _iface_name_ok(ethernet_port) or not _ETHER_NAME.fullmatch(ethernet_port):
+  raise RouterOSError('ethernet_invalid','Choose a router Ethernet port (etherN / sfpN), not Wi-Fi or WireGuard',422)
+ if ethernet_port==hotspot_interface:
+  raise RouterOSError('ethernet_is_hotspot','The HotSpot interface cannot be the external-AP Ethernet port',409)
+ if ethernet_port.lower() in ('wifi1',) or ethernet_port.lower().startswith('wifi'):
+  raise RouterOSError('wifi_forbidden','Wi-Fi interfaces cannot be used as the external-AP Ethernet port',409)
+ interfaces=list_interfaces(client)
+ iface=_interface_by_name(interfaces,ethernet_port)
+ if not iface or not iface.get('.id'):
+  raise RouterOSError('ethernet_missing','The selected Ethernet port is not present on this router',409)
+ kind=str(iface.get('type') or '').lower()
+ if kind in ('wireguard','wg','vlan','bridge','pppoe-out','lte','wwan') or _WG_TYPE.search(kind):
+  raise RouterOSError('ethernet_type_forbidden','Selected interface is not a physical Ethernet port',409)
+ if ethernet_port.startswith('mm-'):
+  raise RouterOSError('hub_tunnel_forbidden','Hub WireGuard / MikroMagic tunnel interfaces must never be changed',409)
+ if kind and 'ether' not in kind and 'sfp' not in kind and kind not in ('','ether'):
+  # Allow blank/unknown type when the name matches etherN/sfpN; refuse clear non-ethernet types.
+  if kind in ('wlan','wifi','wwan','ovpn','l2tp','sstp','gre','ipip'):
+   raise RouterOSError('ethernet_type_forbidden','Selected interface is not a physical Ethernet port',409)
+ for client_row in list_dhcp_clients(client):
+  if client_row.get('interface')==ethernet_port and not _truthy(client_row.get('disabled',False)):
+   raise RouterOSError('wan_dhcp_forbidden','Ethernet ports with an active DHCP client (WAN/uplink) are refused',409)
+ for ppp in list_pppoe_clients(client):
+  if ppp.get('interface')==ethernet_port and not _truthy(ppp.get('disabled',False)):
+   raise RouterOSError('wan_pppoe_forbidden','Ethernet ports with PPPoE (WAN/uplink) are refused',409)
+ # Station wifi uplink is never an ethernet name; still refuse if somehow aliased.
+ wifi=list_wifi_interfaces(client)
+ for w in wifi:
+  if w.get('name')==ethernet_port:
+   raise RouterOSError('wifi_forbidden','Wi-Fi interfaces cannot be used as the external-AP Ethernet port',409)
+  mode=str(w.get('configuration.mode') or w.get('mode') or '').lower()
+  if 'station' in mode and w.get('name')=='wifi1':
+   pass  # informational only
+ return iface
+
+
+def _parse_vlan_id(value)->int:
+ try:vid=int(value)
+ except (TypeError,ValueError) as error:
+  raise RouterOSError('vlan_id_invalid','VLAN id must be an integer from 2 to 4094',422) from error
+ if not (2<=vid<=4094):
+  raise RouterOSError('vlan_id_invalid','VLAN id must be an integer from 2 to 4094',422)
+ return vid
+
+
+def guest_vlan_state(client:RouterOSClient,*,ethernet_port:str,vlan_id:int,vlan_name:str,hotspot_interface:str):
+ """Read live guest-VLAN / HotSpot-bridge membership for Safe Change fingerprinting."""
+ vlan_id=_parse_vlan_id(vlan_id)
+ if not _iface_name_ok(vlan_name):
+  raise RouterOSError('vlan_name_invalid','VLAN interface name is invalid',422)
+ assert_ethernet_port_allowed(client,ethernet_port,hotspot_interface=hotspot_interface)
+ interfaces=list_interfaces(client)
+ hotspot_iface=_interface_by_name(interfaces,hotspot_interface)
+ if not hotspot_iface:
+  raise RouterOSError('hotspot_interface_missing','HotSpot guest interface is not present',409)
+ hotspot_is_bridge=str(hotspot_iface.get('type') or '').lower()=='bridge'
+ bridges=list_bridges(client)
+ bridge_ports=list_bridge_ports(client)
+ vlans=list_vlans(client)
+ existing=next((v for v in vlans if v.get('name')==vlan_name),None)
+ if existing is None:
+  existing=next((v for v in vlans if str(v.get('vlan-id'))==str(vlan_id) and v.get('interface')==ethernet_port),None)
+ if existing and existing.get('interface') not in (None,ethernet_port):
+  raise RouterOSError('vlan_conflict','A VLAN with this name already exists on a different parent interface',409)
+ if existing and str(existing.get('vlan-id')) not in (None,str(vlan_id)) and existing.get('name')==vlan_name:
+  raise RouterOSError('vlan_conflict','A VLAN with this name already exists with a different vlan-id',409)
+
+ guest_bridge=None
+ if hotspot_is_bridge:
+  guest_bridge=hotspot_interface
+ else:
+  # Prefer an existing MikroMagic guest bridge that already contains the HotSpot iface.
+  for port in bridge_ports:
+   if port.get('interface')==hotspot_interface and isinstance(port.get('bridge'),str):
+    guest_bridge=port['bridge'];break
+  if guest_bridge is None:
+   named=next((b for b in bridges if b.get('name')==GUEST_BRIDGE_NAME),None)
+   if named:guest_bridge=GUEST_BRIDGE_NAME
+
+ vlan_bridge_port=None
+ if existing and guest_bridge:
+  vlan_bridge_port=next((p for p in bridge_ports if p.get('interface')==existing.get('name') and p.get('bridge')==guest_bridge),None)
+ hotspot_bridge_port=None
+ if guest_bridge and not hotspot_is_bridge:
+  hotspot_bridge_port=next((p for p in bridge_ports if p.get('interface')==hotspot_interface and p.get('bridge')==guest_bridge),None)
+
+ # Addresses / DHCP / HotSpot currently bound to guest side (interface or bridge).
+ addresses=[a for a in list_ip_addresses(client) if a.get('interface') in (hotspot_interface,guest_bridge) and a.get('.id')]
+ dhcp_servers=[d for d in list_dhcp_servers(client) if d.get('interface') in (hotspot_interface,guest_bridge) and d.get('.id')]
+ hotspot_servers=[s for s in list_hotspot_servers(client) if s.get('interface')==hotspot_interface or (guest_bridge and s.get('interface')==guest_bridge)]
+ if not hotspot_servers:
+  hotspot_servers=[s for s in list_hotspot_servers(client) if s.get('interface')==hotspot_interface]
+ if not hotspot_servers:
+  raise RouterOSError('hotspot_missing','No HotSpot server is bound to the guest interface',409)
+
+ address_row=addresses[0] if len(addresses)==1 else (addresses[0] if addresses else None)
+ dhcp_row=dhcp_servers[0] if len(dhcp_servers)==1 else (dhcp_servers[0] if dhcp_servers else None)
+ hs_row=hotspot_servers[0]
+ bridge_row=next((b for b in bridges if b.get('name')==guest_bridge),None) if guest_bridge else None
+
+ migration_needed=not hotspot_is_bridge and (guest_bridge is None or hs_row.get('interface')!=guest_bridge or (address_row and address_row.get('interface')!=guest_bridge))
+ target_bridge=guest_bridge or (hotspot_interface if hotspot_is_bridge else GUEST_BRIDGE_NAME)
+
+ return {
+  'resource_id':str(existing['.id']) if existing and existing.get('.id') else f'pending:{vlan_name}',
+  'ethernet_port':ethernet_port,
+  'vlan_id':vlan_id,
+  'vlan_name':vlan_name,
+  'vlan_exists':bool(existing and existing.get('.id')),
+  'vlan_interface_parent':existing.get('interface') if existing else None,
+  'hotspot_interface_original':hotspot_interface,
+  'hotspot_server_interface':hs_row.get('interface'),
+  'hotspot_server_name':hs_row.get('name'),
+  'guest_bridge':target_bridge,
+  'guest_bridge_exists':bool(bridge_row) or hotspot_is_bridge,
+  'hotspot_is_bridge':hotspot_is_bridge,
+  'migration_needed':bool(migration_needed),
+  'vlan_on_guest_bridge':bool(vlan_bridge_port),
+  'hotspot_iface_on_guest_bridge':bool(hotspot_is_bridge or hotspot_bridge_port),
+  'address_interface':address_row.get('interface') if address_row else None,
+  'dhcp_interface':dhcp_row.get('interface') if dhcp_row else None,
+  'ids':{
+   'vlan':str(existing['.id']) if existing and existing.get('.id') else None,
+   'guest_bridge':str(bridge_row['.id']) if bridge_row and bridge_row.get('.id') else (str(hotspot_iface['.id']) if hotspot_is_bridge else None),
+   'bridge_port_vlan':str(vlan_bridge_port['.id']) if vlan_bridge_port and vlan_bridge_port.get('.id') else None,
+   'bridge_port_hotspot_iface':str(hotspot_bridge_port['.id']) if hotspot_bridge_port and hotspot_bridge_port.get('.id') else None,
+   'address':str(address_row['.id']) if address_row and address_row.get('.id') else None,
+   'dhcp_server':str(dhcp_row['.id']) if dhcp_row and dhcp_row.get('.id') else None,
+   'hotspot_server':str(hs_row['.id']) if hs_row.get('.id') else None,
+  },
+ }
+
+
+def apply_guest_vlan_external_ap(client:RouterOSClient,before:dict,desired:dict):
+ """Create VLAN + guest-bridge membership so an external AP feeds HotSpot.
+
+ Order: guest bridge (if needed) → migrate HotSpot/IP/DHCP onto bridge → VLAN → bridge port.
+ """
+ ethernet=desired['ethernet_port'];vlan_id=desired['vlan_id'];vlan_name=desired['vlan_name']
+ hotspot_iface=desired['hotspot_interface_original'];guest_bridge=desired['guest_bridge']
+ created={'guest_bridge':False,'bridge_port_hotspot_iface':False,'vlan':False,'bridge_port_vlan':False,
+          'retargeted_address':False,'retargeted_dhcp':False,'retargeted_hotspot':False}
+ ids=dict(before.get('ids') or {})
+
+ if desired.get('migration_needed') and not desired.get('hotspot_is_bridge'):
+  if not before.get('guest_bridge_exists'):
+   created_bridge=client.write('PUT','interface/bridge',{'name':guest_bridge,'comment':'MikroMagic guest HotSpot bridge'})
+   # PUT may return the row or empty; re-read.
+   bridges=list_bridges(client)
+   row=next((b for b in bridges if b.get('name')==guest_bridge and b.get('.id')),None)
+   if not row:
+    rid=created_bridge.get('.id') if isinstance(created_bridge,dict) else None
+    if not rid:raise RouterOSError('bridge_create_failed','Guest HotSpot bridge could not be created',409)
+    ids['guest_bridge']=str(rid)
+   else:
+    ids['guest_bridge']=str(row['.id'])
+   created['guest_bridge']=True
+  # Add original HotSpot interface as bridge port when missing.
+  ports=list_bridge_ports(client)
+  hs_port=next((p for p in ports if p.get('interface')==hotspot_iface and p.get('bridge')==guest_bridge),None)
+  if not hs_port:
+   client.write('PUT','interface/bridge/port',{'bridge':guest_bridge,'interface':hotspot_iface,'comment':'MikroMagic guest radio'})
+   ports=list_bridge_ports(client)
+   hs_port=next((p for p in ports if p.get('interface')==hotspot_iface and p.get('bridge')==guest_bridge and p.get('.id')),None)
+   if not hs_port:raise RouterOSError('bridge_port_failed','Could not add the HotSpot interface to the guest bridge',409)
+   ids['bridge_port_hotspot_iface']=str(hs_port['.id']);created['bridge_port_hotspot_iface']=True
+  # Retarget IP / DHCP / HotSpot onto the guest bridge.
+  if ids.get('address') and before.get('address_interface')==hotspot_iface:
+   client.write('PATCH',_resource_path('ip/address',ids['address']),{'interface':guest_bridge})
+   created['retargeted_address']=True
+  if ids.get('dhcp_server') and before.get('dhcp_interface')==hotspot_iface:
+   client.write('PATCH',_resource_path('ip/dhcp-server',ids['dhcp_server']),{'interface':guest_bridge})
+   created['retargeted_dhcp']=True
+  if ids.get('hotspot_server') and before.get('hotspot_server_interface')==hotspot_iface:
+   client.write('PATCH',_resource_path('ip/hotspot',ids['hotspot_server']),{'interface':guest_bridge})
+   created['retargeted_hotspot']=True
+
+ # Create or verify VLAN.
+ vlans=list_vlans(client)
+ existing=next((v for v in vlans if v.get('name')==vlan_name),None)
+ if not existing:
+  client.write('PUT','interface/vlan',{
+   'name':vlan_name,'vlan-id':str(vlan_id),'interface':ethernet,
+   'comment':'MikroMagic guest VLAN for external AP',
+  })
+  vlans=list_vlans(client)
+  existing=next((v for v in vlans if v.get('name')==vlan_name and v.get('.id')),None)
+  if not existing:raise RouterOSError('vlan_create_failed','Guest VLAN interface could not be created',409)
+  ids['vlan']=str(existing['.id']);created['vlan']=True
+ else:
+  if str(existing.get('vlan-id'))!=str(vlan_id) or existing.get('interface')!=ethernet:
+   raise RouterOSError('vlan_conflict','Existing VLAN does not match the previewed ethernet/vlan-id',409)
+  ids['vlan']=str(existing['.id'])
+  # Ensure enabled
+  if _truthy(existing.get('disabled',False)):
+   client.write('PATCH',_resource_path('interface/vlan',ids['vlan']),{'disabled':'false'})
+
+ # Add VLAN to guest bridge.
+ ports=list_bridge_ports(client)
+ vport=next((p for p in ports if p.get('interface')==vlan_name and p.get('bridge')==guest_bridge),None)
+ if not vport:
+  client.write('PUT','interface/bridge/port',{'bridge':guest_bridge,'interface':vlan_name,'comment':'MikroMagic external AP guest VLAN'})
+  ports=list_bridge_ports(client)
+  vport=next((p for p in ports if p.get('interface')==vlan_name and p.get('bridge')==guest_bridge and p.get('.id')),None)
+  if not vport:raise RouterOSError('bridge_port_failed','Could not add the guest VLAN to the HotSpot bridge',409)
+  ids['bridge_port_vlan']=str(vport['.id']);created['bridge_port_vlan']=True
+ else:
+  ids['bridge_port_vlan']=str(vport['.id'])
+
+ # Stash creation flags on desired for rollback of brand-new objects only.
+ desired_flags=dict(desired)
+ desired_flags['ids']=ids
+ desired_flags['_created']=created
+ return desired_flags
+
+
+def restore_guest_vlan_external_ap(client:RouterOSClient,before:dict,desired:dict|None=None):
+ """Roll back guest VLAN / bridge membership to the preview snapshot.
+
+ Uses the before-snapshot as authority so partial applies still reverse:
+ remove VLAN membership/interface we did not have, restore HotSpot/IP/DHCP
+ interfaces, and drop a guest bridge we created.
+ """
+ hotspot_iface=before['hotspot_interface_original']
+ vlan_name=before['vlan_name']
+ guest_bridge=before.get('guest_bridge') or (desired or {}).get('guest_bridge') or GUEST_BRIDGE_NAME
+ live_ids=((desired or {}).get('ids') or {})
+ # Refresh live ids when possible.
+ try:live=guest_vlan_state(client,ethernet_port=before['ethernet_port'],vlan_id=before['vlan_id'],vlan_name=vlan_name,hotspot_interface=hotspot_iface)
+ except RouterOSError:
+  live=None
+ ids=dict(before.get('ids') or {})
+ if live:ids={**ids,**{k:v for k,v in (live.get('ids') or {}).items() if v}}
+ ids={**ids,**{k:v for k,v in live_ids.items() if v}}
+
+ # 1) Remove VLAN from guest bridge when it was not a member before.
+ if not before.get('vlan_on_guest_bridge'):
+  ports=list_bridge_ports(client)
+  for port in ports:
+   if port.get('interface')==vlan_name and port.get('bridge')==guest_bridge and port.get('.id'):
+    try:client.write('DELETE',_resource_path('interface/bridge/port',str(port['.id'])),None)
+    except RouterOSError:pass
+ # 2) Delete VLAN when it did not exist before.
+ if not before.get('vlan_exists'):
+  for vlan in list_vlans(client):
+   if vlan.get('name')==vlan_name and vlan.get('.id'):
+    try:client.write('DELETE',_resource_path('interface/vlan',str(vlan['.id'])),None)
+    except RouterOSError:pass
+ # 3) Restore HotSpot / DHCP / address interfaces to the before snapshot.
+ if ids.get('hotspot_server') and before.get('hotspot_server_interface'):
+  try:client.write('PATCH',_resource_path('ip/hotspot',ids['hotspot_server']),{'interface':before['hotspot_server_interface']})
+  except RouterOSError:pass
+ if ids.get('dhcp_server') and before.get('dhcp_interface'):
+  try:client.write('PATCH',_resource_path('ip/dhcp-server',ids['dhcp_server']),{'interface':before['dhcp_interface']})
+  except RouterOSError:pass
+ if ids.get('address') and before.get('address_interface'):
+  try:client.write('PATCH',_resource_path('ip/address',ids['address']),{'interface':before['address_interface']})
+  except RouterOSError:pass
+ # 4) Remove HotSpot-iface bridge port when it was not a member before.
+ if not before.get('hotspot_iface_on_guest_bridge') and not before.get('hotspot_is_bridge'):
+  ports=list_bridge_ports(client)
+  for port in ports:
+   if port.get('interface')==hotspot_iface and port.get('bridge')==guest_bridge and port.get('.id'):
+    try:client.write('DELETE',_resource_path('interface/bridge/port',str(port['.id'])),None)
+    except RouterOSError:pass
+ # 5) Delete guest bridge when we created it for this change.
+ if not before.get('guest_bridge_exists') and guest_bridge==GUEST_BRIDGE_NAME:
+  for bridge in list_bridges(client):
+   if bridge.get('name')==guest_bridge and bridge.get('.id'):
+    try:client.write('DELETE',_resource_path('interface/bridge',str(bridge['.id'])),None)
+    except RouterOSError:pass
+ return guest_vlan_state(
+  client,
+  ethernet_port=before['ethernet_port'],
+  vlan_id=before['vlan_id'],
+  vlan_name=before['vlan_name'],
+  hotspot_interface=hotspot_iface,
+ )

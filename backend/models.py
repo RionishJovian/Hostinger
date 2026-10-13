@@ -703,7 +703,7 @@ class RouterChange(Base):
  created:Mapped[int]=mapped_column(BigInteger)
  updated:Mapped[int]=mapped_column(BigInteger)
  error_code:Mapped[str|None]=mapped_column(String(60),nullable=True)
- __table_args__=(CheckConstraint("operation in ('wireguard_peer_keepalive','hotspot_portal_publish','guest_wifi_settings','guest_network_addressing')"),CheckConstraint("risk in ('low','medium','high')"),CheckConstraint("status in ('previewed','applying','verifying','applied','conflict','rolling_back','rolled_back','failed','recovery_required')"),CheckConstraint('revision > 0'))
+ __table_args__=(CheckConstraint("operation in ('wireguard_peer_keepalive','hotspot_portal_publish','guest_wifi_settings','guest_network_addressing','guest_vlan_external_ap')"),CheckConstraint("risk in ('low','medium','high')"),CheckConstraint("status in ('previewed','applying','verifying','applied','conflict','rolling_back','rolled_back','failed','recovery_required')"),CheckConstraint('revision > 0'))
 
 class FinancialEvent(Base):
  __tablename__='financial_events'
