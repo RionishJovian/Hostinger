@@ -1100,6 +1100,26 @@ artifact sha256 50e849a454f795dd6f6e01c51bca58ef5281a4c13c0fd414e806bff325d09401
 
 **No router contact.** Settings-changes flag remained off.
 
+### Scripted redeploy — one-paste Connect with Magic Hub (2026-10-13 11:47 UTC)
+
+| Item | Value |
+|---|---|
+| Source | Commit `0ab24ce` on `origin/main`; artifact `860506ec944cbb21345d050c43a31e48bfacf34544ffee46ef03e6cdb534061e` (227 files) |
+| Directory | `/opt/mikromagic-build21-public-test-20261013T114755Z`; previous `-20261013T105204Z` |
+| Pre-deploy dump | `backups/pre-deploy.dump` (490 restore-list entries) |
+| Migration | **057 → 058**; rehearsal 057 → 058 → 057 → 058 clean |
+| Rollback images | `…-{api,web,magic-hub,migrate}:rollback-20261013T114755Z` |
+| Result | api, web and safe-change-worker recreated; Hub untouched (`TG1jLN13+hA1Eg9/1h0DykQ768ZHZO54WFGAZWhjL0o=`, UDP `156.67.216.128:51820`). Capability `pairing_available: true`, `router_setup_available: true`, `router_settings_changes_available: false`. Bundle `index-DXQrzfew.js`. Worker **running**. |
+
+**Deployed 0ab24ce at 20261013T114755Z**
+artifact sha256 860506ec944cbb21345d050c43a31e48bfacf34544ffee46ef03e6cdb534061e (227 files), bundle index-DXQrzfew.js
+
+**Rollback:** on the VPS, for s in api web magic-hub migrate; do docker tag mikromagic-build21-public-test-$s:rollback-20261013T114755Z mikromagic-build21-public-test-$s:latest; done
+          then cd /opt/mikromagic-build21-public-test-20261013T105204Z && docker compose -p mikromagic-build21-public-test -f compose.hostinger-public-test.yaml up -d --no-deps --force-recreate api web safe-change-worker
+          Restore /opt/mikromagic-build21-public-test-20261013T114755Z/backups/pre-deploy.dump only if the migration itself is at fault.
+
+**No router contact.** One-paste Connect with Magic Hub is live behind the existing router-setup flag. Settings-changes flag remained off.
+
 - Next app work (as of 2026-10-12 09:00 UTC+6:30, live at migration 049, commit `13d40af`):
   - Terminology and Burmese (P0a) owner-facing chrome is live across SME pages including Integrations, Did you know?, guided first-shop acceptance, Magic Boy, Media, Account, Sites, Revenue, Payments and Packages/Passes. Platform screens stay English. Native-speaker/mobile QA remains open.
   - Routers page guided (P0a step 5): Connect your router steps first; Magic Hub, connection plans and Safe RouterOS changes under a closed Advanced (technician) section that opens when a change needs attention.
