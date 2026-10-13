@@ -110,7 +110,7 @@ These RouterOS behaviours are assumptions; each failure stops the window with a 
 
 ## Window result — 2026-10-13 (hAP ax², serial HEJ08NYV0M1, RouterOS 7.24.2)
 
-**Connected** (sequence steps 1–9). Steps 10–11 (voucher sync) not run: the router has no HotSpot server yet.
+**Connected** (sequence steps 1–9), then HotSpot and voucher test (steps 10–11) passed after two fixes, below.
 
 - Uplink: no ISP cable on ether1, so `wifi1` (5 GHz) was set to station mode on the owner's home Wi-Fi with a DHCP client (comment `mm-station-wan`). The home ISP path dropped traffic to `156.67.216.128`, so the router reaches the Hub through the engineer's Mac: static route `156.67.216.128/32 via 192.168.88.10` (comment `mm-hub-via-mac-vpn`) and a pf NAT anchor `com.apple/mm.hubnat` on ExpressVPN. Temporary lab path only; undo with `~/mm-hub-vpn-rollback.sh` on the Mac.
 - Historical tunnel `mmh-8adfeb441215` was not present on the router; nothing to disable.
@@ -120,6 +120,14 @@ These RouterOS behaviours are assumptions; each failure stops the window with a 
 - Management setup: model `C52iG-5HaxD2HaxD`, arm64, certificate SHA-256 `48998fae420d4198df9c6b4db7780b5deec0e51cc637134e0e59600fb7bd3fca`, users `mm-monitor-97546f1a` / `mm-safechange-97546f1a` (both `address=10.90.1.1/32`), checks `monitoring_write_denied`, `safe_change_login`, `enrollment_login_removed` all true.
 - Preflight: `routeros_rest_live_read`, TLS verified, serial matches the label, compatibility `compatible_for_safe_change`, `connection.state: connected`, `connection_verified: true`, management read 1791871289 (06:01:29 UTC).
 - Verified on hardware: REST over HTTPS for `read,api,rest-api` (monitoring) and `read,write,api,rest-api` (Safe Change); self-signed certificate with `subject-alt-name=IP:` accepted when pinned; `www-ssl` limited to `10.90.1.1/32`; enrollment user self-deletion; `place-before=0` put the rule first.
+- Lab HotSpot (technician step; MikroMagic does not create HotSpot servers): `wifi2` (2.4 GHz, channel 6) removed from the LAN bridge, open SSID `Magic Cafe`, `10.5.50.1/24`, pool and DHCP `mm-lab-guest`, HotSpot `mm-lab-hotspot` with profile `mm-lab-hsprof` (`http-chap,http-pap,cookie`), `wifi2` in LAN and `wifi1` in WAN (defconf masquerade). USB LAN management unaffected. Rollback: `~/mm-lab-hotspot-rollback.rsc` on the engineer's Mac.
+- Voucher sync, first attempt: `router_write_failed`. RouterOS 7.24.2 HotSpot user profiles have **no `comment` field** (`bad parameter comment`). Fixed in `0d885d6`: profiles are owned by their content-hash `mm-` name, with `profile_conflict` when a same-named profile has other limits.
+- Preflight after the HotSpot server existed: `invalid_response`. `/rest/file` inlines file contents and the default HotSpot PNGs are not UTF-8. Fixed in `6beb972`: all file reads use `.proplist=name,type,size,last-modified`.
+- Test plan "Test 1 hour" (Internet, time, 1 h from first login, 1 device, 5 Mbps); voucher `6566eddd` (code hint `DE`). Sync: `applied 1`. Router: user with comment `MikroMagic voucher`, profile `mm-28cee99cbf` (`shared-users=1`, `rate-limit=5000k/5000k`, `on-login` script), scheduler `mm-voucher-expiry` (owner `mm-safechange-…`, policy `read,write`).
+- Real Wi-Fi client (engineer's Mac on `Magic Cafe`): unauthenticated HTTP redirected to `http://10.5.50.1/login`; a wrong code created no session; the voucher logged in (`http-pap`), the on-login script stamped `|exp=` exactly 1 h ahead, a dynamic 5M/5M queue appeared, HTTPS worked.
+- Disable in the app: background sync disabled the router user and removed the active session within 5 s; the guest was redirected to login again; re-login answered `invalid username or password`. App: `in_sync 1`, `failed 0`.
+- Clock: the router started at 2026-09-02 and IP Cloud `update-time` corrected it once online; the NTP client is disabled. A clock jump after first login would shift voucher expiry; an NTP check belongs in pre-Connected checks.
+- Still unverified: the scheduler actually expiring a user at `|exp=` (needs the hour to pass), data quotas (`limit-bytes-total`), `limit-uptime` (connected-clock plans), multi-device `shared-users`, and a real phone. HotSpot cookies (`/ip hotspot cookie`) remain after disable; the disabled user could not log in, but removing them on disable is a small follow-up.
 - Display gap: `GET /v1/routers` still reports `connection_state: unverified` for every router (hardcoded); the router plan carries the real state.
 
 ## Known gaps after the window

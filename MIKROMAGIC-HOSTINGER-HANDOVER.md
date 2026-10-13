@@ -780,6 +780,38 @@ Restore /opt/mikromagic-build21-public-test-20261013T050941Z/backups/pre-deploy.
 then cd /opt/mikromagic-build21-public-test-20261013T050941Z && docker compose -p mikromagic-build21-public-test -f compose.hostinger-public-test.yaml up -d --no-deps --force-recreate api web
 Restore /opt/mikromagic-build21-public-test-20261013T053325Z/backups/pre-deploy.dump only if the migration itself is at fault.
 
+### Scripted redeploy — hAP ax² findings: HotSpot profiles, tunnel MTU (2026-10-13 06:12 UTC)
+
+| Item | Value |
+|---|---|
+| Source | Commit `0d885d6` on `origin/main`; artifact `4746508d1c9c8bfdcda5393f98bd262c6388fc158f1d91920a2e4c569a7f9d8a` (214 files) |
+| Directory | `/opt/mikromagic-build21-public-test-20261013T061225Z`; previous `-20261013T053325Z` |
+| Infra files | none |
+| Pre-deploy dump | `backups/pre-deploy.dump` (at 054, 490 restore-list entries) |
+| Migration | none (stays 054); rehearsal skipped |
+| Rollback images | `…-{api,web,magic-hub,migrate}:rollback-20261013T061225Z` |
+| Result | api and web recreated; Hub untouched. Voucher sync no longer sends `comment` on HotSpot user profiles (RouterOS 7.24.2 rejects it); technician `create_interface` sets `mtu=1280` |
+
+**Rollback:** on the VPS, for s in api web magic-hub migrate; do docker tag mikromagic-build21-public-test-$s:rollback-20261013T061225Z mikromagic-build21-public-test-$s:latest; done
+then cd /opt/mikromagic-build21-public-test-20261013T053325Z && docker compose -p mikromagic-build21-public-test -f compose.hostinger-public-test.yaml up -d --no-deps --force-recreate api web
+Restore /opt/mikromagic-build21-public-test-20261013T061225Z/backups/pre-deploy.dump only if the migration itself is at fault.
+
+### Scripted redeploy — RouterOS file listing by metadata only (2026-10-13 06:21 UTC)
+
+| Item | Value |
+|---|---|
+| Source | Commit `6beb972` on `origin/main`; artifact `6d637f6207c2882aab16c666fe628a11eb8e842e67afd9e9ab785d8d5517a0d9` (214 files) |
+| Directory | `/opt/mikromagic-build21-public-test-20261013T062138Z`; previous `-20261013T061225Z` |
+| Infra files | none |
+| Pre-deploy dump | `backups/pre-deploy.dump` |
+| Migration | none (stays 054); rehearsal skipped |
+| Rollback images | `…-{api,web,magic-hub,migrate}:rollback-20261013T062138Z` |
+| Result | api and web recreated; Hub untouched. RouterOS reads request `file?.proplist=name,type,size,last-modified`: binary HotSpot files in `/rest/file` broke JSON and made preflight fail with `invalid_response`. hAP ax² preflight Connected again; voucher sync and HotSpot login verified (see `docs/MAGIC-CONNECT-HARDWARE-WINDOW.md`) |
+
+**Rollback:** on the VPS, for s in api web magic-hub migrate; do docker tag mikromagic-build21-public-test-$s:rollback-20261013T062138Z mikromagic-build21-public-test-$s:latest; done
+then cd /opt/mikromagic-build21-public-test-20261013T061225Z && docker compose -p mikromagic-build21-public-test -f compose.hostinger-public-test.yaml up -d --no-deps --force-recreate api web
+Restore /opt/mikromagic-build21-public-test-20261013T062138Z/backups/pre-deploy.dump only if the migration itself is at fault.
+
 - Next app work (as of 2026-10-12 09:00 UTC+6:30, live at migration 049, commit `13d40af`):
   - Terminology and Burmese (P0a) owner-facing chrome is live across SME pages including Integrations, Did you know?, guided first-shop acceptance, Magic Boy, Media, Account, Sites, Revenue, Payments and Packages/Passes. Platform screens stay English. Native-speaker/mobile QA remains open.
   - Routers page guided (P0a step 5): Connect your router steps first; Magic Hub, connection plans and Safe RouterOS changes under a closed Advanced (technician) section that opens when a change needs attention.
