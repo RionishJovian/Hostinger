@@ -99,5 +99,15 @@ class LocalPortalPackageTests(unittest.TestCase):
         self.assertIn('text-transform:uppercase', login)
         self.assertIn('MikroMagic', login)
 
+    def test_chap_md5_hashes_router_challenge_bytes_like_routeros(self):
+        package = build_local_hotspot_package(self.settings, tenant_id='tenant_01', site_id='site_01', revision=1)
+        with zipfile.ZipFile(io.BytesIO(package)) as archive:
+            login = archive.read('login.html').decode()
+        start = login.index('function md5(s){')
+        script = login[start:login.index('function norm(v){', start)]
+        chap_id, challenge = '\xa7', '\x01\x80\xff\x10abc\x9e\x00z'
+        result = subprocess.run(['node', '-e', script + ';process.stdout.write(md5(%s+"6ZYRPM"+%s))' % (json.dumps(chap_id), json.dumps(challenge))], capture_output=True, text=True, check=True)
+        self.assertEqual(result.stdout, hashlib.md5((chap_id + '6ZYRPM' + challenge).encode('latin-1')).hexdigest())
+
 
 if __name__ == '__main__': unittest.main()

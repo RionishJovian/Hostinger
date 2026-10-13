@@ -59,8 +59,9 @@ _LANG_JS = (
 
 # Inline MD5 for RouterOS HTTP-CHAP (must stay local; no PAP fallback).
 _MD5_JS = (
-    'function md5(s){var b=unescape(encodeURIComponent(s)),n=b.length,x=[],i,j;'
-    'for(i=0;i<n;i++)x[i]=b.charCodeAt(i);x[n]=128;while(x.length%64!==56)x.push(0);'
+    # RouterOS CHAP ids/challenges are raw bytes (octal escapes up to \377); hash each char as one byte, not UTF-8.
+    'function md5(s){var b=s,n=b.length,x=[],i,j;'
+    'for(i=0;i<n;i++)x[i]=b.charCodeAt(i)&255;x[n]=128;while(x.length%64!==56)x.push(0);'
     'var bits=n*8;for(i=0;i<8;i++)x.push(i<4?(bits>>> (8*i))&255:0);'
     'var a0=1732584193,b0=-271733879,c0=-1732584194,d0=271733878;'
     'var sh=[7,12,17,22,5,9,14,20,4,11,16,23,6,10,15,21];'
