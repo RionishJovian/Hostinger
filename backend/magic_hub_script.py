@@ -28,6 +28,8 @@ FORBIDDEN_IN_VISIBLE_SCRIPT = re.compile(
     r'(/user\s+set\s+admin|/password|/user\s+add\s+name=admin|hub_private|agent.token|MIKROMAGIC_HUB_AGENT)',
     re.I,
 )
+# Canonical WireGuard Curve25519 public key: 32 bytes → 44-char base64 with '=' pad.
+WG_PUBLIC_KEY_RE = re.compile(r'^[A-Za-z0-9+/]{43}=$')
 
 
 def assert_script_safe(script: str, *, token: str | None = None) -> None:
@@ -54,23 +56,30 @@ def format_enroll_response(fields: dict[str, str]) -> str:
 
 
 def parse_enroll_request(body: str) -> dict[str, str]:
-    """Parse router POST body (form-urlencoded or key=value lines / &-joined)."""
+    """Parse router POST body (form-urlencoded or key=value lines / &-joined).
+
+    Uses ``unquote`` (not ``unquote_plus``) so literal ``+`` in WireGuard
+    base64 public keys is preserved. Invalid public_key values are cleared.
+    """
     text = (body or '').strip()
     out: dict[str, str] = {}
     if not text:
         return out
     # Support both newline and & separators; values may be URL-encoded.
-    from urllib.parse import unquote_plus
+    from urllib.parse import unquote
     chunks = re.split(r'[&\n]', text.replace('\r\n', '\n').replace('\r', '\n'))
     for chunk in chunks:
         chunk = chunk.strip()
         if not chunk or '=' not in chunk:
             continue
         key, _, value = chunk.partition('=')
-        key = unquote_plus(key.strip()).lower()
-        value = unquote_plus(value.strip())
+        key = unquote(key.strip()).lower()
+        value = unquote(value.strip())
         if key:
             out[key] = value
+    pub = out.get('public_key')
+    if pub is not None and not WG_PUBLIC_KEY_RE.fullmatch(pub):
+        out['public_key'] = ''
     return out
 
 
@@ -161,10 +170,12 @@ def generate_enroll_script(*, token: str, base_url: str, router_id: str, hub_end
         :if ($mmCh = "&") do={{ :set mmOut ($mmOut . "%26") }} else={{
           :if ($mmCh = "=") do={{ :set mmOut ($mmOut . "%3D") }} else={{
             :if ($mmCh = "+") do={{ :set mmOut ($mmOut . "%2B") }} else={{
-              :if ($mmCh = "#") do={{ :set mmOut ($mmOut . "%23") }} else={{
-                :if ($mmCh = "?") do={{ :set mmOut ($mmOut . "%3F") }} else={{
-                  :if ($mmCh = "%") do={{ :set mmOut ($mmOut . "%25") }} else={{
-                    :set mmOut ($mmOut . $mmCh)
+              :if ($mmCh = "/") do={{ :set mmOut ($mmOut . "%2F") }} else={{
+                :if ($mmCh = "#") do={{ :set mmOut ($mmOut . "%23") }} else={{
+                  :if ($mmCh = "?") do={{ :set mmOut ($mmOut . "%3F") }} else={{
+                    :if ($mmCh = "%") do={{ :set mmOut ($mmOut . "%25") }} else={{
+                      :set mmOut ($mmOut . $mmCh)
+                    }}
                   }}
                 }}
               }}
@@ -209,7 +220,7 @@ def generate_enroll_script(*, token: str, base_url: str, router_id: str, hub_end
 
 :put "MM: Pre-checks before any write"
 :local mmWwwDisabled [/ip service get www-ssl disabled]
-:if ($mmWwwDisabled = false || $mmWwwDisabled = "false" || $mmWwwDisabled = no) do={{
+:if ($mmWwwDisabled = false || $mmWwwDisabled = "false") do={{
   [$mmFail "www-ssl is already enabled — disable owner www-ssl first or leave HTTPS management to MikroMagic"]
 }}
 :if ([:len [/user find where name~"^mm-"]] > 0) do={{
@@ -306,7 +317,50 @@ def generate_enroll_script(*, token: str, base_url: str, router_id: str, hub_end
 :do {{ :set mmInputLen [:len [/ip firewall filter find where chain=input]] }} on-error={{ :set mmInputLen 0 }}
 
 :put "MM: Reporting to MikroMagic"
-:local mmData ("public_key=" . $mmPub . "&board=" . $mmBoard . "&version=" . $mmVer . "&architecture=" . $mmArch . "&serial=" . $mmSerial . "&interface=" . $mmIface . "&listen_port=" . $mmPort . "&input_rules=" . $mmInputLen . "&interface_count=" . $mmIfCount)
+:local mmUrlEnc do={{
+  :local mmUrlSrc [:tostr $1]
+  :local mmEnc ""
+  :do {{
+    :set mmEnc [:convert to=url $mmUrlSrc]
+  }} on-error={{
+    :local mmRaw $mmUrlSrc
+    :local mmOut ""
+    :local mmI 0
+    :while ($mmI < [:len $mmRaw]) do={{
+      :local mmCh [:pick $mmRaw $mmI ($mmI + 1)]
+      :if ($mmCh = " ") do={{ :set mmOut ($mmOut . "%20") }} else={{
+        :if ($mmCh = "&") do={{ :set mmOut ($mmOut . "%26") }} else={{
+          :if ($mmCh = "=") do={{ :set mmOut ($mmOut . "%3D") }} else={{
+            :if ($mmCh = "+") do={{ :set mmOut ($mmOut . "%2B") }} else={{
+              :if ($mmCh = "/") do={{ :set mmOut ($mmOut . "%2F") }} else={{
+                :if ($mmCh = "#") do={{ :set mmOut ($mmOut . "%23") }} else={{
+                  :if ($mmCh = "?") do={{ :set mmOut ($mmOut . "%3F") }} else={{
+                    :if ($mmCh = "%") do={{ :set mmOut ($mmOut . "%25") }} else={{
+                      :set mmOut ($mmOut . $mmCh)
+                    }}
+                  }}
+                }}
+              }}
+            }}
+          }}
+        }}
+      }}
+      :set mmI ($mmI + 1)
+    }}
+    :set mmEnc $mmOut
+  }}
+  :return $mmEnc
+}}
+:local mmEncPub [$mmUrlEnc $mmPub]
+:local mmEncBoard [$mmUrlEnc $mmBoard]
+:local mmEncVer [$mmUrlEnc $mmVer]
+:local mmEncArch [$mmUrlEnc $mmArch]
+:local mmEncSerial [$mmUrlEnc $mmSerial]
+:local mmEncIface [$mmUrlEnc $mmIface]
+:local mmEncPort [$mmUrlEnc $mmPort]
+:local mmEncInput [$mmUrlEnc $mmInputLen]
+:local mmEncIfCount [$mmUrlEnc $mmIfCount]
+:local mmData ("public_key=" . $mmEncPub . "&board=" . $mmEncBoard . "&version=" . $mmEncVer . "&architecture=" . $mmEncArch . "&serial=" . $mmEncSerial . "&interface=" . $mmEncIface . "&listen_port=" . $mmEncPort . "&input_rules=" . $mmEncInput . "&interface_count=" . $mmEncIfCount)
 :local mmReply ""
 :do {{
   :local mmFetch [/tool fetch url=$mmEnrollUrl http-method=post http-data=$mmData check-certificate={FETCH_CERT_MODE} output=user as-value]

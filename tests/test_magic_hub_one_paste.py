@@ -181,6 +181,52 @@ class ScriptUnitTests(unittest.TestCase):
   form = 'public_key=' + key(9) + '&board=C52iG&version=7.24.2&serial=HEJ08NYV0M1'
   self.assertEqual(script_mod.parse_enroll_request(form)['board'], 'C52iG')
 
+ def test_parse_preserves_plus_and_slash_in_public_key(self):
+  """unquote (not unquote_plus) must keep base64 +; %2B/%2F decode correctly."""
+  # 32 zero-ish bytes engineered so base64 contains both '+' and '/'.
+  special = '+/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA='
+  self.assertEqual(len(special), 44)
+  self.assertIn('+', special)
+  self.assertIn('/', special)
+  self.assertTrue(script_mod.WG_PUBLIC_KEY_RE.fullmatch(special))
+  # Literal + in the body must stay '+' (unquote_plus would turn it into space).
+  literal = f'public_key={special}&board=RB'
+  parsed = script_mod.parse_enroll_request(literal)
+  self.assertEqual(parsed['public_key'], special)
+  self.assertNotIn(' ', parsed['public_key'])
+  # URL-encoded form from the RouterOS mmUrlEnc helper.
+  encoded = (
+   'public_key=' + special.replace('+', '%2B').replace('/', '%2F').replace('=', '%3D')
+   + '&board=RB'
+  )
+  self.assertEqual(script_mod.parse_enroll_request(encoded)['public_key'], special)
+  # Reject non-44 / non-base64 public keys.
+  self.assertEqual(script_mod.parse_enroll_request('public_key=not-a-key&board=RB')['public_key'], '')
+  self.assertEqual(
+   script_mod.parse_enroll_request('public_key=AAAA+with+spaces+not+44chars=&board=RB')['public_key'], ''
+  )
+
+ def test_script_url_encodes_enroll_http_data_values(self):
+  script = _sample_script()
+  self.assertIn(':local mmUrlEnc do={', script)
+  self.assertIn('%2B', script)
+  self.assertIn('%2F', script)
+  self.assertIn('[$mmUrlEnc $mmPub]', script)
+  self.assertIn('"public_key=" . $mmEncPub', script)
+  # Raw unencoded $mmPub must not be concatenated into http-data.
+  self.assertNotIn('"public_key=" . $mmPub', script)
+
+ def test_script_if_expressions_have_no_bareword_yes_no(self):
+  """Unquoted yes/no inside :if (...) is not a RouterOS boolean and breaks paste."""
+  script = _sample_script()
+  self.assertNotIn('$mmWwwDisabled = no', script)
+  for match in re.finditer(r':if\s*\((.*?)\)\s*do=', script, re.S):
+   cond = match.group(1)
+   self.assertIsNone(
+    re.search(r'(?<!["\w/=])\b(yes|no)\b(?!["\w])', cond),
+    msg=f'bareword yes/no in :if condition: {cond[:120]!r}',
+   )
+
  def test_rollback_script_targets_mikromagic_only(self):
   rb = script_mod.rollback_script()
   self.assertIn('MikroMagic', rb)
