@@ -34,7 +34,7 @@ class HotspotAccountingMigrationTests(unittest.TestCase):
                     db.execute("INSERT INTO router_devices VALUES ('r','t','s','Gateway','RB5009','7.20','u',1)")
                 command.upgrade(cfg, '054')
                 with sqlite3.connect(database) as db:
-                    self.assertEqual(db.execute('SELECT version_num FROM alembic_version').fetchone()[0], '055')
+                    self.assertEqual(db.execute('SELECT version_num FROM alembic_version').fetchone()[0], '054')
                     db.execute(
                         "INSERT INTO hotspot_session_observations "
                         "(router_id,tenant_id,site_id,observed_at,status,active_count,guests,activations_applied,usage_updated,last_error,updated) "
