@@ -1,6 +1,6 @@
 # Magic Connect hardware window — hAP ax² on the production Hub
 
-Status: software readiness verified 2026-10-13; window not yet run. This document is not authorization to contact or change the router until the owner starts the window. The owner chooses the moment to power on and apply router commands.
+Status: window run 2026-10-13 — hAP ax² **Connected** (see “Window result”). This document is not authorization to contact or change the router until the owner starts the window. The owner chooses the moment to power on and apply router commands.
 
 ## Goal
 
@@ -107,6 +107,20 @@ These RouterOS behaviours are assumptions; each failure stops the window with a 
 - `place-before=0` on an input chain that already has rules.
 - HotSpot user fields `limit-bytes-total` and `limit-uptime`, and profile fields `shared-users`, `rate-limit` (`<rx>k/<tx>k`) and `on-login`, accepted through REST and read back unchanged.
 - The profile `on-login` script writing `|exp=<time>` into the user comment on first login, and the `mm-voucher-expiry` scheduler (every minute, using `[:timestamp]`, which needs a recent RouterOS 7 release) disabling the user and removing its session after expiry. Until a real login proves this, voucher sync is not enforcement evidence.
+
+## Window result — 2026-10-13 (hAP ax², serial HEJ08NYV0M1, RouterOS 7.24.2)
+
+**Connected** (sequence steps 1–9). Steps 10–11 (voucher sync) not run: the router has no HotSpot server yet.
+
+- Uplink: no ISP cable on ether1, so `wifi1` (5 GHz) was set to station mode on the owner's home Wi-Fi with a DHCP client (comment `mm-station-wan`). The home ISP path dropped traffic to `156.67.216.128`, so the router reaches the Hub through the engineer's Mac: static route `156.67.216.128/32 via 192.168.88.10` (comment `mm-hub-via-mac-vpn`) and a pf NAT anchor `com.apple/mm.hubnat` on ExpressVPN. Temporary lab path only; undo with `~/mm-hub-vpn-rollback.sh` on the Mac.
+- Historical tunnel `mmh-8adfeb441215` was not present on the router; nothing to disable.
+- Pairing `ab42fa50-6691-4171-9026-2474ec8019bd`, comparison phrase matched; plan `89c9a9f0-ee43-464d-978b-5b6bc988eb17`, router address `10.90.1.2/32`, interface `mm-97546f1a`. Step 1 and Step 4 checks were clean.
+- Handshake: Hub `wg show mm-prod-hub latest-handshakes` showed router key `mIhCUL9/tHAv9gw7lADwR81ozreYELUWUF/ju7K5RXU=`; plan `handshake_verified_at` 1791871217 (06:00:17 UTC). Ping to `10.90.1.1` answered.
+- First management setup returned `unreachable`: TCP 443 connected but TLS stalled. Cause: the tunnel ran inside ExpressVPN (MTU 1350) with the WireGuard default MTU 1420. Setting `mtu=1280` on `mm-97546f1a` (MikroMagic's interface only) fixed it. Follow-up: generate `mtu=1280` in the technician `create_interface` command so VPN, PPPoE and mobile uplinks work first time.
+- Management setup: model `C52iG-5HaxD2HaxD`, arm64, certificate SHA-256 `48998fae420d4198df9c6b4db7780b5deec0e51cc637134e0e59600fb7bd3fca`, users `mm-monitor-97546f1a` / `mm-safechange-97546f1a` (both `address=10.90.1.1/32`), checks `monitoring_write_denied`, `safe_change_login`, `enrollment_login_removed` all true.
+- Preflight: `routeros_rest_live_read`, TLS verified, serial matches the label, compatibility `compatible_for_safe_change`, `connection.state: connected`, `connection_verified: true`, management read 1791871289 (06:01:29 UTC).
+- Verified on hardware: REST over HTTPS for `read,api,rest-api` (monitoring) and `read,write,api,rest-api` (Safe Change); self-signed certificate with `subject-alt-name=IP:` accepted when pinned; `www-ssl` limited to `10.90.1.1/32`; enrollment user self-deletion; `place-before=0` put the rule first.
+- Display gap: `GET /v1/routers` still reports `connection_state: unverified` for every router (hardcoded); the router plan carries the real state.
 
 ## Known gaps after the window
 
