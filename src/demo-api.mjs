@@ -3,7 +3,7 @@
 // Every demoClient() starts from fresh sample data; changes are discarded with the client.
 import {shopTime} from './support-report.mjs';
 
-export const DEMO_PAGES=['Overview','Revenue','Sites','Routers','Packages','Vouchers','Payments','Get help','Did you know?'];
+export const DEMO_PAGES=['Overview','Revenue','Sites','Routers','Captive portal','Packages','Vouchers','Payments','Get help','Did you know?'];
 export const DEMO_BLOCKED='Not available in the demo — nothing was changed.';
 export const DEMO_CODE_PREFIX='DEMO';
 const ALPHABET='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';

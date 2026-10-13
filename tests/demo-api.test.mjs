@@ -107,9 +107,10 @@ test('shop schedules handle overnight hours in the shop timezone',()=>{
 });
 
 test('the demo navigation is limited to sample-safe pages',async()=>{
- for(const page of ['Staff','Subscription','Integrations','Media','Account','Audit','Captive portal','Network','Internet'])assert.ok(!DEMO_PAGES.includes(page),page);
- assert.deepEqual(DEMO_PAGES,['Overview','Revenue','Sites','Routers','Packages','Vouchers','Payments','Get help','Did you know?']);
+ for(const page of ['Staff','Subscription','Integrations','Media','Account','Audit','Network','Internet'])assert.ok(!DEMO_PAGES.includes(page),page);
+ assert.deepEqual(DEMO_PAGES,['Overview','Revenue','Sites','Routers','Captive portal','Packages','Vouchers','Payments','Get help','Did you know?']);
  assert.ok(DEMO_PAGES.includes('Did you know?'));
+ assert.ok(DEMO_PAGES.includes('Captive portal'));
  const knowledge=await demoClient().request('knowledge');
  assert.ok(knowledge.length>=2);
  assert.ok(knowledge.every(c=>c.published&&!c.archived&&c.fact&&c.title));

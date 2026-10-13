@@ -5,8 +5,9 @@ import {routerSetupSteps} from '../src/router-setup.mjs';
 test('router setup connect/check steps follow plan-backed connection fields', () => {
   const none = routerSetupSteps({sites: [{id: 's1'}], routers: [{id: 'r1', connection_state: 'unverified'}]});
   assert.equal(none.find(s => s.id === 'connect').done, false);
-  assert.equal(none.find(s => s.id === 'connect').target, 'magic-connect');
+  assert.equal(none.find(s => s.id === 'connect').target, 'router-list');
   assert.equal(none.find(s => s.id === 'check').done, false);
+  assert.equal(none.find(s => s.id === 'check').target, 'router-list');
 
   const stale = routerSetupSteps({
     sites: [{id: 's1'}],

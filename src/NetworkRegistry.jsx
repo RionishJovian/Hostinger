@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { ssidProblem } from './site-settings.mjs';
 import { useSmeCopy } from './SMELocalization.jsx';
+import { MagicHubConnectButton } from './MagicHubConnect.jsx';
 import { routerEverConnected } from './router-setup.mjs';
 
 function Field({ label, children }) {
@@ -79,6 +80,17 @@ export function RouterRegistry({ sites, routers, act, api, busy, platform = fals
   const [sessions, setSessions] = useState(null);
   const [health, setHealth] = useState(null);
   const [wan, setWan] = useState(null);
+  const [hubSetup, setHubSetup] = useState(false);
+
+  useEffect(() => {
+    if (!api || platform) return;
+    let live = true;
+    api.request('magic-connect/capability').then(x => {
+      if (live) setHubSetup(x?.router_setup_available === true);
+    }).catch(() => { if (live) setHubSetup(false); });
+    return () => { live = false; };
+  }, [api, platform]);
+
   return <>
     {!platform && <section className="panel" id="register-router">
       <details className="router-register-more" {...(routers.length ? {} : {open: true})}>
@@ -100,7 +112,7 @@ export function RouterRegistry({ sites, routers, act, api, busy, platform = fals
       <p className="muted">{c.registerNote}</p>
       </details>
     </section>}
-    <section className="panel">
+    <section className="panel" id="router-list">
       <div className="panelhead"><h2>{platform ? c.fleetTitle : c.listTitle}</h2></div>
       <div className="tablewrap">
         <table>
@@ -128,7 +140,8 @@ export function RouterRegistry({ sites, routers, act, api, busy, platform = fals
             })()}</td>
             <td>{router.hub_id ? <>{c.assigned}<small>{router.hub_id}</small></> : c.notAssigned}</td>
             {!platform && <td className="mm-router-actions">
-              {routerEverConnected(router) ? <>
+              {api && <MagicHubConnectButton router={router} api={api} busy={busy} setupAvailable={hubSetup} onChanged={onRefresh} />}
+              {!hubSetup && !routerEverConnected(router) && <span className="muted">{c.connectSecondaryHint}</span>}
               <button className="button secondary" disabled={busy} onClick={async () => {
               const result = await act(`routers/${router.id}/preflight`, {});
               if (result) setPreflight(result);
@@ -144,7 +157,7 @@ export function RouterRegistry({ sites, routers, act, api, busy, platform = fals
             }}>{c.collectHealth}</button> <button className="button secondary" disabled={busy} onClick={async () => {
               const result = await act(`routers/${router.id}/wan/collect`, {});
               if (result) setWan({ ...result, router: router.name });
-            }}>{c.collectWan}</button></> : <span className="muted">{c.connectInPairing}</span>}</td>}
+            }}>{c.collectWan}</button></td>}
           </tr>)}
           {!routers.length && <tr><td colSpan={platform ? 5 : 6}>{c.empty}</td></tr>}</tbody>
         </table>
