@@ -2,7 +2,8 @@ import React,{useEffect,useState} from 'react';
 import {useSmeCopy} from './SMELocalization.jsx';
 import './magic-hub-connect.css';
 
-const STEPS=['waiting','reported','peer_added','awaiting_handshake','management_applied','finishing','connected'];
+const STEPS=['reported','peer_added','awaiting_handshake','management_applied','connected'];
+const STEP_ALIAS={waiting:'reported',finishing:'management_applied',peer_added:'peer_added'};
 
 function CodeFrame({title,text,copyLabel,copiedLabel}){
  const [copied,setCopied]=useState(false);
@@ -53,7 +54,9 @@ export function MagicHubConnectPopup({router,api,busy,onClose,onConnected}){
  },[session?.token_id,router.id,api]);
 
  const status=progress?.status||'waiting';
- const activeIdx=STEPS.indexOf(status);
+ const mapped=STEP_ALIAS[status]||status;
+ const activeIdx=status==='waiting'?-1:STEPS.indexOf(mapped);
+ const waiting=status==='waiting';
 
  return <div className="mm-hub-modal" role="dialog" aria-modal="true" aria-labelledby="mm-hub-title">
   <div className="mm-hub-modal-card">
@@ -66,6 +69,7 @@ export function MagicHubConnectPopup({router,api,busy,onClose,onConnected}){
     <button className="button" disabled={starting||busy} onClick={()=>start(replace)}>{starting?c.hubConnectStarting:(replace?c.hubConnectReplace:c.hubConnectStart)}</button>
    </div>}
    {session&&<>
+    {waiting&&<p className="muted" role="status">{c.hubConnectWaiting}</p>}
     <ol className="mm-hub-steps">{STEPS.map((step,i)=>{
      const label=c.hubConnectSteps[step]||step;
      const state=status==='failed'&&i===Math.max(activeIdx,0)?'is-failed':i<activeIdx?'is-done':i===activeIdx?'is-active':'is-todo';

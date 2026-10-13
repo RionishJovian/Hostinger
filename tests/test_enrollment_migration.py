@@ -24,16 +24,14 @@ class EnrollmentMigrationTests(unittest.TestCase):
                     session.add(Tenant(id='t',name='Synthetic'));session.flush()
                     session.execute(text("INSERT INTO users (id,username,password_hash,role,tenant_id,active) VALUES ('u','synthetic','disabled','sme','t',1)"))
                     session.execute(text("INSERT INTO sites (id,tenant_id,name,timezone,created) VALUES ('s','t','Synthetic','UTC',1)"))
-                    session.add_all([
-                        RouterDevice(id='r',tenant_id='t',site_id='s',name='Synthetic',model='unknown',reported_routeros='',registered_by='u',created=1),
-                        MagicHub(id='h',name='Synthetic',endpoint='test.invalid',port=51820,pool='10.90.1.0/24',public_key='synthetic-not-used',next_host=3,created=1),
-                        RouterPlan(id='p',tenant_id='t',router_id='r',hub_id='h',router_public_key='synthetic-not-used',address='10.90.1.2',snapshot={},created=1),
-                    ])
-                    # Raw SQL: the current ORM model has columns that revision 031 does not.
+                    # Raw SQL: current ORM RouterDevice has columns (architecture, reported_serial, nullable model) that 031 lacks.
+                    session.execute(text("INSERT INTO router_devices (id,tenant_id,site_id,name,model,reported_routeros,registered_by,created) VALUES ('r','t','s','Synthetic','unknown','','u',1)"))
+                    session.execute(text("INSERT INTO magic_hubs (id,name,endpoint,port,pool,public_key,next_host,created) VALUES ('h','Synthetic','test.invalid',51820,'10.90.1.0/24','synthetic-not-used',3,1)"))
+                    session.execute(text("INSERT INTO router_plans (id,tenant_id,router_id,hub_id,router_public_key,address,snapshot,created) VALUES ('p','t','r','h','synthetic-not-used','10.90.1.2','{}',1)"))
                     session.execute(text("INSERT INTO magic_connect_attempts (id,tenant_id,site_id,owner_id,router_name,code_hash,comparison_code,status,created,expires,approved_at) VALUES ('a','t','s','u','Synthetic',:hash,'000000','approved',1,601,2)"),{'hash':'d'*64});session.commit()
                 command.upgrade(cfg,'032');command.upgrade(cfg,'head')
                 with sqlite3.connect(database) as db:
-                    self.assertEqual(db.execute('SELECT version_num FROM alembic_version').fetchone()[0],'058')
+                    self.assertEqual(db.execute('SELECT version_num FROM alembic_version').fetchone()[0],'059')
                     self.assertEqual(db.execute('SELECT status FROM magic_connect_attempts').fetchone()[0],'approved')
                     self.assertEqual(db.execute('SELECT count(*) FROM users').fetchone()[0],1)
                 with Session(engine) as session:

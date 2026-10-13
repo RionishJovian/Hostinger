@@ -15,14 +15,15 @@ def allowed_site(s,u,id):
 def router_display(device,plan=None,now=None):
  """Owner-facing connection_state from the plan: Connected only with fresh evidence."""
  fresh=bool(plan and connection_is_fresh(plan,now))
- return {k:getattr(device,k) for k in ['id','tenant_id','site_id','name','model','reported_routeros','created']}|{
+ discovered=bool(device.model or device.reported_routeros or device.architecture or device.reported_serial)
+ return {k:getattr(device,k) for k in ['id','tenant_id','site_id','name','model','reported_routeros','architecture','reported_serial','created']}|{
   'connection_state':'connected' if fresh else 'unverified',
   'connection_verified':fresh,
   'hub_id':plan.hub_id if plan else None,
   'last_handshake':plan.handshake_verified_at if plan else None,
   'lifecycle_state':plan.lifecycle_state if plan else None,
   'management_read_verified_at':plan.management_read_verified_at if plan else None,
-  'metadata_source':'owner_reported',
+  'metadata_source':'script_reported' if discovered else 'name_only',
  }
 
 def register_sites(app,current,db,owner,log):
@@ -57,7 +58,12 @@ def register_sites(app,current,db,owner,log):
   return [router_display(x,plans.get(x.id),now) for x in s.scalars(q.order_by(RouterDevice.created.desc()))]
  @app.post('/v1/routers',status_code=201)
  def register_router(b:RouterIn,u=Depends(current),s=Depends(db)):
-  owner(u);allowed_site(s,u,b.site_id);x=RouterDevice(tenant_id=u.tenant_id,**b.model_dump(),registered_by=u.id,created=int(time.time()));s.add(x)
+  owner(u);allowed_site(s,u,b.site_id)
+  data=b.model_dump()
+  # Name-only registration: model/RouterOS stay empty until the setup script reports them.
+  if not (data.get('model') or '').strip():data['model']=None
+  if not (data.get('reported_routeros') or '').strip():data['reported_routeros']=None
+  x=RouterDevice(tenant_id=u.tenant_id,**data,registered_by=u.id,created=int(time.time()));s.add(x)
   try:s.flush();log(s,u,'router_registered',x.id);s.commit()
   except IntegrityError:s.rollback();raise HTTPException(409,'Router name already registered at this site')
   return {'id':x.id,'connection_state':'unverified','connection_verified':False,'hub_id':None,'lifecycle_state':None,'management_read_verified_at':None}

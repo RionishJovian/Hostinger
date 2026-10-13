@@ -17,15 +17,17 @@ class SiteTests(unittest.TestCase):
  def test_registry_is_scoped_and_cannot_claim_live_state(self):
   owner=self.login('owner');other=self.login('other');guest=self.login('guest');platform=self.login('platform');site=self.site(owner,'Main branch')
   self.assertEqual(self.client.post('/v1/sites',headers=guest,json={'name':'Bad'}).status_code,403);self.assertEqual(self.client.post('/v1/sites',headers=owner,json={'name':'Main branch'}).status_code,409)
-  body={'site_id':site,'name':'Gateway','model':'hAP ax3','reported_routeros':'owner reported'}
+  body={'site_id':site,'name':'Gateway'}
   self.assertEqual(self.client.post('/v1/routers',headers=other,json=body).status_code,404)
   self.assertEqual(self.client.post('/v1/routers',headers=owner,json={**body,'connection_state':'online'}).status_code,422)
   response=self.client.post('/v1/routers',headers=owner,json=body);self.assertEqual(response.status_code,201);self.assertEqual(response.json()['connection_state'],'unverified')
+  name_only=self.client.get('/v1/routers',headers=owner).json()[0]
+  self.assertIsNone(name_only['model']);self.assertIsNone(name_only['reported_routeros']);self.assertEqual(name_only['metadata_source'],'name_only')
   self.assertEqual(self.client.get('/v1/routers',headers=other).json(),[]);self.assertEqual(self.client.get('/v1/routers',headers=guest).status_code,403)
   fleet=self.client.get('/v1/routers',headers=platform).json();self.assertEqual(len(fleet),1);self.assertIsNone(fleet[0]['last_handshake']);self.assertIsNone(fleet[0]['hub_id'])
  def test_router_list_connection_state_follows_fresh_plan_evidence(self):
   owner=self.login('owner');site=self.site(owner,'Plan shop')
-  router=self.client.post('/v1/routers',headers=owner,json={'site_id':site,'name':'Gateway','model':'hAP ax2','reported_routeros':''}).json()['id']
+  router=self.client.post('/v1/routers',headers=owner,json={'site_id':site,'name':'Gateway'}).json()['id']
   listed=self.client.get('/v1/routers',headers=owner).json()[0]
   self.assertEqual(listed['connection_state'],'unverified');self.assertFalse(listed['connection_verified']);self.assertIsNone(listed['last_handshake']);self.assertIsNone(listed['lifecycle_state'])
   with self.app.state.factory() as s:

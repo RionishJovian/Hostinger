@@ -102,9 +102,9 @@ def _progress_payload(token: MagicHubConnectToken, plan: RouterPlan | None, now:
   'waiting': 'Waiting for router',
   'reported': 'Router reported',
   'peer_added': 'Hub peer added',
-  'awaiting_handshake': 'Waiting for handshake',
-  'management_applied': 'Management ready on router',
-  'finishing': 'Finishing MikroMagic logins',
+  'awaiting_handshake': 'Handshake',
+  'management_applied': 'Management ready',
+  'finishing': 'Management ready',
   'connected': 'Connected',
   'failed': 'Failed',
   'expired': 'Expired',
@@ -328,6 +328,7 @@ def register_magic_hub_connect(app, current, db, owner, log):
    plan = s.scalar(select(RouterPlan).where(RouterPlan.router_id == row.router_id))
    if plan:
     snap = plan.snapshot
+    hub_row = s.get(MagicHub, plan.hub_id)
     return Response(script_mod.format_enroll_response({
      'status': 'ok',
      'hub_public_key': snap['hub']['public_key'],
@@ -335,6 +336,7 @@ def register_magic_hub_connect(app, current, db, owner, log):
      'endpoint_port': str(snap['hub']['port']),
      'hub_address': snap['hub']['hub_address'],
      'router_address': snap['router']['address'],
+     'hub_pool': hub_row.pool if hub_row else '',
      'keepalive': str(snap['router']['persistent_keepalive_seconds']),
      'interface': snap['router']['interface'],
      'listen_port': str(fields.get('listen_port') or ''),
@@ -365,8 +367,27 @@ def register_magic_hub_connect(app, current, db, owner, log):
    'listen_port': fields.get('listen_port'), 'input_rules': fields.get('input_rules'),
    'interface_count': fields.get('interface_count'),
   }
-  model_mismatch = bool(facts['board'] and router.model and facts['board'].lower() not in router.model.lower() and router.model.lower() not in facts['board'].lower())
-  version_mismatch = bool(facts['version'] and router.reported_routeros and not facts['version'].startswith(router.reported_routeros.split()[0]))
+  # Mismatch flags only when the owner previously typed model/version (legacy rows).
+  prior_model = (router.model or '').strip()
+  prior_version = (router.reported_routeros or '').strip()
+  model_mismatch = bool(
+   facts['board'] and prior_model
+   and facts['board'].lower() not in prior_model.lower()
+   and prior_model.lower() not in facts['board'].lower()
+  )
+  version_mismatch = bool(
+   facts['version'] and prior_version
+   and not facts['version'].startswith(prior_version.split()[0])
+  )
+  # Script-reported facts become the router card identity (name-only registration).
+  if facts.get('board'):
+   router.model = facts['board'][:120]
+  if facts.get('version'):
+   router.reported_routeros = facts['version'][:40]
+  if facts.get('architecture'):
+   router.architecture = facts['architecture'][:40]
+  if facts.get('serial'):
+   router.reported_serial = facts['serial'][:80]
 
   iface = facts['interface']
   if not re.fullmatch(r'[A-Za-z0-9_.-]{1,15}', iface or ''):
@@ -491,6 +512,7 @@ def register_magic_hub_connect(app, current, db, owner, log):
    'endpoint_port': str(hub.port),
    'hub_address': hub_address,
    'router_address': address + '/32',
+   'hub_pool': hub.pool,
    'keepalive': '25',
    'interface': iface,
    'listen_port': str(facts.get('listen_port') or ''),

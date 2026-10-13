@@ -1,4 +1,5 @@
 """One-paste Magic Hub connect: token lifecycle, script safety, redeem contract."""
+import re
 import time
 import unittest
 from unittest.mock import patch
@@ -6,16 +7,20 @@ from unittest.mock import patch
 import test_hubs
 from test_hubs import key
 from backend import magic_hub_script as script_mod
-from backend.models import MagicHubConnectToken, RouterPlan, RouterPlanRetirement
+from backend.models import MagicHubConnectToken, RouterDevice, RouterPlan, RouterPlanRetirement
 from sqlalchemy import select
+
+
+def _sample_script():
+  return script_mod.generate_enroll_script(
+   token='TESTTOKEN123', base_url='https://megamagic.tech',
+   router_id='97546f1a-1111-2222-3333-444444444444', hub_endpoint='156.67.216.128',
+  )
 
 
 class ScriptUnitTests(unittest.TestCase):
  def test_script_has_no_admin_password_or_hardcoded_ifaces(self):
-  script = script_mod.generate_enroll_script(
-   token='TESTTOKEN123', base_url='https://megamagic.tech',
-   router_id='97546f1a-1111-2222-3333-444444444444', hub_endpoint='156.67.216.128',
-  )
+  script = _sample_script()
   self.assertIn('TESTTOKEN123', script)
   self.assertIn('check-certificate=yes-without-crl', script)
   self.assertIn('/tool fetch', script)
@@ -29,11 +34,98 @@ class ScriptUnitTests(unittest.TestCase):
   self.assertIn('password=$mmEnrollPass', script)
   script_mod.assert_script_safe(script, token='TESTTOKEN123')
 
+ def test_script_passes_values_into_helpers_not_outer_locals(self):
+  """RouterOS :local f do={} cannot read the caller's locals."""
+  script = _sample_script()
+  self.assertNotIn('mmAdded', script)
+  # Fail helper uses globals (or named params), not bare outer locals for cleanup.
+  self.assertIn(':global mmGStatusUrl', script)
+  self.assertIn(':global mmGComment', script)
+  self.assertIn(':global mmGId8', script)
+  # mmGet must take reply/key as named parameters — not read $mmReply from outer scope.
+  self.assertIn('$"reply"', script)
+  self.assertIn('$"key"', script)
+  self.assertIn('[$mmGet reply=$mmReply key="hub_public_key"]', script)
+  # Fail body must not reference undefined outer locals like $mmStatusUrl without global.
+  fail_block = script.split(':local mmFail do={')[1].split(':put "MM: Checking RouterOS')[0]
+  self.assertNotRegex(fail_block, r'\$mmStatusUrl\b')
+  self.assertNotRegex(fail_block, r'\$mmComment\b')
+  self.assertNotRegex(fail_block, r'\$mmId8\b')
+  self.assertIn('$mmGStatusUrl', fail_block)
+  self.assertIn('$mmGComment', fail_block)
+  self.assertIn('$mmGId8', fail_block)
+
+ def test_script_find_uses_typeof_nil_not_numeric_compare(self):
+  script = _sample_script()
+  self.assertNotRegex(script, r'\[:find[^\]]*\]\s*>=\s*0')
+  self.assertNotRegex(script, r'\[:find[^\]]*\]\s*<\s*0')
+  self.assertIn('[:typeof $mmErrPos] != "nil"', script)
+  self.assertIn('[:typeof $mmOkPos] = "nil"', script)
+  self.assertIn('[:typeof $mmDot] = "nil"', script)
+
+ def test_script_version_uses_tonum(self):
+  script = _sample_script()
+  self.assertIn('[:tonum $mmMajor] < 7', script)
+  self.assertNotRegex(script, r'\$mmMajor\s*<\s*"7"')
+
+ def test_script_fetch_uses_output_user_as_value(self):
+  script = _sample_script()
+  self.assertIn('output=user as-value', script)
+  self.assertIn('($mmFetch->"data")', script)
+  self.assertNotIn('dst-path=', script)
+  self.assertNotIn('/file get', script)
+  self.assertNotIn('/file remove', script)
+
+ def test_script_error_syntax_and_urlencode_failure(self):
+  script = _sample_script()
+  self.assertIn(':error ("MM-FAIL: " . $mmMsg)', script)
+  self.assertNotIn(':error message=', script)
+  self.assertIn(':convert to=url', script)
+  self.assertIn('?phase=failed&message=" . $mmEnc)', script)
+
+ def test_script_certificate_wait_before_www_ssl(self):
+  script = _sample_script()
+  self.assertIn('/certificate sign $mmCert', script)
+  self.assertIn('Certificate was not signed in time', script)
+  sign_idx = script.index('/certificate sign $mmCert')
+  wait_idx = script.index('while (!$mmSigned')
+  www_idx = script.index('/ip service set www-ssl certificate=$mmCert')
+  self.assertLess(sign_idx, wait_idx)
+  self.assertLess(wait_idx, www_idx)
+
+ def test_script_writes_wrapped_in_do_on_error(self):
+  script = _sample_script()
+  for fragment in (
+   '/interface wireguard add name=$mmIface',
+   '/interface wireguard peers add interface=$mmIface',
+   '/ip address add address=$mmRAddr',
+   '/ip route add dst-address=($mmHubAddr . "/32")',
+   '/certificate add name=$mmCert',
+   '/certificate sign $mmCert',
+   '/ip service set www-ssl certificate=$mmCert',
+   '/user add name=$mmEnrollUser',
+  ):
+   self.assertIn(fragment, script)
+   # Each write sits inside a :do { ... } on-error={ [$mmFail ...] } block
+   pos = script.index(fragment)
+   window = script[max(0, pos - 80):pos]
+   self.assertIn(':do {', window, msg=f'{fragment} missing :do wrapper nearby')
+
+ def test_script_prechecks_www_ssl_mm_users_and_pool(self):
+  script = _sample_script()
+  self.assertIn('www-ssl is already enabled', script)
+  self.assertIn('name~"^mm-"', script)
+  self.assertIn('A user starting with mm- already exists', script)
+  self.assertIn('A group starting with mm- already exists', script)
+  self.assertIn('hub_pool', script)
+  self.assertIn('overlaps hub pool', script)
+  self.assertIn('Pre-checks before any write', script)
+
  def test_enroll_response_round_trip(self):
   body = script_mod.format_enroll_response({
    'status': 'ok', 'hub_public_key': key(1), 'endpoint': 'hub.example.com',
    'endpoint_port': '51820', 'hub_address': '10.90.1.1', 'router_address': '10.90.1.2/32',
-   'keepalive': '25', 'interface': 'mm-abcd1234', 'listen_port': '13239',
+   'hub_pool': '10.90.1.0/24', 'keepalive': '25', 'interface': 'mm-abcd1234', 'listen_port': '13239',
    'enroll_user': 'mm-enroll-abcd1234', 'enroll_password': 'secret-once',
    'certificate': 'mm-mgmt-abcd1234',
   })
@@ -41,6 +133,7 @@ class ScriptUnitTests(unittest.TestCase):
   self.assertEqual(parsed['status'], 'ok')
   self.assertEqual(parsed['hub_public_key'], key(1))
   self.assertEqual(parsed['enroll_password'], 'secret-once')
+  self.assertEqual(parsed['hub_pool'], '10.90.1.0/24')
   form = 'public_key=' + key(9) + '&board=C52iG&version=7.24.2&serial=HEJ08NYV0M1'
   self.assertEqual(script_mod.parse_enroll_request(form)['board'], 'C52iG')
 
@@ -75,12 +168,9 @@ class OnePasteApiTests(unittest.TestCase):
   script = data['script']
   self.assertNotIn(hub, script)  # hub id not required in script
   self.assertIn('https://megamagic.tech/v1/magic-connect/hub-enroll/', script)
-  # Extract token from script
-  import re
   m = re.search(r':local mmToken "([^"]+)"', script)
   self.assertTrue(m)
   token = m.group(1)
-  self.assertNotIn('admin', script.lower().split('enroll')[0] if False else '')
   script_mod.assert_script_safe(script, token=token)
 
   # Wrong tenant cannot poll
@@ -115,6 +205,7 @@ class OnePasteApiTests(unittest.TestCase):
    self.assertIn('status=ok', text)
    self.assertIn('hub_public_key=', text)
    self.assertIn('enroll_password=', text)
+   self.assertIn('hub_pool=', text)
    self.assertTrue(adapter.peer_present)
    # Single use: second redeem does not re-emit password
    again = self.client.post(f'/v1/magic-connect/hub-enroll/{token}', content=body)
@@ -123,6 +214,24 @@ class OnePasteApiTests(unittest.TestCase):
 
   status = self.client.get(f"/v1/routers/{router}/magic-hub-connect/{data['token_id']}", headers=owner).json()
   self.assertIn(status['status'], ('peer_added', 'awaiting_handshake', 'management_applied', 'finishing', 'connected'))
+  listed = self.client.get('/v1/routers', headers=owner).json()
+  row = next(r for r in listed if r['id'] == router)
+  self.assertEqual(row['model'], 'C52iG-5HaxD2HaxD')
+  self.assertIn('7.24.2', row['reported_routeros'])
+  self.assertEqual(row['architecture'], 'arm64')
+  self.assertEqual(row['reported_serial'], 'HEJ08NYV0M1')
+  self.assertEqual(row['metadata_source'], 'script_reported')
+
+ def test_name_only_registration(self):
+  _, owner, _, site, _ = self.setup_hub()
+  created = self.client.post('/v1/routers', headers=owner, json={'site_id': site, 'name': 'Cafe gateway'})
+  self.assertEqual(created.status_code, 201, created.text)
+  listed = self.client.get('/v1/routers', headers=owner).json()
+  row = next(r for r in listed if r['name'] == 'Cafe gateway')
+  self.assertIsNone(row['model'])
+  self.assertIsNone(row['reported_routeros'])
+  self.assertIsNone(row.get('architecture'))
+  self.assertEqual(row['metadata_source'], 'name_only')
 
  def test_expired_and_invalid_token(self):
   _, owner, hub, site, _ = self.setup_hub(); self.enable()
@@ -137,7 +246,6 @@ class OnePasteApiTests(unittest.TestCase):
    row.created = int(time.time()) - 4000
    row.expires = int(time.time()) - 10
    s.commit()
-  import re
   token = re.search(r':local mmToken "([^"]+)"', started['script']).group(1)
   expired = self.client.post(f'/v1/magic-connect/hub-enroll/{token}', content='public_key=' + key(9))
   self.assertEqual(expired.status_code, 410)
@@ -154,7 +262,7 @@ class OnePasteApiTests(unittest.TestCase):
   first = self.client.post(
    f'/v1/routers/{router}/magic-hub-connect', headers={**owner, 'Origin': 'https://megamagic.tech'}, json={}
   ).json()
-  import re, os, tempfile
+  import os, tempfile
   from pathlib import Path
   token = re.search(r':local mmToken "([^"]+)"', first['script']).group(1)
   stores = tempfile.TemporaryDirectory(); self.addCleanup(stores.cleanup)

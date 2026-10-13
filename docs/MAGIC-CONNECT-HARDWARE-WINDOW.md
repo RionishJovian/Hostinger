@@ -60,10 +60,10 @@ Owner decision 2026-10-13: connect through the **one-paste script** from Routers
 
 | # | Who | Action | Expected |
 |---|---|---|---|
-| 1 | Owner | Routers: register device name, model, RouterOS version on the shop | Router listed, Unverified |
+| 1 | Owner | Routers: register device name only on the shop (no model/RouterOS, no WinBox credentials) | Router listed, Unverified |
 | 2 | Owner | Press **Connect with Magic Hub** | Popup with one RouterOS script + Copy; progress starts at Waiting for router (token ~30 min, single-use) |
-| 3 | Owner / on-site | WinBox → New Terminal: paste the script once (Safe Mode recommended for writes) | Script checks RouterOS ≥ 7 + WireGuard; checks internet (DHCP only on unused running Ethernet if needed); creates WG; HTTPS enroll to MikroMagic; applies peer/address/route; management (cert, www-ssl Hub-only, input rule, temporary enroll user) |
-| 4 | App | Popup advances: Router reported → Hub peer added → Handshake → Management ready → Finishing logins → **Connected** | Connected only after fresh verified management read (same evidence rules as before) |
+| 3 | Owner / on-site | WinBox → New Terminal: paste the script once (Safe Mode recommended for writes) | Script checks RouterOS ≥ 7 + WireGuard; pre-checks www-ssl / mm-* users; checks internet (DHCP only on unused running Ethernet if needed); creates WG; HTTPS enroll to MikroMagic; applies peer/address/route; management (cert wait, www-ssl Hub-only, input rule, temporary enroll user) |
+| 4 | App | Popup advances: Router reported → Hub peer added → Handshake → Management ready → **Connected**; card shows model/RouterOS/architecture/serial from the script | Connected only after fresh verified management read (same evidence rules as before) |
 | 5 | Owner | If the router was reset / needs a new key: Connect again → confirm replace | Old Hub peer revoked via emergency lock; plan archived; new script issued |
 | 6 | Owner | Issue one test voucher, Sync vouchers | "Updated on router" 1; Need attention 0 |
 | 7 | Owner | Disable that voucher, Sync again | Router login disabled; active session removed |

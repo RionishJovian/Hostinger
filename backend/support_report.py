@@ -77,7 +77,8 @@ def build_report(s,u,site,description,now):
  router_rows=[]
  for r in routers:
   p=plans.get(r.id)
-  router_rows.append({'name':clean(r.name),'model':clean(r.model),'reported_routeros':r.reported_routeros or None,'source':'owner_reported',
+  source=('script_reported' if (r.model or r.reported_routeros or getattr(r,'architecture',None) or getattr(r,'reported_serial',None)) else 'name_only')
+  router_rows.append({'name':clean(r.name),'model':clean(r.model) if r.model else None,'reported_routeros':r.reported_routeros or None,'source':source,
    'connection':'verified_handshake' if p and p.handshake_verified_at else 'not_verified',
    'magic_hub_assigned':bool(p),'enrollment_state':p.lifecycle_state if p else None,
    'handshake_verified_at':p.handshake_verified_at if p else None,'management_read_verified_at':p.management_read_verified_at if p else None,

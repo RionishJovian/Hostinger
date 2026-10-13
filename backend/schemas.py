@@ -293,8 +293,8 @@ class SiteSettingsIn(Strict):
 class RouterIn(Strict):
  site_id:str=Field(min_length=1,max_length=36)
  name:str=Field(min_length=1,max_length=120)
- model:str=Field(min_length=1,max_length=120)
- reported_routeros:str=Field(default='',max_length=40)
+ model:str|None=Field(default=None,max_length=120)
+ reported_routeros:str|None=Field(default=None,max_length=40)
 class ManagedDeviceIn(Strict):
  site_id:str=Field(min_length=1,max_length=36)
  kind:Literal['switch','access_point']

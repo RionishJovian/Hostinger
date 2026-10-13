@@ -74,8 +74,6 @@ export function RouterRegistry({ sites, routers, act, api, busy, platform = fals
   const c = useSmeCopy('routersPage', localize);
   const [site, setSite] = useState('');
   const [name, setName] = useState('');
-  const [model, setModel] = useState('');
-  const [version, setVersion] = useState('');
   const [preflight, setPreflight] = useState(null);
   const [sync, setSync] = useState(null);
   const [sessions, setSessions] = useState(null);
@@ -95,8 +93,8 @@ export function RouterRegistry({ sites, routers, act, api, busy, platform = fals
       <div className="panelhead"><h2>{c.registerTitle}</h2></div>
       <form onSubmit={async event => {
         event.preventDefault();
-        if (await act('routers', { site_id: site, name, model, reported_routeros: version })) {
-          setName(''); setModel(''); setVersion('');
+        if (await act('routers', { site_id: site, name })) {
+          setName('');
         }
       }}>
         <div className="formgrid">
@@ -104,10 +102,8 @@ export function RouterRegistry({ sites, routers, act, api, busy, platform = fals
             <option value="">{c.selectShop}</option>{sites.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}
           </select></Field>
           <Field label={c.routerName}><input required maxLength={120} value={name} onChange={event => setName(event.target.value)} /></Field>
-          <Field label={c.model}><input required maxLength={120} value={model} onChange={event => setModel(event.target.value)} placeholder={c.modelHint} /></Field>
-          <Field label={c.version}><input required maxLength={40} value={version} onChange={event => setVersion(event.target.value)} placeholder={c.versionHint} /></Field>
         </div>
-        <button className="button" disabled={busy || !site || !version.trim()}>{c.register}</button>
+        <button className="button" disabled={busy || !site || !name.trim()}>{c.register}</button>
       </form>
       <p className="muted">{c.registerNote}</p>
     </section>}
@@ -119,7 +115,17 @@ export function RouterRegistry({ sites, routers, act, api, busy, platform = fals
           <tbody>{routers.map(router => <tr key={router.id}>
             <td>{router.name}</td>
             <td>{sites.find(item => item.id === router.site_id)?.name || router.site_id}</td>
-            <td>{router.model}<small>{router.reported_routeros || c.versionMissing} · {c.ownerReported}</small></td>
+            <td>{(() => {
+              const model = router.model || c.modelPending;
+              const version = router.reported_routeros || c.versionMissing;
+              const arch = router.architecture;
+              const serial = router.reported_serial;
+              const details = [version, arch, serial ? `${c.serialLabel} ${serial}` : null].filter(Boolean).join(' · ');
+              const source = router.model || router.reported_routeros || router.architecture || router.reported_serial
+                ? c.scriptReported
+                : c.nameOnly;
+              return <>{model}<small>{details} · {source}</small></>;
+            })()}</td>
             <td>{(() => {
               const fresh = router.connection_state === 'connected' || router.connection_verified;
               const everConnected = router.lifecycle_state === 'connected' || router.management_read_verified_at;

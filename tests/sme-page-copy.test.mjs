@@ -20,7 +20,12 @@ test('English SME page copy keeps the phrases the UI checks require',()=>{
  assert.equal(routers.register,'Register router');
  assert.equal(routers.unverified,'Unverified');
  assert.equal(routers.notAssigned,'Not assigned');
- assert.equal(routers.ownerReported,'owner reported');
+ assert.equal(routers.scriptReported,'from setup script');
+ assert.equal(routers.nameOnly,'name only');
+ assert.equal(routers.hubConnectSteps.reported,'Router reported');
+ assert.equal(routers.hubConnectSteps.awaiting_handshake,'Handshake');
+ assert.equal(routers.hubConnectSteps.management_applied,'Management ready');
+ assert.equal(routers.hubConnectSteps.connected,'Connected');
  assert.equal(routers.fleetTitle,'Platform router fleet');
  assert.equal(routers.createPlan,'Create connection plan');
  assert.match(routers.connectIntro,/private key stays on the router/);
