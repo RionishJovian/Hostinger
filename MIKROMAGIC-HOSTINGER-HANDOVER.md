@@ -892,6 +892,22 @@ Restore /opt/mikromagic-build21-public-test-20261013T071506Z/backups/pre-deploy.
 then cd /opt/mikromagic-build21-public-test-20261013T071506Z && docker compose -p mikromagic-build21-public-test -f compose.hostinger-public-test.yaml up -d --no-deps --force-recreate api web
 Restore /opt/mikromagic-build21-public-test-20261013T073052Z/backups/pre-deploy.dump only if the migration itself is at fault.
 
+### Scripted redeploy — router-only voucher accounting and 422 input stripping (2026-10-13 08:02 UTC)
+
+| Item | Value |
+|---|---|
+| Source | Commit `85de0a9` on `origin/main`; artifact `40979d5cc4bc23cc20ad3c45424f3c0a4d15448670f5fb2edca1d8b186fbfc18` (215 files) |
+| Directory | `/opt/mikromagic-build21-public-test-20261013T080203Z`; previous `-20261013T073052Z` |
+| Infra files | none |
+| Pre-deploy dump | `backups/pre-deploy.dump` (490 restore-list entries) |
+| Migration | 054 → 055 (`055_voucher_router_accounting`); rehearsal `054 -> 055 -> 054 -> 055` clean |
+| Rollback images | `…-{api,web,magic-hub,migrate}:rollback-20261013T080203Z` |
+| Result | api and web recreated; Hub untouched. Router-only HotSpot first-login activation/usage on vouchers (no entitlement); validation 422 responses no longer echo submitted input; bundle `index-CNwmMELv.js` |
+
+**Rollback:** on the VPS, for s in api web magic-hub migrate; do docker tag mikromagic-build21-public-test-$s:rollback-20261013T080203Z mikromagic-build21-public-test-$s:latest; done
+then cd /opt/mikromagic-build21-public-test-20261013T073052Z && docker compose -p mikromagic-build21-public-test -f compose.hostinger-public-test.yaml up -d --no-deps --force-recreate api web
+Restore /opt/mikromagic-build21-public-test-20261013T080203Z/backups/pre-deploy.dump only if the migration itself is at fault.
+
 **Note — Safe Change worker not in Hostinger public-test compose:** `python -m backend.safe_change_worker` exists in `compose.yaml` but not in `compose.hostinger-public-test.yaml`, so `recovery_required` changes are only re-checked by a manual scheduler pass. Adding the worker is a reviewed infra change left for owner review (not applied in this deploy).
 
 - Next app work (as of 2026-10-12 09:00 UTC+6:30, live at migration 049, commit `13d40af`):
