@@ -255,7 +255,7 @@ function route(db,method,path,body){
  if(raw==='routers'){
   findSite(db,body.site_id);const name=String(body.name||'').trim();if(!name)fail('Enter a router name');
   const r={id:id(),tenant_id:db.tenant.id,site_id:body.site_id,name,model:body.model||'',reported_routeros:body.reported_routeros||'',created:now};db.routers.push(r);log(db,'router_registered',r.id);
-  return {id:r.id,connection_state:'unverified',hub_id:null};
+  return {id:r.id,connection_state:'unverified',connection_verified:false,hub_id:null,lifecycle_state:null};
  }
  if(is('POST',['routers','*','preflight']))fail('The demo has no real router to check. Preflight runs against your own router after you sign up.');
  if(is('POST',['routers','*','hotspot-sessions','collect']))fail('The demo has no live HotSpot sessions to collect.');
