@@ -931,6 +931,27 @@ artifact sha256 1a29fe3ec3f2092a7f878ace178ebfdc58ec0fc7416cf2b9e43a864d74b8ebb2
 
 **Note — router portal package still needs a new publish:** the already-published portal revision 2 package on the router (`mm-b21-731723e8-r2`) still contains the old md5; a new portal revision must be published and installed through Safe Change by the owner-signed-in engineer for the router to get the fix. This deploy only updates the public-test app/API generators; it does not publish portals or change the router.
 
+### Scripted redeploy — guest Wi-Fi / addressing Safe Change (flag off) (2026-10-13 08:33 UTC)
+
+| Item | Value |
+|---|---|
+| Source | Commit `7a24911` on `origin/main`; artifact `ec7ae70b07cb104975a4c419df73b6fe4a4740826a7f7f2c2b4922d3d836e9f0` (218 files) |
+| Directory | `/opt/mikromagic-build21-public-test-20261013T083305Z`; previous `-20261013T081929Z` |
+| Infra files | none (`infra_changed= none`) |
+| Pre-deploy dump | `backups/pre-deploy.dump` (490 restore-list entries) |
+| Migration | 055 → 056 (`056_guest_router_settings_changes`); rehearsal `055 -> 056 -> 055 -> 056` clean |
+| Rollback images | `…-{api,web,magic-hub,migrate}:rollback-20261013T083305Z` |
+| Result | api and web recreated; Hub untouched. Safe Change operations `guest_wifi_settings` and `guest_network_addressing` shipped behind `MIKROMAGIC_ROUTER_SETTINGS_CHANGES` (not set → off); bundle `index-CSTNtAxJ.js` |
+
+**Deployed 7a24911 at 20261013T083305Z**
+artifact sha256 ec7ae70b07cb104975a4c419df73b6fe4a4740826a7f7f2c2b4922d3d836e9f0 (218 files), bundle index-CSTNtAxJ.js
+
+**Rollback:** on the VPS, for s in api web magic-hub migrate; do docker tag mikromagic-build21-public-test-$s:rollback-20261013T083305Z mikromagic-build21-public-test-$s:latest; done
+          then cd /opt/mikromagic-build21-public-test-20261013T081929Z && docker compose -p mikromagic-build21-public-test -f compose.hostinger-public-test.yaml up -d --no-deps --force-recreate api web
+          Restore /opt/mikromagic-build21-public-test-20261013T083305Z/backups/pre-deploy.dump only if the migration itself is at fault.
+
+**Enable for the next hardware window only:** add `MIKROMAGIC_ROUTER_SETTINGS_CHANGES: "true"` to the API environment in `compose.hostinger-public-test.yaml`, deploy with `ALLOW_INFRA_CHANGE=1`, confirm `GET /v1/magic-connect/capability` shows `router_settings_changes_available: true`. Remove the flag after the window. Exact REST and manual rollback: `docs/MAGIC-CONNECT-HARDWARE-WINDOW.md` § “Next window: guest Wi-Fi and addressing tests”. Router not contacted in this deploy.
+
 - Next app work (as of 2026-10-12 09:00 UTC+6:30, live at migration 049, commit `13d40af`):
   - Terminology and Burmese (P0a) owner-facing chrome is live across SME pages including Integrations, Did you know?, guided first-shop acceptance, Magic Boy, Media, Account, Sites, Revenue, Payments and Packages/Passes. Platform screens stay English. Native-speaker/mobile QA remains open.
   - Routers page guided (P0a step 5): Connect your router steps first; Magic Hub, connection plans and Safe RouterOS changes under a closed Advanced (technician) section that opens when a change needs attention.
