@@ -12,6 +12,7 @@ import PlatformConsole from './PlatformConsole.jsx';
 import AuditExplorer from './AuditExplorer.jsx';
 import InternetPlanning from './InternetPlanning.jsx';
 import NetworkPlanning from './NetworkPlanning.jsx';
+import ManagedDevices from './ManagedDevices.jsx';
 import {staffPaths,staffPages,STAFF_ACCESS_CLOSED_PAGE} from './staff-access.mjs';
 import SubscriptionControls from './SubscriptionControls.jsx';
 import StaffControls from './StaffControls.jsx';
@@ -149,7 +150,7 @@ function AccountWorkspaceContent({onDemo,onPrototype,demo=false,onExitDemo,brand
  {page==='Operations'&&user.role==='platform'&&<SupportInbox api={api}/>}
  {page==='Audit'&&<AuditExplorer api={api}/>}
  {page==='Internet'&&user.role==='sme'&&<InternetPlanning api={api} sites={s.sites}/>}
- {page==='Network'&&user.role==='sme'&&<NetworkPlanning api={api} sites={s.sites}/>}
+ {page==='Network'&&user.role==='sme'&&<><ManagedDevices sites={s.sites} devices={s.siteDevices} act={act} busy={busy}/><NetworkPlanning api={api} sites={s.sites}/></>}
  {page==='Captive portal'&&s.portal&&<PortalExport key={selectedSite} api={api} portal={s.portal} siteId={selectedSite} busy={busy}/>}
  {page==='Vouchers'&&<VoucherTabs label={displayPage('Vouchers')} initial={pendingBatch?'batches':'issue'} tabs={[
   ['issue',t('voucherTabs','issue'),<VoucherInventory view="issue" sites={s.sites} packages={s.packages} vouchers={s.vouchers} act={act} busy={busy}/>],

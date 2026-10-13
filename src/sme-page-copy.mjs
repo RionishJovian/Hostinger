@@ -732,6 +732,28 @@ export const SME_PAGE_COPY={
    cardNote:'Saved guidance, without AI generation. Router compatibility has not been checked.',
    idle:(page,business)=>`AI assistance is not connected yet. You are viewing ${page} for ${business}. No router commands can be executed here.`,
    restrained:'Magic Boy shows saved Did you know? cards only. It cannot change routers, payments or vouchers.'
+  },
+  networkDevices:{
+   title:'Switches and access points',
+   intro:'Register the switches and Wi-Fi access points at each shop. This is owner-reported inventory for planning and limits — not live discovery or Connected status.',
+   honesty:'Vendor discovery, port/link speed, AP clients and configuration push are not connected. Every device stays Unverified until a supported adapter proves otherwise.',
+   poeNote:'Remote PoE power-cycle control is never offered. MikroMagic will not reboot or power-cycle switch ports from the cloud.',
+   limitsNote:(sw,ap)=>`Default commercial limits per shop: ${sw} switch and ${ap} access points. Raising a limit needs a plan or site configuration change.`,
+   filterShop:'Show shop',
+   allShops:'All shops',
+   heads:['Shop','Type','Device','Location','Status'],
+   kindSwitch:'Switch',kindAp:'Access point',
+   unverified:'Unverified',ownerReported:'Owner reported',
+   locationEmpty:'Location not entered',serialEmpty:'Serial / MAC not entered',
+   empty:'No switches or access points registered yet.',
+   registerTitle:'Register a switch or access point',
+   needShop:'Add a shop first, then register devices for that shop.',
+   shop:'Shop',chooseShop:'Choose a shop',kind:'Device type',
+   name:'Device name',vendor:'Vendor',model:'Model',
+   serial:'Serial or MAC (optional)',location:'Location',firmware:'Firmware note (optional)',
+   usage:(swUsed,swLimit,apUsed,apLimit)=>`This shop: ${swUsed} of ${swLimit} switches · ${apUsed} of ${apLimit} access points.`,
+   register:'Register device',
+   registerNote:'Registration does not discover the device on the LAN and does not change its configuration. Manual topology drawings below stay separate from this inventory.'
   }
  },
  my:{
@@ -1462,6 +1484,28 @@ export const SME_PAGE_COPY={
    cardNote:'သိမ်းထားသော လမ်းညွှန်သာ ဖြစ်ပါသည်။ AI ဖြင့် မထုတ်လုပ်ပါ။ Router ကိုက်ညီမှု မစစ်ဆေးရသေးပါ။',
    idle:(page,business)=>`AI အကူအညီ မချိတ်ဆက်ရသေးပါ။ ${business} အတွက် ${page} ကို ကြည့်နေပါသည်။ ဤနေရာမှ router ညွှန်ကြားချက်များ မလုပ်နိုင်ပါ။`,
    restrained:'Magic Boy သည် သိမ်းထားသော သိကောင်းစရာ ကတ်များကိုသာ ပြပါသည်။ Router၊ ငွေပေးချေမှု သို့မဟုတ် voucher များကို မပြောင်းနိုင်ပါ။'
+  },
+  networkDevices:{
+   title:'Switch နှင့် access point များ',
+   intro:'ဆိုင်တစ်ဆိုင်ချင်းစီရှိ switch နှင့် Wi-Fi access point များကို မှတ်ပုံတင်ပါ။ ဤသည်မှာ စီစဉ်မှုနှင့် ကန့်သတ်ချက်အတွက် ပိုင်ရှင်ထည့်သွင်းသော စာရင်းဖြစ်ပြီး တိုက်ရိုက် ရှာဖွေတွေ့ရှိမှု သို့မဟုတ် Connected အခြေအနေ မဟုတ်ပါ။',
+   honesty:'Vendor ရှာဖွေတွေ့ရှိမှု၊ port/link အမြန်နှုန်း၊ AP client များနှင့် configuration ပို့ခြင်းတို့ မချိတ်ဆက်ရသေးပါ။ ပံ့ပိုးသော adapter က အတည်မပြုမီ စက်တိုင်း Unverified အဖြစ်သာ ရှိပါသည်။',
+   poeNote:'Remote PoE power-cycle ထိန်းချုပ်မှုကို ဘယ်သောအခါမှ မပေးပါ။ MikroMagic သည် cloud မှ switch port များကို reboot သို့မဟုတ် power-cycle မလုပ်ပါ။',
+   limitsNote:(sw,ap)=>`ဆိုင်တစ်ဆိုင်အတွက် ပုံမှန် ကုန်သွယ်ရေး ကန့်သတ်ချက် — switch ${sw} လုံးနှင့် access point ${ap} လုံး။ ကန့်သတ်ချက် တိုးရန် plan သို့မဟုတ် ဆိုင် ဆက်တင် ပြောင်းရန် လိုပါသည်။`,
+   filterShop:'ဆိုင် ပြရန်',
+   allShops:'ဆိုင်အားလုံး',
+   heads:['ဆိုင်','အမျိုးအစား','စက်','တည်နေရာ','အခြေအနေ'],
+   kindSwitch:'Switch',kindAp:'Access point',
+   unverified:'အတည်မပြုရသေး',ownerReported:'ပိုင်ရှင် ထည့်သွင်းထားသည်',
+   locationEmpty:'တည်နေရာ မထည့်ရသေး',serialEmpty:'Serial / MAC မထည့်ရသေး',
+   empty:'Switch သို့မဟုတ် access point မမှတ်ပုံတင်ရသေးပါ။',
+   registerTitle:'Switch သို့မဟုတ် access point မှတ်ပုံတင်ရန်',
+   needShop:'အရင် ဆိုင်တစ်ဆိုင် ထည့်ပါ။ ထို့နောက် ထိုဆိုင်အတွက် စက်များ မှတ်ပုံတင်ပါ။',
+   shop:'ဆိုင်',chooseShop:'ဆိုင် ရွေးပါ',kind:'စက်အမျိုးအစား',
+   name:'စက်အမည်',vendor:'Vendor',model:'မော်ဒယ်',
+   serial:'Serial သို့မဟုတ် MAC (မဖြစ်မနေ မဟုတ်)',location:'တည်နေရာ',firmware:'Firmware မှတ်ချက် (မဖြစ်မနေ မဟုတ်)',
+   usage:(swUsed,swLimit,apUsed,apLimit)=>`ဤဆိုင် — switch ${swUsed}/${swLimit} · access point ${apUsed}/${apLimit}`,
+   register:'စက် မှတ်ပုံတင်ရန်',
+   registerNote:'မှတ်ပုံတင်ခြင်းသည် LAN ပေါ်တွင် စက်ကို မရှာဖွေပါ၊ configuration လည်း မပြောင်းပါ။ အောက်ရှိ လက်ရေး topology ပုံသည် ဤစာရင်းနှင့် သီးခြားဖြစ်ပါသည်။'
   }
  }
 };

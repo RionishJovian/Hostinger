@@ -10,10 +10,12 @@ class ManagedDeviceTests(AccountPaymentTests):
   owner=self.login('owner')
   switch={'site_id':site_id,'kind':'switch','name':'Core switch','vendor':'Example','model':'ES-24','serial_or_mac':'SN-1','location':'Rack 1','firmware':'1.0'}
   ap={**switch,'kind':'access_point','name':'AP-01','model':'AP-01','location':'Lobby'}
-  self.assertEqual(self.client.post('/v1/site-devices',headers=owner,json=switch).status_code,201)
+  created=self.client.post('/v1/site-devices',headers=owner,json=switch);self.assertEqual(created.status_code,201,created.text)
+  self.assertEqual(created.json()['poe_power_cycle'],'never');self.assertEqual(created.json()['control_mode'],'monitoring_only_pending')
   self.assertEqual(self.client.post('/v1/site-devices',headers=owner,json=ap).status_code,201)
   rows=self.client.get('/v1/site-devices',headers=owner).json();self.assertEqual({r['kind'] for r in rows},{'switch','access_point'})
   self.assertTrue(all(r['connection_state']=='unverified' for r in rows));self.assertTrue(all(r['metadata_source']=='owner_reported' for r in rows))
+  self.assertTrue(all(r['poe_power_cycle']=='never' for r in rows));self.assertTrue(all(r['capabilities']==[] for r in rows))
   with self.app.state.factory() as s:self.assertEqual(s.scalar(select(ManagedDevice).where(ManagedDevice.name=='Core switch')).model,'ES-24')
   self.assertEqual(self.client.get('/v1/site-devices',headers=self.login('guest')).status_code,403)
 
@@ -26,6 +28,15 @@ class ManagedDeviceTests(AccountPaymentTests):
    self.assertEqual(self.client.post('/v1/site-devices',headers=owner,json=body).status_code,201)
   body={'site_id':site_id,'kind':'access_point','name':'AP-6','vendor':'Example','model':'AP','location':'Room'}
   self.assertEqual(self.client.post('/v1/site-devices',headers=owner,json=body).status_code,409)
+
+ def test_default_site_limit_allows_one_switch_and_rejects_second(self):
+  with self.app.state.factory() as s:
+   site=Site(tenant_id=self.users_tenant('owner'),name='One switch site',timezone='Asia/Yangon',created=int(time.time()));s.add(site);s.commit();site_id=site.id
+  owner=self.login('owner')
+  body={'site_id':site_id,'kind':'switch','name':'Core','vendor':'Example','model':'SW','location':'Rack'}
+  self.assertEqual(self.client.post('/v1/site-devices',headers=owner,json=body).status_code,201)
+  second={**body,'name':'Spare'}
+  self.assertEqual(self.client.post('/v1/site-devices',headers=owner,json=second).status_code,409)
 
  def users_tenant(self,name):
   with self.app.state.factory() as s:return s.get(User,self.users[name]).tenant_id

@@ -18,7 +18,7 @@ def register_managed_devices(app,current,db,owner,log):
   if u.role=='guest':raise HTTPException(403,'Device inventory is not available to guests')
   q=select(ManagedDevice)
   if u.role!='platform':q=q.where(ManagedDevice.tenant_id==u.tenant_id)
-  return [{k:getattr(x,k) for k in ['id','tenant_id','site_id','kind','name','vendor','model','serial_or_mac','location','firmware','created','last_seen']}|{'connection_state':'unverified','metadata_source':'owner_reported','capabilities':[],'site_limit':site_limit(x.kind)} for x in s.scalars(q.order_by(ManagedDevice.created.desc()))]
+  return [{k:getattr(x,k) for k in ['id','tenant_id','site_id','kind','name','vendor','model','serial_or_mac','location','firmware','created','last_seen']}|{'connection_state':'unverified','metadata_source':'owner_reported','capabilities':[],'site_limit':site_limit(x.kind),'control_mode':'monitoring_only_pending','poe_power_cycle':'never'} for x in s.scalars(q.order_by(ManagedDevice.created.desc()))]
 
  @app.post('/v1/site-devices',status_code=201)
  def create_device(b:ManagedDeviceIn,u=Depends(current),s=Depends(db)):
@@ -29,4 +29,4 @@ def register_managed_devices(app,current,db,owner,log):
   x=ManagedDevice(tenant_id=u.tenant_id,**b.model_dump(),created=int(time.time()));s.add(x)
   try:s.flush();log(s,u,'managed_device_registered',x.id);s.commit()
   except IntegrityError:s.rollback();raise HTTPException(409,'A device with this name already exists at this site')
-  return {'id':x.id,'kind':x.kind,'site_id':x.site_id,'connection_state':'unverified','metadata_source':'owner_reported','capabilities':[],'site_limit':limit}
+  return {'id':x.id,'kind':x.kind,'site_id':x.site_id,'connection_state':'unverified','metadata_source':'owner_reported','capabilities':[],'site_limit':limit,'control_mode':'monitoring_only_pending','poe_power_cycle':'never'}

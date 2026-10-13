@@ -114,6 +114,16 @@ test('Media and Account page copy exists in English and Burmese',()=>{
  assert.match(SME_MESSAGES.my.media.ops.publish,/[\u1000-\u109F]/);
 });
 
+test('Network Devices inventory copy exists in English and Burmese',()=>{
+ assert.equal(getSmeMessage('en','networkDevices','title'),'Switches and access points');
+ assert.match(getSmeMessage('en','networkDevices','poeNote'),/never offered/);
+ assert.match(getSmeMessage('en','networkDevices','honesty'),/Unverified/);
+ assert.match(getSmeMessage('my','networkDevices','title'),/[\u1000-\u109F]/);
+ assert.match(getSmeMessage('my','networkDevices','register'),/[\u1000-\u109F]/);
+ assert.match(SME_MESSAGES.en.networkDevices.limitsNote(1,5),/1 switch and 5 access points/);
+ assert.doesNotMatch(getSmeMessage('en','networkDevices','intro'),/live discovery is connected/i);
+});
+
 test('Media catalogue copy is Jellyfin-only (no Plex product promise)',()=>{
  assert.match(getSmeMessage('en','media','rulesNote'),/Jellyfin/);
  assert.match(getSmeMessage('en','media','rulesNote'),/only supported local Media Server/);

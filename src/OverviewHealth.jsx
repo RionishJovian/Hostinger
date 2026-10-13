@@ -1,5 +1,5 @@
 import React from 'react';
-import {ArrowRight,Broadcast as Gateway,Buildings,Coins,Ticket,UsersThree,WarningCircle,WifiHigh} from '@phosphor-icons/react';
+import {ArrowRight,Broadcast as Gateway,Buildings,Coins,HardDrives,Ticket,UsersThree,WarningCircle,WifiHigh} from '@phosphor-icons/react';
 import {useSMELocalization} from './SMELocalization.jsx';
 
 function SummaryCard({icon:Icon,label,value,note,onClick}){
@@ -10,7 +10,7 @@ function SummaryCard({icon:Icon,label,value,note,onClick}){
 function useOverviewText(){
  const {t:message}=useSMELocalization();
  const t={};
- for(const key of ['health','question','attention','summary','shops','gateways','aps','customers','vouchers','notConnected','unable','noRouter','unverified','siteNeeded','payments','paymentsHint','noKnown','routerAction','siteAction','paymentAction','maintenance','maintenanceHint','getHelp','getHelpHint','countNote','apNote','customerNote','voucherNote','unavailable','netCollections','revenueNote'])t[key]=message('overview',key);
+ for(const key of ['health','question','attention','summary','shops','gateways','switches','aps','customers','vouchers','notConnected','unable','noRouter','unverified','siteNeeded','payments','paymentsHint','noKnown','routerAction','siteAction','paymentAction','networkAction','maintenance','maintenanceHint','getHelp','getHelpHint','countNote','apNote','switchNote','customerNote','voucherNote','unavailable','netCollections','revenueNote'])t[key]=message('overview',key);
  return t;
 }
 
@@ -36,6 +36,7 @@ export default function OverviewHealth({sites=[],routers=[],pendingPayments,navi
 export function OverviewNetwork({sites=[],routers=[],devices=[],vouchers=[],netCollections,sessionSummary,navigate}){
  const t=useOverviewText();
  const apCount=devices.filter(device=>device.kind==='access_point').length;
+ const switchCount=devices.filter(device=>device.kind==='switch').length;
  const sessions=sessionSummary||{};
  const customersVerified=sessions.status==='verified'&&Number.isFinite(sessions.active_count);
  const customersValue=customersVerified?sessions.active_count:t.unavailable;
@@ -45,6 +46,7 @@ export function OverviewNetwork({sites=[],routers=[],devices=[],vouchers=[],netC
   <div className="overview-stat-grid">
    <SummaryCard icon={Buildings} label={t.shops} value={sites.length} note={t.countNote} onClick={()=>navigate('Sites')}/>
    <SummaryCard icon={Gateway} label={t.gateways} value={routers.length} note={t.countNote} onClick={()=>navigate('Routers')}/>
+   <SummaryCard icon={HardDrives} label={t.switches} value={switchCount} note={t.switchNote} onClick={()=>navigate('Network')}/>
    <SummaryCard icon={WifiHigh} label={t.aps} value={apCount} note={t.apNote} onClick={()=>navigate('Network')}/>
    <SummaryCard icon={UsersThree} label={t.customers} value={customersValue} note={customersNote} onClick={()=>navigate('Routers')}/>
    <SummaryCard icon={Ticket} label={t.vouchers} value={vouchers.length} note={t.voucherNote} onClick={()=>navigate('Vouchers')}/>
