@@ -910,6 +910,27 @@ Restore /opt/mikromagic-build21-public-test-20261013T080203Z/backups/pre-deploy.
 
 **Note — Safe Change worker not in Hostinger public-test compose:** `python -m backend.safe_change_worker` exists in `compose.yaml` but not in `compose.hostinger-public-test.yaml`, so `recovery_required` changes are only re-checked by a manual scheduler pass. Adding the worker is a reviewed infra change left for owner review (not applied in this deploy).
 
+### Scripted redeploy — guest login CHAP md5 hashes RouterOS challenge bytes (2026-10-13 08:19 UTC)
+
+| Item | Value |
+|---|---|
+| Source | Commit `79c93c6` on `origin/main`; artifact `1a29fe3ec3f2092a7f878ace178ebfdc58ec0fc7416cf2b9e43a864d74b8ebb2` (215 files) |
+| Directory | `/opt/mikromagic-build21-public-test-20261013T081929Z`; previous `-20261013T080203Z` |
+| Infra files | none |
+| Pre-deploy dump | `backups/pre-deploy.dump` (490 restore-list entries) |
+| Migration | none (stays 055); rehearsal skipped |
+| Rollback images | `…-{api,web,magic-hub,migrate}:rollback-20261013T081929Z` |
+| Result | api and web recreated; Hub untouched. Guest login page CHAP md5 now hashes each `$(chap-id)` / `$(chap-challenge)` character as one byte (`charCodeAt(i)&255`), matching RouterOS raw/octal challenge bytes instead of UTF-8 encoding before the hash; bundle `index-CNwmMELv.js` |
+
+**Deployed 79c93c6 at 20261013T081929Z**
+artifact sha256 1a29fe3ec3f2092a7f878ace178ebfdc58ec0fc7416cf2b9e43a864d74b8ebb2 (215 files), bundle index-CNwmMELv.js
+
+**Rollback:** on the VPS, for s in api web magic-hub migrate; do docker tag mikromagic-build21-public-test-$s:rollback-20261013T081929Z mikromagic-build21-public-test-$s:latest; done
+          then cd /opt/mikromagic-build21-public-test-20261013T080203Z && docker compose -p mikromagic-build21-public-test -f compose.hostinger-public-test.yaml up -d --no-deps --force-recreate api web
+          Restore /opt/mikromagic-build21-public-test-20261013T081929Z/backups/pre-deploy.dump only if the migration itself is at fault.
+
+**Note — router portal package still needs a new publish:** the already-published portal revision 2 package on the router (`mm-b21-731723e8-r2`) still contains the old md5; a new portal revision must be published and installed through Safe Change by the owner-signed-in engineer for the router to get the fix. This deploy only updates the public-test app/API generators; it does not publish portals or change the router.
+
 - Next app work (as of 2026-10-12 09:00 UTC+6:30, live at migration 049, commit `13d40af`):
   - Terminology and Burmese (P0a) owner-facing chrome is live across SME pages including Integrations, Did you know?, guided first-shop acceptance, Magic Boy, Media, Account, Sites, Revenue, Payments and Packages/Passes. Platform screens stay English. Native-speaker/mobile QA remains open.
   - Routers page guided (P0a step 5): Connect your router steps first; Magic Hub, connection plans and Safe RouterOS changes under a closed Advanced (technician) section that opens when a change needs attention.
