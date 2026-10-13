@@ -78,6 +78,8 @@ class FakePortalClient:
         self.router.writes.append((method, path, dict(payload or {})))
         if method == 'PUT' and path == 'file':
             name = payload['name']
+            if name.endswith('.json'):
+                raise RouterOSError('router_write_failed', 'permission denied')
             if name in self.router.files:
                 raise RouterOSError('router_write_failed', 'exists')
             self.router.files[name] = payload.get('contents') or ''
@@ -223,7 +225,10 @@ class HotspotPortalPublishTests(unittest.TestCase):
         self.assertEqual(body['real_device_acceptance'], 'not_yet_performed')
         self.assertEqual(fake.profiles[fake.profile_id]['html-directory'], destination)
         for name in FILES:
-            self.assertIn(destination + '/' + name, fake.files)
+            if name.endswith('.json'):
+                self.assertNotIn(destination + '/' + name, fake.files)
+            else:
+                self.assertIn(destination + '/' + name, fake.files)
         acceptance = self.client.get(f'/v1/sites/{site}/first-site-acceptance?router_id={router}', headers=owner).json()
         stages = {s['key']: s for s in acceptance['stages']}
         self.assertEqual(stages['router_apply_verified']['status'], 'complete')

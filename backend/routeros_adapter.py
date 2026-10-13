@@ -140,7 +140,8 @@ class RouterOSClient:
   try:return r.json()
   except ValueError:raise RouterOSError('invalid_response','Router returned an invalid management response')
  def write(self,method,path,payload):
-  try:r=self.client.request(method,'/rest/'+path.lstrip('/'),json=payload)
+  # RouterOS rejects a DELETE that carries a body.
+  try:r=self.client.request(method,'/rest/'+path.lstrip('/'),json=None if method=='DELETE' else payload)
   except httpx.TimeoutException:raise RouterOSError('timeout','Router did not answer before the change timeout')
   except httpx.ConnectError:raise RouterOSError('unreachable','Router management endpoint is unreachable')
   except httpx.HTTPError:raise RouterOSError('transport_error','Router management transport failed')

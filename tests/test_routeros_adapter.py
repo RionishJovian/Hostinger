@@ -96,6 +96,19 @@ class RouterOSAdapterTests(unittest.TestCase):
   credential=type('Credential',(),{'base_url':'https://router.example','username':'api','password':'secret','verify':True})()
   with RouterOSClient(credential,transport=httpx.MockTransport(handle)) as client:backup=client.export_configuration()
   self.assertTrue(backup.startswith(b'# 2026-10-13'));self.assertEqual(seen[1][0],'/rest/execute');self.assertIn(b'/export terse',seen[1][1])
+ def test_portal_file_cleanup_sends_bodyless_deletes_and_removes_directory(self):
+  from backend.routeros_adapter import remove_hotspot_portal_files
+  files={'mm-b21-abc-r2':{'.id':'*D','name':'mm-b21-abc-r2','type':'directory'},'mm-b21-abc-r2/login.html':{'.id':'*F','name':'mm-b21-abc-r2/login.html','type':'.html file'}};seen=[]
+  def handle(request):
+   body=request.read();seen.append((request.method,request.url.path,body))
+   if request.method=='DELETE':
+    if body:return httpx.Response(400,json={'detail':'body not allowed'})
+    files.pop(request.url.path.removeprefix('/rest/file/'),None);return httpx.Response(204)
+   if request.url.path=='/rest/file/remove':files.pop('mm-b21-abc-r2');return httpx.Response(200,json=[])
+   return httpx.Response(200,json=list(files.values()))
+  credential=type('Credential',(),{'base_url':'https://router.example','username':'api','password':'secret','verify':True})()
+  with RouterOSClient(credential,transport=httpx.MockTransport(handle)) as client:remove_hotspot_portal_files(client,'mm-b21-abc-r2',['login.html'])
+  self.assertEqual(files,{});self.assertIn(('POST','/rest/file/remove',b'{".id":"*D"}'),seen)
  def test_export_rejects_execute_error_text(self):
   def handle(request):
    if request.url.path=='/rest/export':return httpx.Response(200,json=[])

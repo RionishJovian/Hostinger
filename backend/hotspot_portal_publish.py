@@ -11,7 +11,7 @@ import json
 from fastapi import HTTPException
 from sqlalchemy import select
 
-from .local_portal_package import FILES, package_install_files
+from .local_portal_package import FILES as PACKAGE_FILES, package_install_files
 from .models import HotspotPortalPlan, LocalPortalPackage, RouterChange
 from .routeros_adapter import (
     RouterOSError,
@@ -20,6 +20,9 @@ from .routeros_adapter import (
     remove_hotspot_portal_files,
     set_hotspot_profile_html_directory,
 )
+
+# RouterOS REST refuses to create .json files; api.json only serves the optional RFC 8908 captive-portal API.
+FILES = tuple(name for name in PACKAGE_FILES if not name.endswith('.json'))
 
 
 def fingerprint(value):
@@ -110,7 +113,7 @@ def read_actual(client, expected):
 
 
 def apply_install(client, before, desired, files):
-    install_hotspot_portal_files(client, desired['destination'], files)
+    install_hotspot_portal_files(client, desired['destination'], {name: files[name] for name in FILES})
     set_hotspot_profile_html_directory(client, before['resource_id'], desired['destination'])
     return read_actual(client, desired)
 
