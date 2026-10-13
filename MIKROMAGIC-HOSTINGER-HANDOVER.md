@@ -1057,6 +1057,29 @@ artifact sha256 b7b3c0bd3db957976f5a46c5a03216af2387ab5ba0b687a689e925fc2f6d479b
 
 **Flag remained off.** Router not contacted.
 
+### Scripted redeploy — Safe Change worker on Hostinger (reviewed infra) (2026-10-13 10:29 UTC)
+
+| Item | Value |
+|---|---|
+| Source | Commit `c8b1626` on `origin/main`; artifact `303257ff63445b9278b2b46d1bab8b342555df627cf9e17062d2c9227fe2b2b5` (221 files) |
+| Directory | `/opt/mikromagic-build21-public-test-20261013T102909Z`; previous `-20261013T101230Z` |
+| Infra files | `ALLOW_INFRA_CHANGE=1`: `compose.hostinger-public-test.yaml` adds `safe-change-worker` (same image/env/secrets/volumes as api, private network only, no ports, healthcheck disabled); deploy-remote recreates/verifies the worker. No Hub/Caddy/firewall/sshd changes |
+| Pre-deploy dump | `backups/pre-deploy.dump` (490 restore-list entries) |
+| Migration | 057 → 057 (no new head); rehearsal skipped |
+| Rollback images | `…-{api,web,magic-hub,migrate}:rollback-20261013T102909Z` (worker was new; no prior worker rollback tag) |
+| Result | api, web and **safe-change-worker** recreated; Hub untouched. Worker **running**, restart count **0**, recent logs empty/quiet (no traceback/error). `safe_change_worker=running`; `router_settings_changes_available: false`; Alembic **057**; bundle `index-Bl6r2e59.js` |
+
+**Deployed c8b1626 at 20261013T102909Z**
+artifact sha256 303257ff63445b9278b2b46d1bab8b342555df627cf9e17062d2c9227fe2b2b5 (221 files), bundle index-Bl6r2e59.js
+
+**Rollback:** on the VPS, for s in api web magic-hub migrate; do docker tag mikromagic-build21-public-test-$s:rollback-20261013T102909Z mikromagic-build21-public-test-$s:latest; done
+          then cd /opt/mikromagic-build21-public-test-20261013T101230Z && docker compose -p mikromagic-build21-public-test -f compose.hostinger-public-test.yaml up -d --no-deps --force-recreate api web
+          then docker stop mikromagic-build21-public-test-safe-change-worker-1 && docker rm mikromagic-build21-public-test-safe-change-worker-1
+          (previous compose has no worker service; remove the orphan container explicitly)
+          Restore /opt/mikromagic-build21-public-test-20261013T102909Z/backups/pre-deploy.dump only if the migration itself is at fault.
+
+**Flag remained off.** Router not contacted.
+
 - Next app work (as of 2026-10-12 09:00 UTC+6:30, live at migration 049, commit `13d40af`):
   - Terminology and Burmese (P0a) owner-facing chrome is live across SME pages including Integrations, Did you know?, guided first-shop acceptance, Magic Boy, Media, Account, Sites, Revenue, Payments and Packages/Passes. Platform screens stay English. Native-speaker/mobile QA remains open.
   - Routers page guided (P0a step 5): Connect your router steps first; Magic Hub, connection plans and Safe RouterOS changes under a closed Advanced (technician) section that opens when a change needs attention.
