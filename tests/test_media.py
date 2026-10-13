@@ -26,7 +26,7 @@ class MediaTests(unittest.TestCase):
   self.assertRegex(text,r'Plex is out of scope')
   self.assertIn('Jellyfin',text)
   # Docstring may name Plex only to record that it is unsupported; no adapter API remains.
-  self.assertNotRegex(text,r'Jellyfin/Plex|Jellyfin or Plex|Plex server|plex_',flags=__import__('re').I)
+  self.assertIsNone(__import__('re').search(r'Jellyfin/Plex|Jellyfin or Plex|Plex server|plex_',text,__import__('re').I))
  def test_catalogue_visibility_permissions_and_revision(self):
   owner=self.login('owner');guest=self.login('guest');other=self.login('other');platform=self.login('platform');t=self.title(owner)
   self.assertEqual(self.client.get('/v1/media/titles',headers=guest).json(),[]);self.assertEqual(self.client.get('/v1/media/titles',headers=other).json(),[]);self.assertEqual(self.client.get('/v1/media/titles',headers=platform).status_code,403)
