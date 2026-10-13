@@ -91,6 +91,34 @@ services:
     logging:
       options: {max-size: "10m", max-file: "3"}
 
+  # Reviewed infra addition (2026-10-13): Durable Safe Change recovery poller.
+  # Same image/env/volumes/secrets as api; private network only; no published ports;
+  # no Hub/Caddy/firewall changes. Disables the API image HEALTHCHECK (that probes
+  # /v1/ready on :8788) because this process is not an HTTP server.
+  safe-change-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    restart: unless-stopped
+    environment:
+      <<: *api_env
+      MIKROMAGIC_SAFE_CHANGE_POLL_SECONDS: "10"
+    command: ["python", "-m", "backend.safe_change_worker"]
+    depends_on:
+      db: {condition: service_healthy}
+      magic-hub: {condition: service_healthy}
+    secrets: *api_secrets
+    volumes:
+      - encrypted_backups:/var/lib/mikromagic/backups
+      - routeros_credentials:/var/lib/mikromagic/routeros
+    networks: [private]
+    cpus: 0.25
+    mem_limit: 256m
+    healthcheck:
+      disable: true
+    logging:
+      options: {max-size: "10m", max-file: "3"}
+
   magic-hub:
     build:
       context: .

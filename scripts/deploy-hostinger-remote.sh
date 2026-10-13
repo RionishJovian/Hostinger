@@ -41,6 +41,9 @@ entries=$(docker exec -i $DB pg_restore -l < backups/pre-deploy.dump | grep -vc 
 [ "${entries:-0}" -gt 0 ] || stop "pre-deploy dump is empty"
 
 for s in api web magic-hub; do docker tag "$(docker inspect -f '{{.Image}}' "$P-$s-1")" "$P-$s:rollback-$TS"; done
+if docker inspect "$P-safe-change-worker-1" >/dev/null 2>&1; then
+  docker tag "$(docker inspect -f '{{.Image}}' "$P-safe-change-worker-1")" "$P-safe-change-worker:rollback-$TS"
+fi
 docker tag "$P-migrate:latest" "$P-migrate:rollback-$TS"
 note "image build"
 C="docker compose -p $P -f compose.hostinger-public-test.yaml"
@@ -69,7 +72,7 @@ fi
 note "migrate and start"
 $C --profile operations run --rm -T migrate < /dev/null > backups/migrate.log 2>&1 \
   || stop "migration failed (see $NEW/backups/migrate.log); restore backups/pre-deploy.dump before restarting old images"
-recreate="api web"
+recreate="api web safe-change-worker"
 case "$changed" in *hub*|*backend/__init__.py*) recreate="$recreate magic-hub" ;; esac
 { $C up -d && $C up -d --no-deps --force-recreate $recreate; } > backups/up.log 2>&1 \
   || stop "compose up failed (see $NEW/backups/up.log)"
@@ -84,6 +87,18 @@ for s in $recreate; do
   [ "$(docker inspect -f '{{.Image}}' "$P-$s-1")" = "$(docker image inspect -f '{{.Id}}' "$P-$s:latest")" ] \
     || stop "$s is not running the newly built image"
 done
+# Worker has healthcheck disabled (not an HTTP server); require running + stable, clean recent logs.
+[ "$(docker inspect -f '{{.State.Status}}' "$P-safe-change-worker-1")" = running ] \
+  || stop "safe-change-worker is not running"
+sleep 12
+[ "$(docker inspect -f '{{.State.Status}}' "$P-safe-change-worker-1")" = running ] \
+  || stop "safe-change-worker left the running state"
+restarts=$(docker inspect -f '{{.RestartCount}}' "$P-safe-change-worker-1")
+[ "${restarts:-0}" -eq 0 ] || stop "safe-change-worker restarted ${restarts} times"
+docker logs --tail 50 "$P-safe-change-worker-1" > backups/safe-change-worker.log 2>&1 || true
+grep -qiE 'traceback|scheduler pass failed|error' backups/safe-change-worker.log \
+  && stop "safe-change-worker logs show errors (see $NEW/backups/safe-change-worker.log)" || true
+# Empty or quiet logs are OK: the poller is silent when there is no due work.
 
 echo "previous=$PREV"
 echo "new=$NEW"
@@ -92,5 +107,6 @@ echo "dump_entries=$entries"
 echo "rehearsal=$rehearsal"
 echo "infra_changed=${changed:- none}"
 echo "recreated=$recreate"
+echo "safe_change_worker=running"
 echo "hub_key=$(docker exec $P-magic-hub-1 wg show mm-prod-hub public-key)"
 echo "hub_port=$(docker port $P-magic-hub-1 51820/udp | head -1)"
