@@ -25,7 +25,7 @@ Start every task: `git fetch origin && git merge --ff-only origin/main`. Finish 
 | Router-only voucher activation + usage on collect; 422 strips `input` | `85de0a9` @ 20261013T080203Z, migration **055** | Live; **not** re-verified with a live guest after deploy |
 | Guest CHAP md5 byte fix (`charCodeAt(i)&255`) | `79c93c6` @ 20261013T081929Z | In API package; **router still serves old page** until new revision Safe Change |
 | Guest Wi-Fi + guest addressing Safe Change | `7a24911` @ 20261013T083305Z, migration **056** | Live; flag **`MIKROMAGIC_ROUTER_SETTINGS_CHANGES` off** |
-| Guest VLAN for external AP Safe Change | this change, migration **057** | Software-only; flag stays **off** until hardware window |
+| Guest VLAN for external AP Safe Change | `b4cdf1b` (handover `4f93e27`) @ 20261013T091431Z, migration **057** | Live; flag **`MIKROMAGIC_ROUTER_SETTINGS_CHANGES` off**; router not contacted |
 | RouterOS REST study | `a362868` → `docs/ROUTEROS-REST-API-NOTES.md` | Written |
 
 ## Priority next (software, no router)
