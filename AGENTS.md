@@ -46,6 +46,7 @@
 - Do not leave `npm run dev`, Vite, Python unittest runners, or scratch `/tmp/mm-*` databases running when the task is done. Prefer foreground bounded commands; if a background server is required, stop it in the same turn.
 - Scope is this corrective checkout and known local scratch only. Never kill Cursor, unrelated apps, VPS processes, `/opt/build21`, `/opt/mikromagic-v8`, or co-hosted stacks.
 - The Lima VM `mikromagic-wg-dev` was deleted on 2026-10-12 at the owner's request; do not recreate it for routine testing.
+- Owner decision 2026-10-13: heavy work must not run on the MacBook (battery and performance). `scripts/check.sh`, unit-test suites, `npm run build`, local dev servers and `scripts/deploy-hostinger-public-test.sh` run only on a Cursor cloud agent instance. On the Mac, limit work to editing, git, and light SSH/API calls needed during a physical router window.
 
 # Prototype Instructions
 
