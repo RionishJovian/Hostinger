@@ -7,7 +7,8 @@ from sqlalchemy import update
 from sqlalchemy.exc import IntegrityError
 from .models import ThemeSettings
 from .schemas import Strict
-DEFAULT={'light':{'background':'#f0ece2','surface':'#fffaf0','text':'#16382b','primary':'#2d6554','accent':'#91b29d'},'dark':{'background':'#062320','surface':'#123c33','text':'#f3f3ed','primary':'#93b99e','accent':'#6e9e88'},'scopes':['guest','platform','sme']}
+# Dark default is Midnight Studio (Notion U02): graphite/ink, emerald actions, warm silver text.
+DEFAULT={'light':{'background':'#f0ece2','surface':'#fffaf0','text':'#16382b','primary':'#2d6554','accent':'#91b29d'},'dark':{'background':'#12161f','surface':'#1c2333','text':'#ebe7df','primary':'#34d399','accent':'#456658'},'scopes':['guest','platform','sme']}
 class Palette(Strict):
  background:str=Field(pattern=r'^#[0-9a-fA-F]{6}$')
  surface:str=Field(pattern=r'^#[0-9a-fA-F]{6}$')

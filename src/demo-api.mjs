@@ -8,7 +8,7 @@ export const DEMO_BLOCKED='Not available in the demo — nothing was changed.';
 export const DEMO_CODE_PREFIX='DEMO';
 const ALPHABET='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const DAYS=['mon','tue','wed','thu','fri','sat','sun'];
-const THEMES={light:{background:'#f0ece2',surface:'#fffaf0',text:'#16382b',primary:'#2d6554',accent:'#91b29d'},dark:{background:'#062320',surface:'#123c33',text:'#f3f3ed',primary:'#93b99e',accent:'#6e9e88'},source:'default',published_revision:null};
+const THEMES={light:{background:'#f0ece2',surface:'#fffaf0',text:'#16382b',primary:'#2d6554',accent:'#91b29d'},dark:{background:'#12161f',surface:'#1c2333',text:'#ebe7df',primary:'#34d399',accent:'#456658'},source:'default',published_revision:null};
 
 class DemoError extends Error{}
 const fail=message=>{throw new DemoError(message)};

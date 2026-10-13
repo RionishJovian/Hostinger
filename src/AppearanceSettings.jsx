@@ -1,5 +1,7 @@
 import React,{useState} from 'react';
-export const DEFAULT_THEMES={light:{background:'#f0ece2',surface:'#fffaf0',text:'#16382b',primary:'#2d6554',accent:'#91b29d'},dark:{background:'#062320',surface:'#123c33',text:'#f3f3ed',primary:'#93b99e',accent:'#6e9e88'}};
+/** Light keeps the existing SME cream palette. Dark is Midnight Studio (U02): graphite/ink, emerald actions, warm silver text. */
+export const DEFAULT_THEMES={light:{background:'#f0ece2',surface:'#fffaf0',text:'#16382b',primary:'#2d6554',accent:'#91b29d'},dark:{background:'#12161f',surface:'#1c2333',text:'#ebe7df',primary:'#34d399',accent:'#456658'}};
+export const MIDNIGHT_STUDIO_DARK=DEFAULT_THEMES.dark;
 const rgb=hex=>[1,3,5].map(i=>parseInt(hex.slice(i,i+2),16)/255);
 const mix=(a,b,f)=>a.map((x,i)=>x*f+b[i]*(1-f));
 const luminance=c=>c.reduce((sum,v,i)=>sum+[.2126,.7152,.0722][i]*(v<=.04045?v/12.92:((v+.055)/1.055)**2.4),0);

@@ -2,3 +2,5 @@
 .workspace-language button{min-height:38px;min-width:68px;padding:7px 9px;border:0;border-radius:6px;background:transparent;color:var(--text);font:inherit;font-size:12px;white-space:nowrap}
 .workspace-language button[aria-pressed="true"]{background:var(--primary);color:var(--background);font-weight:700}
 @media(max-width:720px){.workspace-language{gap:2px;padding:2px}.workspace-language button{min-height:36px;min-width:0;padding:6px 7px;font-size:10px}.headtools{gap:4px}.headtools>.button.secondary{padding:8px 9px;font-size:11px}.headtools>.iconbutton{padding:5px}}
+/* G01 language control — Midnight Studio glass chip */
+.workspace-language{background:var(--mm-glass,transparent);backdrop-filter:var(--mm-blur,none);-webkit-backdrop-filter:var(--mm-blur,none);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--text) 8%,transparent)}.workspace-language button{transition:background .18s var(--mm-ease,ease),color .18s var(--mm-ease,ease)}.workspace-language button[aria-pressed="true"]{color:var(--primary-contrast,var(--background));box-shadow:0 0 0 1px color-mix(in srgb,var(--primary) 35%,transparent)}

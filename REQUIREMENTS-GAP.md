@@ -19,6 +19,19 @@ Baseline preserved: Build 21; 281 Python tests and the production frontend build
 - **Now (software):** package generation and validation honor the owner language setting; manifest records `guest_language`. Owner preview copy explains republish + send-to-router after a language change.
 - **Still open:** on-router install and phone captive-browser acceptance require a Connected router and owner republish/Safe Change; hardware evidence separate.
 
+## G01–G06 presentation track — 2026-10-13
+
+Owner ordered Cursor to complete G01→G06 before other offline increments.
+
+| Lane | Status | Evidence |
+|---|---|---|
+| G01 tokens/components | Implemented (software) | Midnight Studio dark default (`#12161f` / emerald `#34d399` / warm silver `#ebe7df`); shared `--mm-*` glass/radius/focus/motion tokens in `styles.css`; language chip polish in `sme-localization.css`; light palette preserved. |
+| G02 responsive shell | Implemented (software) | Page overflow clip, Burmese `overflow-wrap`, 44px touch targets, sticky header/safe-area, in-box table scroll, mobile nav scrim. Device walkthrough still open under G06. |
+| G03 copy/a11y | Partial | Guest Burmese-first; skip-to-main link; focus-visible rings; Agent/platform/API detail completeness still open. |
+| G04 stable-page polish | Partial | Shared glass panels/shadows/radius from G01 apply app-wide; page-by-page density pass still open. |
+| G05 guidance presentation | Partial | Knowledge/callout card summary touch targets and open-state accent; full Did you know? search UX still open. |
+| G06 frontend QA | Partial | Midnight token/contrast + responsive-shell unit checks; authenticated multi-role device walkthroughs still open. |
+
 ## Classification
 
 - ✅ Implemented and verified — implemented in Build 21 and covered by local automated verification.

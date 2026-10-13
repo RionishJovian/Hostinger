@@ -68,7 +68,7 @@ export default function AccountWorkspace(props){
  return <SMELocalizationProvider languages={branding.languages} defaultLanguage={branding.default_language}><AccountWorkspaceContent {...props} branding={branding} onBranding={refreshBranding}/></SMELocalizationProvider>
 }
 function AccountWorkspaceContent({onDemo,onPrototype,demo=false,onExitDemo,branding,onBranding}){
- const {t}=useSMELocalization();
+ const {t,language:smeLanguage}=useSMELocalization();
  const {money:smeMoney}=useSmeFormat();
  const magic=useSmeCopy('magicBoy');
  const entrySite=demo?'':new URLSearchParams(window.location.search).get('guest_site')||'';
@@ -115,6 +115,7 @@ function AccountWorkspaceContent({onDemo,onPrototype,demo=false,onExitDemo,brand
  const ownerAdmin=user.role==='sme'&&!user.staff_profile;
  const implemented=[STAFF_ACCESS_CLOSED_PAGE,'Overview','Revenue','Packages','Payments','Guest portal','My access','Operations','Businesses','Audit','Captive portal','Vouchers','Sites','Routers','Magic Hubs','Appearance','Media','Guidance','Did you know?','Account','Internet','Network','Subscription','Subscriptions','Get help'].includes(page)||(page==='Notifications'&&ownerAdmin&&!demo)||((page==='Platform console'||page==='Developer Dashboard')&&user.platform_owner)||(page==='Integrations'&&user.role==='sme')||(user.role==='agent'&&AGENT_PAGES.includes(page));
  return <div className={'app '+(menu?'menuopen':'')} aria-busy={busy}>
+  <a className="skip-link" href="#main-content">{(localizeSme&&smeLanguage==='my')||(localizeGuest&&guestLang==='my')?'အဓိက အကြောင်းအရာသို့ ခုန်ရန်':'Skip to main content'}</a>
   <aside>
    <Brand branding={branding} subtitle={user.role==='sme'?t('shell','businessWorkspace'):user.role==='guest'?gt('shell','guestAccess'):user.role==='agent'?'Agent workspace':'Cloud operations'}/>
    <div className="workspace">{business}<small>{user.username} · {user.staff_profile||user.role}</small></div>
@@ -133,7 +134,7 @@ function AccountWorkspaceContent({onDemo,onPrototype,demo=false,onExitDemo,brand
      <button className="button secondary headbutton" disabled={busy} aria-label={demo?t('shell','exitDemo'):localizeSme?t('shell','signOut'):'Sign out'} onClick={logout}><SignOut size={18}/><span>{demo?t('shell','exitDemo'):localizeSme?t('shell','signOut'):'Sign out'}</span></button>
     </div>
    </header>
-   <main>
+   <main id="main-content" tabIndex={-1}>
     {demo&&<div className="demo-banner" role="note"><span className="pill warn">{t('shell','demoLabel')}</span><p>{t('shell','demoBanner')}</p><button className="button secondary" onClick={logout}>{t('shell','exitDemo')}</button></div>}
     {!demo&&!restricted&&s.announcement&&s.announcement.revision!==dismissedAnnouncement&&<div className="demo-banner" role={s.announcement.level==='warning'?'alert':'note'}><span className={'pill'+(s.announcement.level==='warning'?' warn':'')}>{t('shell','announcement')}</span><p>{s.announcement.text}</p><button className="button secondary" onClick={()=>dismissAnnouncement(s.announcement.revision)}>{t('shell','dismissNotification')}</button></div>}
     {!demo&&!restricted&&s.subscription?.warning&&<div className="demo-banner" role="alert"><span className="pill warn">{t('navigation','Subscription')}</span><p>{t('renewal','warning')(s.subscription.expires_on,s.subscription.days_left)}</p>{page!=='Subscription'&&<button className="button" onClick={()=>go('Subscription')}>{t('renewal','renewNow')}</button>}</div>}
