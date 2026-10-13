@@ -30,7 +30,7 @@ Start every task: `git fetch origin && git merge --ff-only origin/main`. Finish 
 | Safe Change backup completeness | `c362d5d` @ 20261013T094841Z | Live; truncated exports refused (`backup_incomplete`) |
 | GET /v1/routers connection_state | `e7c8eb3` @ 20261013T100051Z | Live; Connected only with fresh plan evidence |
 | HotSpot cookie cleanup on disable/revoke | `abb8584` @ 20261013T101230Z | Live; cookies + active sessions cleared on sync |
-| Router list / Overview connection UI | this branch | Connected / Unable to Verify / Unverified from plan lifecycle + freshness |
+| Router list / Overview connection UI | `d01b890` @ 20261013T105204Z | Live; Connected / Unable to Verify / Unverified; bundle `index-zOKA-lCX.js` |
 | Safe Change worker on Hostinger | `c8b1626` @ 20261013T102909Z | Live; reviewed infra (`ALLOW_INFRA_CHANGE=1`); worker running |
 | RouterOS REST study | `a362868` → `docs/ROUTEROS-REST-API-NOTES.md` | Written |
 
