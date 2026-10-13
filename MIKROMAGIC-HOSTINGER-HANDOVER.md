@@ -764,6 +764,22 @@ Restore /opt/mikromagic-build21-public-test-20261013T043734Z/backups/pre-deploy.
 then cd /opt/mikromagic-build21-public-test-20261013T043734Z && docker compose -p mikromagic-build21-public-test -f compose.hostinger-public-test.yaml up -d --no-deps --force-recreate api web
 Restore /opt/mikromagic-build21-public-test-20261013T050941Z/backups/pre-deploy.dump only if the migration itself is at fault.
 
+### Scripted redeploy — hardware window: router-setup flag ON (2026-10-13 05:33 UTC)
+
+| Item | Value |
+|---|---|
+| Source | Commit `e658bf4` on `origin/main`; artifact `6b9a60eb19c3da72356819198e70b604a9d10fc09d69fedd98f29192e270968a` (214 files) |
+| Directory | `/opt/mikromagic-build21-public-test-20261013T053325Z`; previous `-20261013T050941Z` |
+| Infra files | `ALLOW_INFRA_CHANGE=1`: `compose.hostinger-public-test.yaml` adds `MIKROMAGIC_MAGIC_CONNECT_ROUTER_SETUP: "true"` (window only) |
+| Pre-deploy dump | `backups/pre-deploy.dump` (at 054, 490 restore-list entries) |
+| Migration | none (stays 054); rehearsal skipped |
+| Rollback images | `…-{api,web,magic-hub,migrate}:rollback-20261013T053325Z` |
+| Result | api and web recreated; Hub untouched (key `TG1jLN13+hA1Eg9/1h0DykQ768ZHZO54WFGAZWhjL0o=`, UDP `156.67.216.128:51820`, **0 peers**); `/v1/magic-connect/capability` now `router_setup_available: true` (pairing still true). Offline readiness YES for the hAP ax² window per `docs/MAGIC-CONNECT-HARDWARE-WINDOW.md`. Remove the flag and redeploy when the window closes |
+
+**Rollback:** on the VPS, for s in api web magic-hub migrate; do docker tag mikromagic-build21-public-test-$s:rollback-20261013T053325Z mikromagic-build21-public-test-$s:latest; done
+then cd /opt/mikromagic-build21-public-test-20261013T050941Z && docker compose -p mikromagic-build21-public-test -f compose.hostinger-public-test.yaml up -d --no-deps --force-recreate api web
+Restore /opt/mikromagic-build21-public-test-20261013T053325Z/backups/pre-deploy.dump only if the migration itself is at fault.
+
 - Next app work (as of 2026-10-12 09:00 UTC+6:30, live at migration 049, commit `13d40af`):
   - Terminology and Burmese (P0a) owner-facing chrome is live across SME pages including Integrations, Did you know?, guided first-shop acceptance, Magic Boy, Media, Account, Sites, Revenue, Payments and Packages/Passes. Platform screens stay English. Native-speaker/mobile QA remains open.
   - Routers page guided (P0a step 5): Connect your router steps first; Magic Hub, connection plans and Safe RouterOS changes under a closed Advanced (technician) section that opens when a change needs attention.
