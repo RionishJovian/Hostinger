@@ -153,6 +153,11 @@ class RouterOSClient:
   value=self.write('POST','export',{'show-sensitive':'no','terse':'yes'})
   if isinstance(value,dict):text=value.get('ret') or value.get('output') or value.get('value')
   else:text=None
+  if not isinstance(text,str) or not text.strip():
+   # RouterOS 7 REST answers `export` with an empty list; `execute as-string` returns the text, secrets hidden by default.
+   value=self.write('POST','execute',{'script':'/export terse','as-string':''})
+   text=value.get('ret') if isinstance(value,dict) else None
+   if not isinstance(text,str) or not text.startswith('# '):text=None
   if not isinstance(text,str) or not text.strip():raise RouterOSError('backup_invalid','Router did not return a usable sensitive-redacted configuration export')
   return text.encode('utf-8')
 

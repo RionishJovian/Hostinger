@@ -86,6 +86,24 @@ class RouterOSAdapterTests(unittest.TestCase):
   with RouterOSClient(credential,transport=httpx.MockTransport(handle)) as client:
    state=wireguard_peer_state(client,'hub-key');self.assertEqual(state['persistent_keepalive_seconds'],25);self.assertNotIn('hub-key',json.dumps(state));set_wireguard_keepalive(client,state['resource_id'],30);backup=client.export_configuration()
   self.assertEqual(seen[1][0:2],('PATCH','/rest/interface/wireguard/peers/*A'));self.assertIn(b'"persistent-keepalive":"30"',seen[1][2]);self.assertIn(b'show-sensitive=no',backup)
+ def test_export_falls_back_to_execute_when_routeros7_returns_empty_list(self):
+  seen=[]
+  def handle(request):
+   body=request.read();seen.append((request.url.path,body))
+   if request.url.path=='/rest/export':return httpx.Response(200,json=[])
+   if request.url.path=='/rest/execute':return httpx.Response(200,json={'ret':'# 2026-10-13 by RouterOS 7.24.2\n/ip hotspot profile\n'})
+   return httpx.Response(404)
+  credential=type('Credential',(),{'base_url':'https://router.example','username':'api','password':'secret','verify':True})()
+  with RouterOSClient(credential,transport=httpx.MockTransport(handle)) as client:backup=client.export_configuration()
+  self.assertTrue(backup.startswith(b'# 2026-10-13'));self.assertEqual(seen[1][0],'/rest/execute');self.assertIn(b'/export terse',seen[1][1])
+ def test_export_rejects_execute_error_text(self):
+  def handle(request):
+   if request.url.path=='/rest/export':return httpx.Response(200,json=[])
+   return httpx.Response(200,json={'ret':'expected end of command (line 1 column 2)'})
+  credential=type('Credential',(),{'base_url':'https://router.example','username':'api','password':'secret','verify':True})()
+  with RouterOSClient(credential,transport=httpx.MockTransport(handle)) as client:
+   with self.assertRaises(RouterOSError) as raised:client.export_configuration()
+  self.assertEqual(raised.exception.code,'backup_invalid')
 
 class RouterOSPreflightApiTests(unittest.TestCase):
  setUp=fixture.AccountPaymentTests.setUp
