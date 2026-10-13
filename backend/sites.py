@@ -15,7 +15,13 @@ def allowed_site(s,u,id):
 def router_display(device,plan=None,now=None):
  """Owner-facing connection_state from the plan: Connected only with fresh evidence."""
  fresh=bool(plan and connection_is_fresh(plan,now))
- discovered=bool(device.model or device.reported_routeros or device.architecture or device.reported_serial)
+ # architecture/serial are only filled by the setup script; model/version alone may be legacy owner-typed.
+ if device.architecture or device.reported_serial:
+  source='script_reported'
+ elif device.model or device.reported_routeros:
+  source='owner_reported'
+ else:
+  source='name_only'
  return {k:getattr(device,k) for k in ['id','tenant_id','site_id','name','model','reported_routeros','architecture','reported_serial','created']}|{
   'connection_state':'connected' if fresh else 'unverified',
   'connection_verified':fresh,
@@ -23,7 +29,7 @@ def router_display(device,plan=None,now=None):
   'last_handshake':plan.handshake_verified_at if plan else None,
   'lifecycle_state':plan.lifecycle_state if plan else None,
   'management_read_verified_at':plan.management_read_verified_at if plan else None,
-  'metadata_source':'script_reported' if discovered else 'name_only',
+  'metadata_source':source,
  }
 
 def register_sites(app,current,db,owner,log):

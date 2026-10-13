@@ -24,7 +24,7 @@ class GuestVlanMigrationTests(unittest.TestCase):
                     db.execute("INSERT INTO tenants VALUES ('t','Cafe')")
                     db.execute("INSERT INTO users (id,username,password_hash,role,tenant_id,active,must_change_password,temporary_password_expires) VALUES ('u','owner','hash','sme','t',1,0,NULL)")
                     db.execute("INSERT INTO sites (id,tenant_id,name,timezone,created) VALUES ('s','t','Site','Asia/Yangon',1)")
-                    db.execute("INSERT INTO router_devices VALUES ('r','t','s','Gateway','RB5009','7.20','u',1)")
+                    db.execute("INSERT INTO router_devices (id,tenant_id,site_id,name,model,reported_routeros,registered_by,created) VALUES ('r','t','s','Gateway','RB5009','7.20','u',1)")
                     with self.assertRaises(sqlite3.IntegrityError):
                         db.execute(
                             "INSERT INTO router_changes (id,tenant_id,router_id,operation,resource_id,risk,status,revision,before,desired,actual,expected,diff,before_fingerprint,backup_id,safety_backup_verified,confirmed_at,gateway_deadline,last_probe_at,recovery_evidence,conflict_detected_at,conflict_history_until,resolution_choice,rollback_attempted,created_by,created,updated,error_code) "
