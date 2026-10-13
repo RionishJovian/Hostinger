@@ -1120,6 +1120,26 @@ artifact sha256 860506ec944cbb21345d050c43a31e48bfacf34544ffee46ef03e6cdb534061e
 
 **No router contact.** One-paste Connect with Magic Hub is live behind the existing router-setup flag. Settings-changes flag remained off.
 
+### Scripted redeploy — name-only registration + RouterOS script fixes (2026-10-13 13:03 UTC)
+
+| Item | Value |
+|---|---|
+| Source | Commit `6ac2c0b` on `origin/main`; artifact `a50714becd396a2bb9f21f916a2188a3c42d5a9c8dc9178c5a1d004642ab5f2c` (228 files) |
+| Directory | `/opt/mikromagic-build21-public-test-20261013T130345Z`; previous `-20261013T114755Z` |
+| Pre-deploy dump | `backups/pre-deploy.dump` (509 restore-list entries) |
+| Migration | **058 → 059**; rehearsal 058 → 059 → 058 → 059 clean |
+| Rollback images | `…-{api,web,magic-hub,migrate}:rollback-20261013T130345Z` |
+| Result | api, web and safe-change-worker recreated; Hub untouched (`TG1jLN13+hA1Eg9/1h0DykQ768ZHZO54WFGAZWhjL0o=`, UDP `156.67.216.128:51820`). Bundle `index-Du_49qA0.js`. Worker **running**. Part C CHR virtual test skipped (owner request). |
+
+**Deployed 6ac2c0b at 20261013T130345Z**
+artifact sha256 a50714becd396a2bb9f21f916a2188a3c42d5a9c8dc9178c5a1d004642ab5f2c (228 files), bundle index-Du_49qA0.js
+
+**Rollback:** on the VPS, for s in api web magic-hub migrate; do docker tag mikromagic-build21-public-test-$s:rollback-20261013T130345Z mikromagic-build21-public-test-$s:latest; done
+          then cd /opt/mikromagic-build21-public-test-20261013T114755Z && docker compose -p mikromagic-build21-public-test -f compose.hostinger-public-test.yaml up -d --no-deps --force-recreate api web safe-change-worker
+          Restore /opt/mikromagic-build21-public-test-20261013T130345Z/backups/pre-deploy.dump only if the migration itself is at fault.
+
+**No router contact.** Name-only Routers registration and corrected one-paste script are live. Settings-changes flag remained off.
+
 - Next app work (as of 2026-10-12 09:00 UTC+6:30, live at migration 049, commit `13d40af`):
   - Terminology and Burmese (P0a) owner-facing chrome is live across SME pages including Integrations, Did you know?, guided first-shop acceptance, Magic Boy, Media, Account, Sites, Revenue, Payments and Packages/Passes. Platform screens stay English. Native-speaker/mobile QA remains open.
   - Routers page guided (P0a step 5): Connect your router steps first; Magic Hub, connection plans and Safe RouterOS changes under a closed Advanced (technician) section that opens when a change needs attention.
