@@ -21,7 +21,7 @@ class RouterHealthMigrationTests(unittest.TestCase):
             try:
                 command.upgrade(cfg, 'head')
                 with sqlite3.connect(database) as db:
-                    self.assertEqual(db.execute('SELECT version_num FROM alembic_version').fetchone()[0], '060')
+                    self.assertEqual(db.execute('SELECT version_num FROM alembic_version').fetchone()[0], '061')
                     cols = {row[1] for row in db.execute('PRAGMA table_info(router_health_observations)')}
                     self.assertTrue({'router_id', 'metrics', 'status', 'observed_at'} <= cols)
                     db.execute(

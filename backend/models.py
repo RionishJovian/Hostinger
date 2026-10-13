@@ -732,6 +732,19 @@ class RouterHealthObservation(Base):
  updated:Mapped[int]=mapped_column(BigInteger)
  __table_args__=(CheckConstraint("status in ('verified','unable_to_verify')",name='ck_router_health_obs_status'),)
 
+class RouterWanObservation(Base):
+ """Last monitoring-credential WAN / PPPoE read for one managed router."""
+ __tablename__='router_wan_observations'
+ router_id:Mapped[str]=mapped_column(ForeignKey('router_devices.id'),primary_key=True)
+ tenant_id:Mapped[str]=mapped_column(ForeignKey('tenants.id'),index=True)
+ site_id:Mapped[str]=mapped_column(ForeignKey('sites.id'),index=True)
+ observed_at:Mapped[int]=mapped_column(BigInteger)
+ status:Mapped[str]=mapped_column(String(24))
+ metrics:Mapped[dict]=mapped_column(JSON)
+ last_error:Mapped[str|None]=mapped_column(String(60),nullable=True)
+ updated:Mapped[int]=mapped_column(BigInteger)
+ __table_args__=(CheckConstraint("status in ('verified','unable_to_verify')",name='ck_router_wan_obs_status'),)
+
 class RouterChange(Base):
  __tablename__='router_changes'
  id:Mapped[str]=mapped_column(String(36),primary_key=True,default=uid)

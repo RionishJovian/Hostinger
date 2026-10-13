@@ -609,6 +609,66 @@ def read_router_health(client:RouterOSClient):
  }
 
 
+def _wan_iface_running(interfaces:list[dict],name:str|None):
+ if not name:return None
+ iface=_interface_by_name(interfaces,name)
+ if not iface:return None
+ return _truthy(iface.get('running'))
+
+
+def read_router_wan(client:RouterOSClient):
+ """Monitoring read of DHCP-client / PPPoE uplinks and default routes (no writes)."""
+ interfaces=list_interfaces(client)
+ dhcp_rows=list_dhcp_clients(client)
+ pppoe_rows=list_pppoe_clients(client)
+ route_rows=_records(client.get('ip/route',optional=True))
+ dhcp=[]
+ for row in dhcp_rows:
+  name=row.get('interface')
+  dhcp.append({
+   'interface':name or None,
+   'disabled':_truthy(row.get('disabled',False)),
+   'status':str(row.get('status') or '') or None,
+   'address':row.get('address') or None,
+   'gateway':row.get('gateway') or None,
+   'interface_running':_wan_iface_running(interfaces,name),
+  })
+ pppoe=[]
+ for row in pppoe_rows:
+  name=row.get('interface') or row.get('name')
+  pppoe.append({
+   'name':row.get('name') or None,
+   'interface':row.get('interface') or None,
+   'disabled':_truthy(row.get('disabled',False)),
+   'running':_truthy(row.get('running')),
+   'user':row.get('user') or None,
+   'service':row.get('service') or None,
+   'interface_running':_wan_iface_running(interfaces,name if row.get('interface') else row.get('name')),
+  })
+ defaults=[]
+ for row in route_rows:
+  dst=str(row.get('dst-address') or row.get('dst_address') or '')
+  if dst not in ('0.0.0.0/0','::/0'):continue
+  defaults.append({
+   'dst_address':dst,
+   'gateway':row.get('gateway') or None,
+   'immediate_gw':row.get('immediate-gw') or row.get('immediate_gw') or None,
+   'active':_truthy(row.get('active')),
+   'disabled':_truthy(row.get('disabled',False)),
+   'distance':_optional_int(row.get('distance')),
+   'routing_table':row.get('routing-table') or row.get('routing_table') or None,
+  })
+ return {
+  'dhcp_client_count':len(dhcp),
+  'pppoe_client_count':len(pppoe),
+  'default_route_count':len(defaults),
+  'dhcp_clients':dhcp,
+  'pppoe_clients':pppoe,
+  'default_routes':defaults,
+  'active_default_route_count':sum(1 for item in defaults if item.get('active') and not item.get('disabled')),
+ }
+
+
 def list_hotspot_servers(client:RouterOSClient):
  return _records(client.get('ip/hotspot',optional=True))
 

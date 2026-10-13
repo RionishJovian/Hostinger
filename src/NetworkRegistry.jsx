@@ -78,6 +78,7 @@ export function RouterRegistry({ sites, routers, act, api, busy, platform = fals
   const [sync, setSync] = useState(null);
   const [sessions, setSessions] = useState(null);
   const [health, setHealth] = useState(null);
+  const [wan, setWan] = useState(null);
   const [hubSetup, setHubSetup] = useState(false);
 
   useEffect(() => {
@@ -149,7 +150,10 @@ export function RouterRegistry({ sites, routers, act, api, busy, platform = fals
             }}>{c.collectSessions}</button> <button className="button secondary" disabled={busy} onClick={async () => {
               const result = await act(`routers/${router.id}/health/collect`, {});
               if (result) setHealth({ ...result, router: router.name });
-            }}>{c.collectHealth}</button></td>}
+            }}>{c.collectHealth}</button> <button className="button secondary" disabled={busy} onClick={async () => {
+              const result = await act(`routers/${router.id}/wan/collect`, {});
+              if (result) setWan({ ...result, router: router.name });
+            }}>{c.collectWan}</button></td>}
           </tr>)}
           {!routers.length && <tr><td colSpan={platform ? 5 : 6}>{c.empty}</td></tr>}</tbody>
         </table>
@@ -168,6 +172,18 @@ export function RouterRegistry({ sites, routers, act, api, busy, platform = fals
       </div>
       {health.aborted && <div className="callout">{c.healthAborted}</div>}
       <div className="callout">{health.detail || c.healthNote}</div>
+    </section>}
+    {wan && <section className="panel">
+      <div className="panelhead"><h2>{c.wanTitle} · {wan.router}</h2><button className="button secondary" onClick={() => setWan(null)}>{c.close}</button></div>
+      <div className="details">
+        <p><b>{c.wanStatus}</b>{wan.status}</p>
+        <p><b>{c.wanFreshness}</b>{wan.freshness}</p>
+        <p><b>{c.wanDhcp}</b>{wan.metrics == null ? c.sessionsUnavailable : c.wanDhcpDetail(wan.metrics.dhcp_client_count, wan.metrics.dhcp_clients)}</p>
+        <p><b>{c.wanPppoe}</b>{wan.metrics == null ? c.sessionsUnavailable : c.wanPppoeDetail(wan.metrics.pppoe_client_count, wan.metrics.pppoe_clients)}</p>
+        <p><b>{c.wanRoutes}</b>{wan.metrics == null ? c.sessionsUnavailable : c.wanRoutesDetail(wan.metrics.active_default_route_count, wan.metrics.default_route_count)}</p>
+      </div>
+      {wan.aborted && <div className="callout">{c.wanAborted}</div>}
+      <div className="callout">{wan.detail || c.wanNote}</div>
     </section>}
     {sync && <section className="panel">
       <div className="panelhead"><h2>{c.syncTitle} · {sync.router}</h2><button className="button secondary" onClick={() => setSync(null)}>{c.close}</button></div>
