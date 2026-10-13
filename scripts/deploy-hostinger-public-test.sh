@@ -22,9 +22,26 @@ git fetch -q origin main
 git merge-base --is-ancestor HEAD origin/main || stop "deploy only commits already pushed to origin/main"
 commit=$(git rev-parse --short HEAD)
 
-stamp="$(git rev-parse --git-dir)/mikromagic-checks-passed"
-if [ "${FORCE_CHECKS:-0}" != 1 ] && [ -f "$stamp" ] && [ "$(cat "$stamp")" = "$(git rev-parse 'HEAD^{tree}')" ]; then
-  echo "== Local checks already passed for this exact source tree ($commit); not repeating them (FORCE_CHECKS=1 reruns)"
+checks_invoke() {
+  CHECKS_PASS_LIB_ONLY=1 bash scripts/check.sh invoke "$@"
+}
+
+head_tree=$(git rev-parse 'HEAD^{tree}')
+skip_checks=0
+if [ "${FORCE_CHECKS:-0}" != 1 ] && checks_invoke checks_pass_read_tree >/dev/null 2>&1; then
+  stamp_tree=$(checks_invoke checks_pass_read_tree)
+  if [ "$stamp_tree" = "$head_tree" ]; then
+    skip_checks=1
+  else
+    stamp_commit=$(checks_invoke checks_pass_read_commit || true)
+    if [ -n "$stamp_commit" ] && checks_invoke checks_pass_diff_docs_only "$stamp_commit"; then
+      skip_checks=1
+    fi
+  fi
+fi
+
+if [ "$skip_checks" = 1 ]; then
+  echo "== Local checks already passed for this source ($commit); not repeating them (FORCE_CHECKS=1 reruns)"
   npm run build
 else
   echo "== Local checks for $commit"

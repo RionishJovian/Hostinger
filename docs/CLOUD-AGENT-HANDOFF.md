@@ -15,7 +15,7 @@ Continuing MikroMagic Build 21 v8 corrective work on Cursor cloud. Do **not** ru
 | Hardware evidence | `docs/MAGIC-CONNECT-HARDWARE-WINDOW.md` |
 | Deploy log | `MIKROMAGIC-HOSTINGER-HANDOVER.md` |
 
-Start every task: `git fetch origin && git merge --ff-only origin/main`. Finish on `origin/main` after `bash scripts/check.sh`, then `scripts/deploy-hostinger-public-test.sh` for verified increments (standing owner approval). Commit `.corrective-source-manifest.txt` if `check.sh` changes it, then rerun checks. Append handover + Notion checkpoint after deploy.
+Start every task: `git fetch origin && git merge --ff-only origin/main`. Finish on `origin/main` after `bash scripts/check.sh`, then `scripts/deploy-hostinger-public-test.sh` for verified increments (standing owner approval). Use targeted `.venv/bin/python scripts/run-tests.py <module>` while iterating; full `check.sh` once before merge. If `check.sh` regenerates only `.corrective-source-manifest.txt`, commit that file — the pass is already recorded for the resulting tree (no second full run). Doc-only commits after a recorded pass do not require rerunning checks before deploy. Append handover + Notion checkpoint after deploy.
 
 ## What just landed (do not redo)
 

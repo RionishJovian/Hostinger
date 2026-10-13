@@ -30,12 +30,26 @@ def run(module):
  ran=re.search(r'^Ran (\d+) tests?',output,re.M);skipped=re.search(r'skipped=(\d+)',output)
  return module,done.returncode,int(ran.group(1)) if ran else 0,int(skipped.group(1)) if skipped else 0,time.monotonic()-start,output
 
+def resolve_module(name):
+ candidate=Path(name)
+ if candidate.suffix=='.py':
+  for path in (candidate if candidate.is_absolute() else ROOT/candidate, TESTS/candidate.name):
+   if path.is_file():
+    return path.stem
+ stem=Path(name).stem
+ if (TESTS/f'{stem}.py').is_file():
+  return stem
+ alt=f'test_{stem}'
+ if (TESTS/f'{alt}.py').is_file():
+  return alt
+ raise SystemExit(f'unknown test module: {name}')
+
 def main():
  parser=argparse.ArgumentParser()
  parser.add_argument('-j','--jobs',type=int,default=os.cpu_count() or 4)
- parser.add_argument('modules',nargs='*')
+ parser.add_argument('modules',nargs='*',help='optional module names or paths (default: all test_*.py)')
  args=parser.parse_args()
- modules=args.modules or sorted(p.stem for p in TESTS.glob('test_*.py'))
+ modules=[resolve_module(m) for m in args.modules] if args.modules else sorted(p.stem for p in TESTS.glob('test_*.py'))
  path=timings_file()
  try:timings=json.loads(path.read_text()) if path else {}
  except (OSError,ValueError):timings={}
