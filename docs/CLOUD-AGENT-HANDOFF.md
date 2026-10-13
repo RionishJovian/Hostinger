@@ -35,7 +35,7 @@ Owner order: MikroTik / captive portal ahead of remaining P0a. ChatGPT owns G01�
 
 1. ~~**Guest VLAN for external AP**~~ — shipped; flag off.
 2. ~~**Per-router REST serialization**~~ — shipped `8f9e6e2` @ 20261013T093530Z.
-3. **Safe Change backup completeness** — next: refuse truncated `execute as-string` exports.
+3. **Safe Change backup completeness** — in this increment: file export + size check + `/file/read` chunks; refuse truncated `as-string`.
 4. `GET /v1/routers` real `connection_state` from plan freshness.
 5. HotSpot cookie removal on voucher disable/revoke.
 6. Add `safe_change_worker` to Hostinger compose with reviewed `ALLOW_INFRA_CHANGE=1`.

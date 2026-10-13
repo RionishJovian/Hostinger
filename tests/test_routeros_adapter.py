@@ -76,26 +76,104 @@ class RouterOSAdapterTests(unittest.TestCase):
   with RouterOSClient(credential,transport=httpx.MockTransport(handle)) as client:r=observe_wireguard_peer(client,plan,recent_seconds=180)
   self.assertFalse(r['router_side_handshake_observed']);self.assertFalse(r['interface_match'])
  def test_controlled_peer_write_and_sensitive_redacted_export_transport(self):
-  seen=[]
+  seen=[];export_body='# by RouterOS\n/interface wireguard peers\n'
+  files={}
   def handle(request):
-   seen.append((request.method,request.url.raw_path.decode(),request.read()))
+   body=request.read();seen.append((request.method,request.url.raw_path.decode(),body))
    if request.url.path=='/rest/interface/wireguard/peers':return httpx.Response(200,json=[{'.id':'*A','interface':'mm-router','public-key':'hub-key','persistent-keepalive':'25','disabled':'false'}])
-   if request.url.path=='/rest/export':return httpx.Response(200,json={'ret':'/interface wireguard peers export show-sensitive=no'})
+   if request.url.path=='/rest/export':
+    import json as _json
+    payload=_json.loads(body.decode() or '{}');name=payload.get('file')
+    if name:files[name]={'.id':'*X','name':name,'type':'.rsc file','size':str(len(export_body))}
+    return httpx.Response(200,json=[])
+   if request.url.path.startswith('/rest/file') and 'proplist' in request.url.query.decode():
+    return httpx.Response(200,json=list(files.values()))
+   if request.url.path=='/rest/file/read':return httpx.Response(400,json={'detail':'unsupported'})
+   if request.url.path=='/rest/execute':return httpx.Response(200,json={'ret':export_body})
+   if request.method=='DELETE' and request.url.path.startswith('/rest/file/'):
+    files.pop(request.url.path.removeprefix('/rest/file/'),None);return httpx.Response(204)
+   if request.method=='PATCH':return httpx.Response(200,json={})
    return httpx.Response(200,json={})
   credential=type('Credential',(),{'base_url':'https://router.example','username':'api','password':'secret','verify':True})()
   with RouterOSClient(credential,transport=httpx.MockTransport(handle)) as client:
    state=wireguard_peer_state(client,'hub-key');self.assertEqual(state['persistent_keepalive_seconds'],25);self.assertNotIn('hub-key',json.dumps(state));set_wireguard_keepalive(client,state['resource_id'],30);backup=client.export_configuration()
-  self.assertEqual(seen[1][0:2],('PATCH','/rest/interface/wireguard/peers/*A'));self.assertIn(b'"persistent-keepalive":"30"',seen[1][2]);self.assertIn(b'show-sensitive=no',backup)
- def test_export_falls_back_to_execute_when_routeros7_returns_empty_list(self):
-  seen=[]
+  self.assertEqual(seen[1][0:2],('PATCH','/rest/interface/wireguard/peers/*A'));self.assertIn(b'"persistent-keepalive":"30"',seen[1][2]);self.assertIn(b'/interface wireguard peers',backup)
+ def test_export_falls_back_to_execute_when_file_read_unavailable(self):
+  seen=[];export_body='# 2026-10-13 by RouterOS 7.24.2\n/ip hotspot profile\n';files={}
   def handle(request):
    body=request.read();seen.append((request.url.path,body))
-   if request.url.path=='/rest/export':return httpx.Response(200,json=[])
-   if request.url.path=='/rest/execute':return httpx.Response(200,json={'ret':'# 2026-10-13 by RouterOS 7.24.2\n/ip hotspot profile\n'})
+   if request.url.path=='/rest/export':
+    import json as _json
+    name=_json.loads(body.decode()).get('file');files[name]={'.id':'*E','name':name,'type':'.rsc file','size':str(len(export_body))}
+    return httpx.Response(200,json=[])
+   if request.url.path.startswith('/rest/file') and 'proplist' in (request.url.query.decode() if request.url.query else ''):
+    return httpx.Response(200,json=list(files.values()))
+   if request.url.path=='/rest/file/read':return httpx.Response(400,json={'message':'no such command'})
+   if request.url.path=='/rest/execute':return httpx.Response(200,json={'ret':export_body})
+   if request.method=='DELETE':files.clear();return httpx.Response(204)
    return httpx.Response(404)
   credential=type('Credential',(),{'base_url':'https://router.example','username':'api','password':'secret','verify':True})()
   with RouterOSClient(credential,transport=httpx.MockTransport(handle)) as client:backup=client.export_configuration()
-  self.assertTrue(backup.startswith(b'# 2026-10-13'));self.assertEqual(seen[1][0],'/rest/execute');self.assertIn(b'/export terse',seen[1][1])
+  self.assertTrue(backup.startswith(b'# 2026-10-13'));self.assertTrue(any(p=='/rest/execute' for p,_ in seen))
+ def test_export_prefers_file_read_chunks_when_available(self):
+  export_body='# 2026-10-13 by RouterOS 7.24.2\n/ip address\n';files={}
+  def handle(request):
+   body=request.read()
+   if request.url.path=='/rest/export':
+    import json as _json
+    name=_json.loads(body.decode()).get('file');files[name]={'.id':'*E','name':name,'type':'.rsc file','size':str(len(export_body))}
+    return httpx.Response(200,json=[])
+   if request.url.path.startswith('/rest/file') and 'proplist' in (request.url.query.decode() if request.url.query else ''):
+    return httpx.Response(200,json=list(files.values()))
+   if request.url.path=='/rest/file/read':
+    import json as _json
+    payload=_json.loads(body.decode());offset=int(payload.get('offset') or 0);chunk=int(payload.get('chunk-size') or 32768)
+    return httpx.Response(200,json={'data':export_body[offset:offset+chunk]})
+   if request.method=='DELETE':files.clear();return httpx.Response(204)
+   if request.url.path=='/rest/execute':return httpx.Response(500,json={'detail':'should not use as-string when file read works'})
+   return httpx.Response(404)
+  credential=type('Credential',(),{'base_url':'https://router.example','username':'api','password':'secret','verify':True})()
+  with RouterOSClient(credential,transport=httpx.MockTransport(handle)) as client:backup=client.export_configuration()
+  self.assertEqual(backup,export_body.encode())
+ def test_export_refuses_truncated_as_string(self):
+  files={};full_size=5000
+  def handle(request):
+   body=request.read()
+   if request.url.path=='/rest/export':
+    import json as _json
+    name=_json.loads(body.decode()).get('file');files[name]={'.id':'*E','name':name,'type':'.rsc file','size':str(full_size)}
+    return httpx.Response(200,json=[])
+   if request.url.path.startswith('/rest/file') and 'proplist' in (request.url.query.decode() if request.url.query else ''):
+    return httpx.Response(200,json=list(files.values()))
+   if request.url.path=='/rest/file/read':return httpx.Response(400,json={'message':'unsupported'})
+   if request.url.path=='/rest/execute':return httpx.Response(200,json={'ret':'# truncated\n'})
+   if request.method=='DELETE':files.clear();return httpx.Response(204)
+   return httpx.Response(404)
+  credential=type('Credential',(),{'base_url':'https://router.example','username':'api','password':'secret','verify':True})()
+  with RouterOSClient(credential,transport=httpx.MockTransport(handle)) as client:
+   with self.assertRaises(RouterOSError) as raised:client.export_configuration()
+  self.assertEqual(raised.exception.code,'backup_incomplete')
+ def test_export_reads_large_file_in_chunks(self):
+  # Model RouterOS 7 /file/read chunk-size ≤32768; size from .proplist listing.
+  export_body='# '+('x'*40000)+'\n/ip address\n';files={};reads=[]
+  def handle(request):
+   body=request.read()
+   if request.url.path=='/rest/export':
+    import json as _json
+    name=_json.loads(body.decode()).get('file');files[name]={'.id':'*E','name':name,'type':'.rsc file','size':str(len(export_body))}
+    return httpx.Response(200,json=[])
+   if request.url.path.startswith('/rest/file') and 'proplist' in (request.url.query.decode() if request.url.query else ''):
+    return httpx.Response(200,json=list(files.values()))
+   if request.url.path=='/rest/file/read':
+    import json as _json
+    payload=_json.loads(body.decode());offset=int(payload.get('offset') or 0);chunk=int(payload.get('chunk-size') or 32768)
+    reads.append((offset,chunk));return httpx.Response(200,json={'data':export_body[offset:offset+chunk]})
+   if request.method=='DELETE':files.clear();return httpx.Response(204)
+   if request.url.path=='/rest/execute':return httpx.Response(500,json={'detail':'unused'})
+   return httpx.Response(404)
+  credential=type('Credential',(),{'base_url':'https://router.example','username':'api','password':'secret','verify':True})()
+  with RouterOSClient(credential,transport=httpx.MockTransport(handle)) as client:backup=client.export_configuration()
+  self.assertEqual(backup,export_body.encode());self.assertGreaterEqual(len(reads),2);self.assertEqual(reads[0],(0,32768))
  def test_portal_file_cleanup_sends_bodyless_deletes_and_removes_directory(self):
   from backend.routeros_adapter import remove_hotspot_portal_files
   files={'mm-b21-abc-r2':{'.id':'*D','name':'mm-b21-abc-r2','type':'directory'},'mm-b21-abc-r2/login.html':{'.id':'*F','name':'mm-b21-abc-r2/login.html','type':'.html file'}};seen=[]
@@ -110,9 +188,19 @@ class RouterOSAdapterTests(unittest.TestCase):
   with RouterOSClient(credential,transport=httpx.MockTransport(handle)) as client:remove_hotspot_portal_files(client,'mm-b21-abc-r2',['login.html'])
   self.assertEqual(files,{});self.assertIn(('POST','/rest/file/remove',b'{".id":"*D"}'),seen)
  def test_export_rejects_execute_error_text(self):
+  files={}
   def handle(request):
-   if request.url.path=='/rest/export':return httpx.Response(200,json=[])
-   return httpx.Response(200,json={'ret':'expected end of command (line 1 column 2)'})
+   body=request.read()
+   if request.url.path=='/rest/export':
+    import json as _json
+    name=_json.loads(body.decode()).get('file');files[name]={'.id':'*E','name':name,'type':'.rsc file','size':'80'}
+    return httpx.Response(200,json=[])
+   if request.url.path.startswith('/rest/file') and 'proplist' in (request.url.query.decode() if request.url.query else ''):
+    return httpx.Response(200,json=list(files.values()))
+   if request.url.path=='/rest/file/read':return httpx.Response(400,json={'message':'unsupported'})
+   if request.url.path=='/rest/execute':return httpx.Response(200,json={'ret':'expected end of command (line 1 column 2)'})
+   if request.method=='DELETE':return httpx.Response(204)
+   return httpx.Response(404)
   credential=type('Credential',(),{'base_url':'https://router.example','username':'api','password':'secret','verify':True})()
   with RouterOSClient(credential,transport=httpx.MockTransport(handle)) as client:
    with self.assertRaises(RouterOSError) as raised:client.export_configuration()

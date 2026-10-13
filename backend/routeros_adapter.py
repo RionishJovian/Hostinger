@@ -168,17 +168,94 @@ class RouterOSClient:
   if not r.content:return {}
   try:return r.json()
   except ValueError:return {'accepted':True}
+ def _listed_file_size(self,name:str):
+  """Return integer size from a .proplist file listing, or None."""
+  rows=self.get(FILE_LIST,optional=True)
+  for item in _records(rows):
+   if item.get('name')==name:
+    raw=item.get('size')
+    try:return int(str(raw).split()[0]) if raw is not None and str(raw).strip()!='' else None
+    except (TypeError,ValueError):return None
+  return None
+
+ def _read_export_file_chunks(self,name:str,size:int):
+  """Read an export file via /file/read when available; return text or None."""
+  rows=self.get(FILE_LIST,optional=True)
+  row=next((x for x in _records(rows) if x.get('name')==name and x.get('.id')),None)
+  if not row:return None
+  resource_id=str(row['.id']);chunks=[];offset=0;chunk=32768
+  while offset<size:
+   take=min(chunk,size-offset)
+   try:
+    part=self.write('POST','file/read',{'.id':resource_id,'offset':str(offset),'chunk-size':str(take)})
+   except RouterOSError:
+    return None
+   data=None
+   if isinstance(part,dict):
+    data=part.get('data') or part.get('ret') or part.get('value') or part.get('contents')
+   if not isinstance(data,str) or data=='':
+    return None
+   # RouterOS may return plain text or hex; prefer plain when it looks like an export.
+   if offset==0 and not (data.startswith('#') or data.startswith('/')):
+    try:
+     decoded=bytes.fromhex(data.replace(' ','')).decode('utf-8','replace')
+     if decoded.startswith('#') or decoded.startswith('/'):data=decoded
+     else:return None
+    except ValueError:
+     return None
+   elif offset>0 and all(c in '0123456789abcdefABCDEF \n' for c in data[:64]) and ' ' in data[:80]:
+    try:data=bytes.fromhex(data.replace(' ','')).decode('utf-8','replace')
+    except ValueError:pass
+   chunks.append(data);offset+=take
+  text=''.join(chunks)
+  if not text.strip():return None
+  return text
+
+ def _delete_export_file(self,name:str):
+  try:self.write('DELETE','file/'+quote(name,safe=''),None)
+  except RouterOSError:
+   pass
+
  def export_configuration(self):
-  value=self.write('POST','export',{'show-sensitive':'no','terse':'yes'})
-  if isinstance(value,dict):text=value.get('ret') or value.get('output') or value.get('value')
-  else:text=None
-  if not isinstance(text,str) or not text.strip():
-   # RouterOS 7 REST answers `export` with an empty list; `execute as-string` returns the text, secrets hidden by default.
-   value=self.write('POST','execute',{'script':'/export terse','as-string':''})
-   text=value.get('ret') if isinstance(value,dict) else None
-   if not isinstance(text,str) or not text.startswith('# '):text=None
-  if not isinstance(text,str) or not text.strip():raise RouterOSError('backup_invalid','Router did not return a usable sensitive-redacted configuration export')
-  return text.encode('utf-8')
+  """Return a sensitive-redacted configuration export, rejecting truncated text.
+
+  Always writes `/export file=` first and compares size. Prefer `/file/read`
+  chunks when available; otherwise use `execute as-string` only when its length
+  is not substantially shorter than the file size.
+  """
+  import uuid as _uuid
+  filename='mm-sc-'+_uuid.uuid4().hex[:16]+'.rsc'
+  try:
+   # RouterOS 7 REST often returns [] for export; the file is still written.
+   self.write('POST','export',{'file':filename,'terse':'yes','show-sensitive':'no'})
+  except RouterOSError as error:
+   raise RouterOSError('backup_invalid','Router did not write a configuration export file for completeness checking',getattr(error,'status',503)) from error
+  try:
+   size=self._listed_file_size(filename)
+   if not size or size<1:
+    raise RouterOSError('backup_invalid','Router export file size is missing or empty',409)
+   text=self._read_export_file_chunks(filename,size)
+   source='file_read'
+   if text is None:
+    # Fallback used on RouterOS 7 when export returns []; still size-checked.
+    value=self.write('POST','execute',{'script':'/export terse','as-string':''})
+    text=value.get('ret') if isinstance(value,dict) else None
+    source='as_string'
+    if not isinstance(text,str) or not text.startswith('# '):
+     raise RouterOSError('backup_invalid','Router did not return a usable sensitive-redacted configuration export',409)
+   encoded=text.encode('utf-8')
+   # Allow small cosmetic differences between file and as-string; refuse clear truncation.
+   if len(encoded)+128<size:
+    raise RouterOSError(
+     'backup_incomplete',
+     f'Configuration export appears truncated ({len(encoded)} bytes vs file {size} bytes via {source}); refusing Safe Change backup',
+     409,
+    )
+   if not text.strip() or len(encoded)<20:
+    raise RouterOSError('backup_invalid','Router configuration export was empty',409)
+   return encoded
+  finally:
+   self._delete_export_file(filename)
 
 # Without .proplist RouterOS REST inlines file contents, and binary files break JSON.
 FILE_LIST='file?.proplist=name,type,size,last-modified'

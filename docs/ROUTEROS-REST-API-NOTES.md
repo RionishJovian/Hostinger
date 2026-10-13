@@ -32,7 +32,7 @@ Sources: MikroTik documentation ([REST API](https://help.mikrotik.com/docs/space
 
 - `POST /rest/export` writes to a file and returns `[]` by design ([forum #263182](https://forum.mikrotik.com/t/restapi-export-backup/263182)) — router-verified.
 - Workaround in use: `POST /rest/execute {"script":"/export terse","as-string":""}` returns `{"ret":"# … by RouterOS …"}`; RouterOS 7 hides secrets unless `show-sensitive` is given. Router-verified: 10.9 KB export.
-- Open risk: output size limits of `execute as-string` on large configurations are not documented. Before field use, check completeness (for example compare with `/export file=` size, or read a file export in chunks with `/file/read`).
+- Completeness (software): Safe Change always writes `/export file=` first, reads listed size via `/file?.proplist=…`, prefers chunked `/file/read`, and only falls back to `execute as-string` when that length is not substantially shorter than the file size (`backup_incomplete` otherwise). Temp `.rsc` files are deleted after the read.
 - REST exports can differ cosmetically from CLI exports (for example missing `KiB` units, [forum #262819](https://forum.mikrotik.com/t/inconsistence-between-config-export-from-rest-api-vs-webui/262819)); both import, but restore must be tested on hardware.
 
 ## Wi-Fi (RouterOS 7.13+ `/interface/wifi`)
