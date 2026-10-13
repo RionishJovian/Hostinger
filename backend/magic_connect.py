@@ -26,6 +26,8 @@ CLAIM_RATE_LIMIT=30
 CODE_SIZE=20
 # RouterOS needs a listen port even though the router only dials out to the Hub.
 ROUTER_LISTEN_PORT=13239
+# Fits uplinks that are themselves tunnelled or PPPoE; WireGuard's default 1420 stalls TLS there.
+TUNNEL_MTU=1280
 
 class PairingCreate(Strict):
  router_name:str=Field(min_length=1,max_length=120)
@@ -87,7 +89,7 @@ def _router_setup(attempt,plan,enrollment):
  if not attempt.router_id:return {'step':'router_not_linked','commands':{}}
  iface=router_interface(attempt.router_id);port=ROUTER_LISTEN_PORT
  commands={'inspect':['/system resource print','/interface wireguard print detail','/interface wireguard peers print','/ip address print','/ip route print where dst-address in 10.0.0.0/8'],
-  'create_interface':[f'/interface wireguard add name={iface} listen-port={port} comment="MikroMagic management"',f':put [/interface wireguard get [find name="{iface}"] public-key]'],
+  'create_interface':[f'/interface wireguard add name={iface} listen-port={port} mtu={TUNNEL_MTU} comment="MikroMagic management"',f':put [/interface wireguard get [find name="{iface}"] public-key]'],
   'rollback':[f'/ip route remove [find where gateway="{iface}" and comment="MikroMagic Hub"]',f'/ip address remove [find where interface="{iface}"]',f'/interface wireguard peers remove [find where interface="{iface}"]',f'/interface wireguard remove [find where name="{iface}"]']}
  stop_if=[f'An interface named {iface} already exists',f'Another WireGuard interface already uses listen port {port}','The router is not RouterOS 7 or has no WireGuard menu','Any address or route already uses the MikroMagic tunnel pool shown after owner review']
  result={'interface':iface,'listen_port':port,'router_public_key':attempt.router_public_key,'stop_if':stop_if,'commands':commands}

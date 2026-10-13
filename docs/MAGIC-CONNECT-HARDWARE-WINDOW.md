@@ -77,7 +77,7 @@ All router commands are generated per router on the technician page; the rollbac
 - Step 1 or Step 4 checks show a conflict listed on the technician page (existing `mm-` names, port 13239 in use, the tunnel pool already used, `www-ssl` already enabled).
 - The ping in step 6 fails after the owner added the Hub peer, or the handshake does not appear within two minutes.
 - Finish management setup returns `router_serial_mismatch`, `certificate_name_mismatch`, `group_conflict`, `user_conflict` or `monitoring_write_not_denied`. Do not retry with changes; record the code.
-- Anything touches WAN, LAN, Wi-Fi, HotSpot servers, other VPNs or unrelated firewall rules. Voucher sync may only add or change HotSpot users with the comment `MikroMagic voucher`, user profiles named `mm-<hash>` with the comment `MikroMagic plan`, and the scheduler `mm-voucher-expiry`.
+- Anything touches WAN, LAN, Wi-Fi, HotSpot servers, other VPNs or unrelated firewall rules. Voucher sync may only add or change HotSpot users with the comment `MikroMagic voucher`, user profiles named `mm-<hash>` (RouterOS profiles have no comment field), and the scheduler `mm-voucher-expiry`.
 - Sync vouchers reports `hotspot_user_conflict` or `hotspot_profile_conflict`: a login or profile with that name already exists and was not created by MikroMagic. Leave it and record the name.
 
 ## Evidence to record
@@ -116,7 +116,7 @@ These RouterOS behaviours are assumptions; each failure stops the window with a 
 - Historical tunnel `mmh-8adfeb441215` was not present on the router; nothing to disable.
 - Pairing `ab42fa50-6691-4171-9026-2474ec8019bd`, comparison phrase matched; plan `89c9a9f0-ee43-464d-978b-5b6bc988eb17`, router address `10.90.1.2/32`, interface `mm-97546f1a`. Step 1 and Step 4 checks were clean.
 - Handshake: Hub `wg show mm-prod-hub latest-handshakes` showed router key `mIhCUL9/tHAv9gw7lADwR81ozreYELUWUF/ju7K5RXU=`; plan `handshake_verified_at` 1791871217 (06:00:17 UTC). Ping to `10.90.1.1` answered.
-- First management setup returned `unreachable`: TCP 443 connected but TLS stalled. Cause: the tunnel ran inside ExpressVPN (MTU 1350) with the WireGuard default MTU 1420. Setting `mtu=1280` on `mm-97546f1a` (MikroMagic's interface only) fixed it. Follow-up: generate `mtu=1280` in the technician `create_interface` command so VPN, PPPoE and mobile uplinks work first time.
+- First management setup returned `unreachable`: TCP 443 connected but TLS stalled. Cause: the tunnel ran inside ExpressVPN (MTU 1350) with the WireGuard default MTU 1420. Setting `mtu=1280` on `mm-97546f1a` (MikroMagic's interface only) fixed it. The technician `create_interface` command now sets `mtu=1280`.
 - Management setup: model `C52iG-5HaxD2HaxD`, arm64, certificate SHA-256 `48998fae420d4198df9c6b4db7780b5deec0e51cc637134e0e59600fb7bd3fca`, users `mm-monitor-97546f1a` / `mm-safechange-97546f1a` (both `address=10.90.1.1/32`), checks `monitoring_write_denied`, `safe_change_login`, `enrollment_login_removed` all true.
 - Preflight: `routeros_rest_live_read`, TLS verified, serial matches the label, compatibility `compatible_for_safe_change`, `connection.state: connected`, `connection_verified: true`, management read 1791871289 (06:01:29 UTC).
 - Verified on hardware: REST over HTTPS for `read,api,rest-api` (monitoring) and `read,write,api,rest-api` (Safe Change); self-signed certificate with `subject-alt-name=IP:` accepted when pinned; `www-ssl` limited to `10.90.1.1/32`; enrollment user self-deletion; `place-before=0` put the rule first.

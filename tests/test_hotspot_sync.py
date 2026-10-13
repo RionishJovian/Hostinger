@@ -30,6 +30,7 @@ class FakeClient:
   self.router.writes.append((method,path,dict(payload or {})))
   tables={'ip/hotspot/user':self.router.users,'ip/hotspot/user/profile':self.router.profiles,'system/scheduler':self.router.schedulers}
   if method=='PUT':
+   if path=='ip/hotspot/user/profile' and 'comment' in payload:raise RouterOSError('router_write_failed','unknown parameter comment')
    if any(x['name']==payload['name'] for x in tables[path].values()):raise RouterOSError('router_write_failed','already exists')
    new=self.router.new_id();tables[path][new]={'.id':new,'disabled':'false',**payload};return {}
   menu,_,item=path.rpartition('/')
@@ -117,6 +118,16 @@ class HotspotSyncTests(unittest.TestCase):
   del fake.users['*99'];fake.fail='unreachable'
   result=self.sync(router,fake);self.assertEqual((result['applied'],result['aborted']),(0,'unreachable'))
   fake.fail=None;self.assertEqual(self.sync(router,fake)['applied'],1)
+
+ def test_same_named_profile_with_other_limits_is_a_conflict(self):
+  owner,hub,site=self.fixture();router=self.managed(owner,hub,site);package=self.package(owner);fake=FakeHotspot()
+  issued=self.issue(owner,package,site,'profile-a')
+  limits=internet_limits({'service':'internet','mode':'both','gb':2,'hours':24,'devices':2,'speed':10,'clock':'elapsed'});name,_=profile_for(limits)
+  fake.profiles['*50']={'.id':'*50','name':name,'shared-users':'5','rate-limit':''}
+  self.assertEqual((self.sync(router,fake)['failed'],fake.profiles['*50']['shared-users']),(1,'5'))
+  with self.app.state.factory() as s:self.assertEqual(s.get(HotspotVoucherSync,(issued['id'],router)).last_error,'profile_conflict')
+  fake.profiles['*50'].update({'shared-users':'2','rate-limit':'5000k/5000k'})
+  self.assertEqual(self.sync(router,fake)['applied'],1);self.assertEqual(fake.user(issued['code'])['profile'],name)
 
  def test_endpoints_require_a_managed_router_and_one_router_per_shop(self):
   owner,hub,site=self.fixture();plain=self.router(owner,site,'Unmanaged')

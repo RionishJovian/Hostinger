@@ -41,7 +41,7 @@ class RouterSetupTests(unittest.TestCase):
   self.assertEqual(approved.json()['setup_access'],'transport_setup')
   setup=self.status(tech)['router_setup'];iface='mm-'+router[:8]
   self.assertEqual(setup['step'],'generate_key');self.assertEqual(setup['interface'],iface)
-  self.assertIn(f'/interface wireguard add name={iface} listen-port=13239 comment="MikroMagic management"',setup['commands']['create_interface'])
+  self.assertIn(f'/interface wireguard add name={iface} listen-port=13239 mtu=1280 comment="MikroMagic management"',setup['commands']['create_interface'])
   self.assertNotIn('connect_hub',setup['commands']);self.assertTrue(setup['commands']['rollback'])
   self.assertEqual(self.client.post(f"/v1/magic-connect/attempts/{attempt['id']}/plan",headers=owner,json={'hub_id':hub}).status_code,409)
   submitted=self.client.post('/v1/magic-connect/technician/router-key',headers=tech,json={'router_public_key':key(9)})

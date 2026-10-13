@@ -51,7 +51,8 @@ def profile_for(limits):
  fields={'shared-users':str(limits['devices']),'rate-limit':f"{limits['rate_kbps']}k/{limits['rate_kbps']}k" if limits['rate_kbps'] else '',
   'on-login':expiry_on_login(limits['seconds']) if limits['seconds'] and limits['clock']=='elapsed' else ''}
  name='mm-'+hashlib.sha256(json.dumps(fields,sort_keys=True).encode()).hexdigest()[:10]
- return name,{'name':name,'comment':PROFILE_COMMENT,**fields}
+ # RouterOS HotSpot user profiles have no comment; the content-hash name marks ownership.
+ return name,{'name':name,**fields}
 
 def user_limits(limits):
  fields={}
@@ -88,7 +89,7 @@ class RouterHotspot:
  def ensure_profile(self,name,fields):
   if name in self.profiles:return
   existing=_row(self.client.get('ip/hotspot/user/profile?name='+name))
-  if existing and existing.get('comment')!=PROFILE_COMMENT:raise HotspotSyncError('profile_conflict',f'HotSpot profile {name} exists and is not MikroMagic\'s')
+  if existing and any(str(existing.get(k) or '')!=fields[k] for k in ('shared-users','rate-limit')):raise HotspotSyncError('profile_conflict',f'HotSpot profile {name} exists and is not MikroMagic\'s')
   if not existing:self.client.write('PUT','ip/hotspot/user/profile',fields)
   if fields.get('on-login'):self.ensure_scheduler()
   self.profiles.add(name)
