@@ -11,6 +11,7 @@ try{
  const portal={revision:4,draft:cfg,published_revision:3};
  const editor=renderToStaticMarkup(React.createElement(PortalEditor,{portal,busy:false,act:()=>{throw Error('Static preview cannot submit')}}));
  assert.match(editor,/Guest interface/);assert.match(editor,/Publish to MikroMagic/);assert.match(editor,/Deploy to RouterBoard/);assert.match(editor,/Bank \/ wallet card/);assert.match(editor,/Lantern Leaf/);assert.match(editor,/Safe Change/);
+ assert.match(editor,/guest-phone/);assert.match(editor,/sandbox="allow-scripts"/);assert.match(editor,/0A1210/);assert.match(editor,/Golden Cafe/);assert.match(editor,/ချိတ်ဆက်ရန်/);assert.match(editor,/class=&quot;seal&quot;/);assert.match(editor,/KBZPay|Cafe counter/);assert.doesNotMatch(editor,/UNSAVED PREVIEW|SAVED DRAFT PREVIEW/);
  const guest=renderToStaticMarkup(React.createElement(GuestPurchase,{packages:[],portal:{revision:3,settings:{...cfg,payment_destination:'<script>untrusted</script>'}},busy:true,act:()=>{},go:()=>{}}));
  assert.match(guest,/&lt;script&gt;untrusted&lt;\/script&gt;/);assert.doesNotMatch(guest,/<script>untrusted/);assert.doesNotMatch(guest,/bridge-guest/);assert.match(guest,/ငွေလွှဲ အမှတ်စဉ်|Transaction reference/);
  const closed=renderToStaticMarkup(React.createElement(GuestPurchase,{packages:[],portal:{revision:3,settings:{...cfg,direct_purchase:false}},busy:true}));

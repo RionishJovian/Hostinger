@@ -16,7 +16,7 @@ Baseline preserved: Build 21; 281 Python tests and the production frontend build
 ## Portal language → local package — 2026-10-13
 
 - **Was:** `PortalConfig.language` (`en` / `my` / `both`) was ignored by `build_local_hotspot_package`; every package was bilingual Burmese-first with a toggle; owner preview said “translation is pending.”
-- **Now (software):** package generation and validation honor the owner language setting; manifest records `guest_language`. Owner preview copy explains republish + send-to-router after a language change.
+- **Now (software):** package generation and validation honor the owner language setting; manifest records `guest_language`. The Guest Wi-Fi page shows the actual Lantern Leaf HotSpot pages (login, connected, could not connect, status, signed out) in a phone frame. The cloud order link is labeled separately from that preview.
 - **Still open:** on-router install and phone captive-browser acceptance require a Connected router and owner republish/Safe Change; hardware evidence separate.
 
 ## G01–G06 presentation track — 2026-10-13

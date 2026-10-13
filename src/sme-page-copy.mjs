@@ -824,6 +824,17 @@ export const SME_PAGE_COPY={
    idle:(page,business)=>`AI assistance is not connected yet. You are viewing ${page} for ${business}. No router commands can be executed here.`,
    restrained:'Magic Boy shows saved Did you know? cards only. It cannot change routers, payments or vouchers.'
   },
+  guestPreview:{
+   title:'Guest page preview',
+   unsaved:'Unsaved',
+   saved:'Saved draft',
+   note:'This is the HotSpot page the router will show. Sample time and data stand in for router fields. Typing a code here does not connect.',
+   pagesLabel:'Guest pages',
+   frame:name=>`Guest page preview · ${name}`,
+   pages:{login:'Login',connected:'Connected',failed:'Could not connect',status:'Status',signedOut:'Signed out'},
+   cloudNote:'The link below is the cloud order page, separate from the HotSpot preview.',
+   cloudLink:'Open cloud guest order page'
+  },
   networkDevices:{
    title:'Switches and access points',
    intro:'Register the switches and Wi-Fi access points at each shop. This is owner-reported inventory for planning and limits — not live discovery or Connected status.',
@@ -1666,6 +1677,17 @@ export const SME_PAGE_COPY={
    cardNote:'သိမ်းထားသော လမ်းညွှန်သာ ဖြစ်ပါသည်။ AI ဖြင့် မထုတ်လုပ်ပါ။ Router ကိုက်ညီမှု မစစ်ဆေးရသေးပါ။',
    idle:(page,business)=>`AI အကူအညီ မချိတ်ဆက်ရသေးပါ။ ${business} အတွက် ${page} ကို ကြည့်နေပါသည်။ ဤနေရာမှ router ညွှန်ကြားချက်များ မလုပ်နိုင်ပါ။`,
    restrained:'Magic Boy သည် သိမ်းထားသော သိကောင်းစရာ ကတ်များကိုသာ ပြပါသည်။ Router၊ ငွေပေးချေမှု သို့မဟုတ် voucher များကို မပြောင်းနိုင်ပါ။'
+  },
+  guestPreview:{
+   title:'ဧည့်သည် စာမျက်နှာ ကြိုကြည့်',
+   unsaved:'မသိမ်းရသေး',
+   saved:'သိမ်းထားသော မူကြမ်း',
+   note:'ဤသည်မှာ router တွင် ဧည့်သည်မြင်ရမည့် HotSpot စာမျက်နှာ ဖြစ်ပါသည်။ အချိန်နှင့် ဒေတာသည် နမူနာဖြစ်ပါသည်။ ဤနေရာတွင် ကုဒ်ရိုက်ခြင်းသည် ချိတ်ဆက်မှု မဖြစ်ပါ။',
+   pagesLabel:'ဧည့်သည် စာမျက်နှာများ',
+   frame:name=>`ဧည့်သည် စာမျက်နှာ ကြိုကြည့် · ${name}`,
+   pages:{login:'ဝင်ရန်',connected:'ချိတ်ဆက်ပြီး',failed:'ချိတ်ဆက် မရပါ',status:'အခြေအနေ',signedOut:'ထွက်ပြီး'},
+   cloudNote:'အောက်ပါလင့်ခ်သည် cloud မှာယူစာမျက်နှာ ဖြစ်ပြီး HotSpot ကြိုကြည့်မှုနှင့် သီးခြားဖြစ်ပါသည်။',
+   cloudLink:'Cloud ဧည့်သည် မှာယူစာမျက်နှာ ဖွင့်ရန်'
   },
   networkDevices:{
    title:'Switch နှင့် access point များ',
