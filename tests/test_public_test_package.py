@@ -25,7 +25,12 @@ class PublicTestPackageTests(unittest.TestCase):
         self.assertEqual(compose.count("hub_uplink"), 2)
         self.assertEqual(compose.count("    secrets: [postgres_password]\n"), 1)
         self.assertIn("{source: postgres_password_api, target: postgres_password}", compose)
-        self.assertEqual(compose.count("secrets: *api_secrets"), 1)
+        # api + safe-change-worker share the same secret alias; db alone uses postgres_password.
+        self.assertEqual(compose.count("secrets: *api_secrets"), 2)
+        self.assertIn("\n  safe-change-worker:\n", compose)
+        self.assertIn('command: ["python", "-m", "backend.safe_change_worker"]', compose)
+        self.assertIn("networks: [private]", compose.split("\n  safe-change-worker:\n", 1)[1].split("\n  magic-hub:\n", 1)[0])
+        self.assertNotIn("ports:", compose.split("\n  safe-change-worker:\n", 1)[1].split("\n  magic-hub:\n", 1)[0])
         self.assertNotIn("[postgres_password, backup_key", compose)
 
     def test_package_is_deterministic_and_contains_current_head(self):
