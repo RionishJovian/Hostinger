@@ -11,7 +11,7 @@ export function routerSetupSteps({sites = [], routers = []}) {
   const steps = [
     {id: 'shop', done: sites.length > 0, count: sites.length, page: 'Sites'},
     {id: 'register', done: routers.length > 0, count: routers.length, target: 'register-router'},
-    {id: 'connect', done: routers.some(routerEverConnected), page: 'Get help'},
+    {id: 'connect', done: routers.some(routerEverConnected), page: 'Routers'},
     {id: 'check', done: routers.some(routerFreshlyConnected)},
   ];
   const next = steps.findIndex(step => !step.done);

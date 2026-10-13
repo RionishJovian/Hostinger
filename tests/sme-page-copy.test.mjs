@@ -35,7 +35,8 @@ test('English SME page copy keeps the phrases the UI checks require',()=>{
  assert.match(routers.merge,/Per-setting merge is not available/);
  assert.match(routers.week,/view-only for one week/);
  assert.equal(routers.keepalive,'Persistent keepalive seconds');
- assert.equal(routers.version,'Reported RouterOS version');
+ assert.equal(routers.version,'RouterOS version');
+ assert.equal(routers.hubConnectButton,'Connect with Magic Hub');
  assert.equal(routers.mmVersion,'MikroMagic version');
  assert.equal(routers.expiresAt('18:00'),'Expires 18:00');
  assert.equal(routers.compareLabel,'Compare phrase:');

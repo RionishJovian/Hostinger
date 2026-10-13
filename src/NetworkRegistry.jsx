@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { ssidProblem } from './site-settings.mjs';
 import { useSmeCopy } from './SMELocalization.jsx';
+import { MagicHubConnectButton } from './MagicHubConnect.jsx';
 
 function Field({ label, children }) {
   return <label className="field"><span>{label}</span>{children}</label>;
@@ -69,7 +70,7 @@ export function SiteRegistry({ sites, act, busy }) {
   </>;
 }
 
-export function RouterRegistry({ sites, routers, act, busy, platform = false, localize = false }) {
+export function RouterRegistry({ sites, routers, act, api, busy, platform = false, localize = false, onRefresh }) {
   const c = useSmeCopy('routersPage', localize);
   const [site, setSite] = useState('');
   const [name, setName] = useState('');
@@ -78,13 +79,25 @@ export function RouterRegistry({ sites, routers, act, busy, platform = false, lo
   const [preflight, setPreflight] = useState(null);
   const [sync, setSync] = useState(null);
   const [sessions, setSessions] = useState(null);
+  const [hubSetup, setHubSetup] = useState(false);
+
+  useEffect(() => {
+    if (!api || platform) return;
+    let live = true;
+    api.request('magic-connect/capability').then(x => {
+      if (live) setHubSetup(x?.router_setup_available === true);
+    }).catch(() => { if (live) setHubSetup(false); });
+    return () => { live = false; };
+  }, [api, platform]);
 
   return <>
     {!platform && <section className="panel" id="register-router">
       <div className="panelhead"><h2>{c.registerTitle}</h2></div>
       <form onSubmit={async event => {
         event.preventDefault();
-        if (await act('routers', { site_id: site, name, model, reported_routeros: version })) setName('');
+        if (await act('routers', { site_id: site, name, model, reported_routeros: version })) {
+          setName(''); setModel(''); setVersion('');
+        }
       }}>
         <div className="formgrid">
           <Field label={c.shop}><select required value={site} onChange={event => setSite(event.target.value)}>
@@ -92,9 +105,9 @@ export function RouterRegistry({ sites, routers, act, busy, platform = false, lo
           </select></Field>
           <Field label={c.routerName}><input required maxLength={120} value={name} onChange={event => setName(event.target.value)} /></Field>
           <Field label={c.model}><input required maxLength={120} value={model} onChange={event => setModel(event.target.value)} placeholder={c.modelHint} /></Field>
-          <Field label={c.version}><input maxLength={40} value={version} onChange={event => setVersion(event.target.value)} placeholder={c.versionHint} /></Field>
+          <Field label={c.version}><input required maxLength={40} value={version} onChange={event => setVersion(event.target.value)} placeholder={c.versionHint} /></Field>
         </div>
-        <button className="button" disabled={busy || !site}>{c.register}</button>
+        <button className="button" disabled={busy || !site || !version.trim()}>{c.register}</button>
       </form>
       <p className="muted">{c.registerNote}</p>
     </section>}
@@ -115,7 +128,9 @@ export function RouterRegistry({ sites, routers, act, busy, platform = false, lo
               return <span className="pill warn">{c.unverified}</span>;
             })()}</td>
             <td>{router.hub_id ? <>{c.assigned}<small>{router.hub_id}</small></> : c.notAssigned}</td>
-            {!platform && <td><button className="button secondary" disabled={busy} onClick={async () => {
+            {!platform && <td className="mm-router-actions">
+              {api && <MagicHubConnectButton router={router} api={api} busy={busy} setupAvailable={hubSetup} onChanged={onRefresh} />}
+              <button className="button secondary" disabled={busy} onClick={async () => {
               const result = await act(`routers/${router.id}/preflight`, {});
               if (result) setPreflight(result);
             }}>{c.preflight}</button> <button className="button secondary" disabled={busy} onClick={async () => {
