@@ -81,7 +81,16 @@ def rollback_script(iface_hint: str = 'mm-*') -> str:
 :do {{ /user remove [find where comment~"MikroMagic" and name~"^mm-"] }} on-error={{}}
 :do {{ /user group remove [find where name="mm-monitor" or name="mm-safechange"] }} on-error={{}}
 :do {{ /ip firewall filter remove [find where comment~"MikroMagic"] }} on-error={{}}
-:do {{ /ip service set www-ssl disabled=yes certificate=none address="" }} on-error={{}}
+:do {{
+  :local mmWwwCert [/ip service get www-ssl certificate]
+  :local mmCertName [:tostr $mmWwwCert]
+  :local mmHit [:find $mmCertName "mm-mgmt-"]
+  :if ([:typeof $mmHit] != "nil") do={{
+    :if ($mmHit = 0) do={{
+      /ip service set www-ssl disabled=yes certificate=none address=""
+    }}
+  }}
+}} on-error={{}}
 :do {{ /certificate remove [find where name~"^mm-mgmt-"] }} on-error={{}}
 :do {{ /ip route remove [find where comment~"MikroMagic"] }} on-error={{}}
 :do {{ /ip address remove [find where comment~"MikroMagic"] }} on-error={{}}
@@ -117,15 +126,27 @@ def generate_enroll_script(*, token: str, base_url: str, router_id: str, hub_end
 :global mmGStatusUrl
 :global mmGComment
 :global mmGId8
+:global mmGWwwChanged
+:global mmGWwwDisabled
+:global mmGWwwCert
+:global mmGWwwAddress
 :set mmGStatusUrl $mmStatusUrl
 :set mmGComment $mmComment
 :set mmGId8 $mmId8
+:set mmGWwwChanged false
+:set mmGWwwDisabled
+:set mmGWwwCert
+:set mmGWwwAddress
 
 :local mmFail do={{
   :local mmMsg [:tostr $1]
   :global mmGStatusUrl
   :global mmGComment
   :global mmGId8
+  :global mmGWwwChanged
+  :global mmGWwwDisabled
+  :global mmGWwwCert
+  :global mmGWwwAddress
   :put ("MM-FAIL: " . $mmMsg)
   :local mmEnc ""
   :do {{
@@ -158,7 +179,9 @@ def generate_enroll_script(*, token: str, base_url: str, router_id: str, hub_end
   :do {{ /tool fetch url=($mmGStatusUrl . "?phase=failed&message=" . $mmEnc) check-certificate={FETCH_CERT_MODE} keep-result=no }} on-error={{}}
   :do {{ /user remove [find where comment=$mmGComment] }} on-error={{}}
   :do {{ /ip firewall filter remove [find where comment=$mmGComment] }} on-error={{}}
-  :do {{ /ip service set www-ssl disabled=yes certificate=none address="" }} on-error={{}}
+  :if ($mmGWwwChanged) do={{
+    :do {{ /ip service set www-ssl disabled=$mmGWwwDisabled certificate=$mmGWwwCert address=$mmGWwwAddress }} on-error={{}}
+  }}
   :do {{ /certificate remove [find where name=("mm-mgmt-" . $mmGId8)] }} on-error={{}}
   :do {{ /ip route remove [find where comment=$mmGComment] }} on-error={{}}
   :do {{ /ip address remove [find where comment=$mmGComment] }} on-error={{}}
@@ -169,6 +192,10 @@ def generate_enroll_script(*, token: str, base_url: str, router_id: str, hub_end
   :set mmGStatusUrl
   :set mmGComment
   :set mmGId8
+  :set mmGWwwChanged
+  :set mmGWwwDisabled
+  :set mmGWwwCert
+  :set mmGWwwAddress
   :error ("MM-FAIL: " . $mmMsg)
 }}
 
@@ -415,6 +442,10 @@ def generate_enroll_script(*, token: str, base_url: str, router_id: str, hub_end
   :set mmWait ($mmWait + 1)
 }}
 :if (!$mmSigned) do={{ [$mmFail "Certificate was not signed in time"] }}
+:set mmGWwwDisabled [/ip service get www-ssl disabled]
+:set mmGWwwCert [/ip service get www-ssl certificate]
+:set mmGWwwAddress [/ip service get www-ssl address]
+:set mmGWwwChanged true
 :do {{
   /ip service set www-ssl certificate=$mmCert address=($mmHubAddr . "/32") disabled=no
 }} on-error={{ [$mmFail "Could not enable www-ssl for Hub management"] }}
@@ -435,6 +466,10 @@ def generate_enroll_script(*, token: str, base_url: str, router_id: str, hub_end
 :set mmGStatusUrl
 :set mmGComment
 :set mmGId8
+:set mmGWwwChanged
+:set mmGWwwDisabled
+:set mmGWwwCert
+:set mmGWwwAddress
 :put "MM: Done. MikroMagic will finish Connected status in the app. Do not share this terminal output."
 }}'''
     assert_script_safe(script, token=token)

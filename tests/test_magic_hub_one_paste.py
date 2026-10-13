@@ -42,6 +42,10 @@ class ScriptUnitTests(unittest.TestCase):
   self.assertIn(':global mmGStatusUrl', script)
   self.assertIn(':global mmGComment', script)
   self.assertIn(':global mmGId8', script)
+  self.assertIn(':global mmGWwwChanged', script)
+  self.assertIn(':global mmGWwwDisabled', script)
+  self.assertIn(':global mmGWwwCert', script)
+  self.assertIn(':global mmGWwwAddress', script)
   # mmGet must take reply/key as named parameters — not read $mmReply from outer scope.
   self.assertIn('$"reply"', script)
   self.assertIn('$"key"', script)
@@ -54,6 +58,46 @@ class ScriptUnitTests(unittest.TestCase):
   self.assertIn('$mmGStatusUrl', fail_block)
   self.assertIn('$mmGComment', fail_block)
   self.assertIn('$mmGId8', fail_block)
+  self.assertIn('$mmGWwwChanged', fail_block)
+
+ def test_mmfail_does_not_unconditionally_reset_www_ssl(self):
+  """Failure cleanup must not wipe owner www-ssl unless this run changed it."""
+  script = _sample_script()
+  fail_block = script.split(':local mmFail do={')[1].split(':put "MM: Checking RouterOS')[0]
+  self.assertNotIn(
+   '/ip service set www-ssl disabled=yes certificate=none address=""',
+   fail_block,
+  )
+  self.assertIn(':if ($mmGWwwChanged) do={', fail_block)
+  self.assertIn(
+   '/ip service set www-ssl disabled=$mmGWwwDisabled certificate=$mmGWwwCert address=$mmGWwwAddress',
+   fail_block,
+  )
+  # Flag starts false; previous values saved only right before MikroMagic's www-ssl write.
+  self.assertIn(':set mmGWwwChanged false', script)
+  save_disabled = script.index(':set mmGWwwDisabled [/ip service get www-ssl disabled]')
+  save_cert = script.index(':set mmGWwwCert [/ip service get www-ssl certificate]')
+  save_addr = script.index(':set mmGWwwAddress [/ip service get www-ssl address]')
+  flag_true = script.index(':set mmGWwwChanged true')
+  www_write = script.index('/ip service set www-ssl certificate=$mmCert')
+  self.assertLess(save_disabled, flag_true)
+  self.assertLess(save_cert, flag_true)
+  self.assertLess(save_addr, flag_true)
+  self.assertLess(flag_true, www_write)
+
+ def test_preflight_failure_cannot_reach_www_ssl_change(self):
+  """www-ssl already-enabled preflight fails before any www-ssl write or flag set."""
+  script = _sample_script()
+  precheck = script.index('Pre-checks before any write')
+  www_enabled_fail = script.index('www-ssl is already enabled')
+  flag_true = script.index(':set mmGWwwChanged true')
+  www_write = script.index('/ip service set www-ssl certificate=$mmCert')
+  self.assertLess(precheck, www_enabled_fail)
+  self.assertLess(www_enabled_fail, flag_true)
+  self.assertLess(www_enabled_fail, www_write)
+  # Between preflight www-ssl check and flag=true there is no www-ssl service set.
+  between = script[www_enabled_fail:flag_true]
+  self.assertNotIn('/ip service set www-ssl', between)
 
  def test_script_find_uses_typeof_nil_not_numeric_compare(self):
   script = _sample_script()
@@ -141,6 +185,15 @@ class ScriptUnitTests(unittest.TestCase):
   rb = script_mod.rollback_script()
   self.assertIn('MikroMagic', rb)
   self.assertNotIn('ether1', rb)
+  # Reset www-ssl only when the current certificate is MikroMagic's mm-mgmt-* cert.
+  self.assertIn('[:find $mmCertName "mm-mgmt-"]', rb)
+  self.assertIn('/ip service set www-ssl disabled=yes certificate=none address=""', rb)
+  # The reset must sit inside the mm-mgmt- prefix gate, not as a bare unconditional line.
+  reset_pos = rb.index('/ip service set www-ssl disabled=yes certificate=none address=""')
+  gate_pos = rb.index('[:find $mmCertName "mm-mgmt-"]')
+  self.assertLess(gate_pos, reset_pos)
+  before_reset = rb[:reset_pos]
+  self.assertIn('$mmHit = 0', before_reset)
 
 
 class OnePasteApiTests(unittest.TestCase):
