@@ -952,6 +952,27 @@ artifact sha256 ec7ae70b07cb104975a4c419df73b6fe4a4740826a7f7f2c2b4922d3d836e9f0
 
 **Enable for the next hardware window only:** add `MIKROMAGIC_ROUTER_SETTINGS_CHANGES: "true"` to the API environment in `compose.hostinger-public-test.yaml`, deploy with `ALLOW_INFRA_CHANGE=1`, confirm `GET /v1/magic-connect/capability` shows `router_settings_changes_available: true`. Remove the flag after the window. Exact REST and manual rollback: `docs/MAGIC-CONNECT-HARDWARE-WINDOW.md` § “Next window: guest Wi-Fi and addressing tests”. Router not contacted in this deploy.
 
+### Scripted redeploy — guest VLAN external AP Safe Change (flag off) (2026-10-13 09:14 UTC)
+
+| Item | Value |
+|---|---|
+| Source | Commit `b4cdf1b` on `origin/main`; artifact `88d24c5cc670d8a29b565b8055dd5c7c90975dd3774f8079046b0ea68ff6a79e` (220 files) |
+| Directory | `/opt/mikromagic-build21-public-test-20261013T091431Z`; previous `-20261013T083305Z` |
+| Infra files | none (`infra_changed= none`) |
+| Pre-deploy dump | `backups/pre-deploy.dump` (490 restore-list entries) |
+| Migration | 056 → 057 (`057_guest_vlan_external_ap`); rehearsal `056 -> 057 -> 056 -> 057` clean |
+| Rollback images | `…-{api,web,magic-hub,migrate}:rollback-20261013T091431Z` |
+| Result | api and web recreated; Hub untouched. Safe Change operation `guest_vlan_external_ap` shipped behind the same `MIKROMAGIC_ROUTER_SETTINGS_CHANGES` flag (not set → off); `GET /v1/magic-connect/capability` → `router_settings_changes_available: false`; live Alembic **057**; bundle `index-Bl6r2e59.js` |
+
+**Deployed b4cdf1b at 20261013T091431Z**
+artifact sha256 88d24c5cc670d8a29b565b8055dd5c7c90975dd3774f8079046b0ea68ff6a79e (220 files), bundle index-Bl6r2e59.js
+
+**Rollback:** on the VPS, for s in api web magic-hub migrate; do docker tag mikromagic-build21-public-test-$s:rollback-20261013T091431Z mikromagic-build21-public-test-$s:latest; done
+          then cd /opt/mikromagic-build21-public-test-20261013T083305Z && docker compose -p mikromagic-build21-public-test -f compose.hostinger-public-test.yaml up -d --no-deps --force-recreate api web
+          Restore /opt/mikromagic-build21-public-test-20261013T091431Z/backups/pre-deploy.dump only if the migration itself is at fault.
+
+**Flag remained off.** Do not set `MIKROMAGIC_ROUTER_SETTINGS_CHANGES=true` until the owner opens a hardware window. Exact REST and manual rollback for guest VLAN: `docs/MAGIC-CONNECT-HARDWARE-WINDOW.md` § “Expected REST — guest_vlan_external_ap”. Q70 switch-port VLAN management was not built. Router not contacted in this deploy.
+
 - Next app work (as of 2026-10-12 09:00 UTC+6:30, live at migration 049, commit `13d40af`):
   - Terminology and Burmese (P0a) owner-facing chrome is live across SME pages including Integrations, Did you know?, guided first-shop acceptance, Magic Boy, Media, Account, Sites, Revenue, Payments and Packages/Passes. Platform screens stay English. Native-speaker/mobile QA remains open.
   - Routers page guided (P0a step 5): Connect your router steps first; Magic Hub, connection plans and Safe RouterOS changes under a closed Advanced (technician) section that opens when a change needs attention.
