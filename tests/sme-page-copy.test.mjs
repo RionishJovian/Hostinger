@@ -114,6 +114,22 @@ test('Media and Account page copy exists in English and Burmese',()=>{
  assert.match(SME_MESSAGES.my.media.ops.publish,/[\u1000-\u109F]/);
 });
 
+test('Media catalogue copy is Jellyfin-only (no Plex product promise)',()=>{
+ assert.match(getSmeMessage('en','media','rulesNote'),/Jellyfin/);
+ assert.match(getSmeMessage('en','media','rulesNote'),/only supported local Media Server/);
+ assert.equal(getSmeMessage('en','media','serverDisconnected'),'Jellyfin not connected');
+ assert.match(getSmeMessage('en','media','playbackBody'),/Jellyfin credentials/);
+ assert.match(getSmeMessage('my','media','rulesNote'),/Jellyfin/);
+ assert.equal(getSmeMessage('my','media','serverDisconnected'),'Jellyfin မချိတ်ဆက်ရသေး');
+ for(const locale of ['en','my']){
+  const media=SME_MESSAGES[locale].media;
+  for(const [key,value] of Object.entries(media)){
+   const text=typeof value==='function'?String(value('x',1,'y')):String(value);
+   assert.doesNotMatch(text,/\bPlex\b/i,`${locale}.media.${key} must not mention Plex`);
+  }
+ }
+});
+
 test('Integrations, Did you know?, first-site and Magic Boy copy exist in English and Burmese',()=>{
  assert.equal(getSmeMessage('en','integrations','create'),'Create credential');
  assert.match(getSmeMessage('en','integrations','connectNote'),/does not connect/);

@@ -1,6 +1,8 @@
 import unittest
+from pathlib import Path
 from sqlalchemy import select
 import test_backend as fixture
+from backend import models
 from backend.models import Order,Entitlement,Package
 class MediaTests(unittest.TestCase):
  setUp=fixture.AccountPaymentTests.setUp
@@ -11,6 +13,20 @@ class MediaTests(unittest.TestCase):
  def state(self,h,t,operation):return self.client.post('/v1/media/titles/'+t['id']+'/state',headers=h,json={'expected_revision':t['revision'],'operation':operation})
  def package(self,h,title_id,mode='hybrid',**extra):return self.client.post('/v1/packages',headers=h,json={'name':'Media pass','service':'media','mode':mode,'price':2000,'hours':2,'title_hours':48,'title':title_id,**extra})
  def order(self,h,package,key='media-purchase-001'):return self.client.post('/v1/orders',headers=h,json={'package_id':package,'portal_revision':1,'method':'Cash','reference':'media-receipt','evidence':'Confirmed test receipt','request_key':key})
+ def test_no_plex_schema_or_product_adapters(self):
+  """Owner 2026-10-13: Jellyfin only. Inventory proves there is nothing Plex-specific to migrate away."""
+  names=[]
+  for table_name,table in models.Base.metadata.tables.items():
+   names.append(table_name.lower())
+   for col in table.columns:names.append(col.name.lower())
+  joined=' '.join(names)
+  self.assertNotIn('plex',joined)
+  media_py=Path(__file__).resolve().parents[1]/'backend'/'media.py'
+  text=media_py.read_text(encoding='utf-8')
+  self.assertRegex(text,r'Plex is out of scope')
+  self.assertIn('Jellyfin',text)
+  # Docstring may name Plex only to record that it is unsupported; no adapter API remains.
+  self.assertNotRegex(text,r'Jellyfin/Plex|Jellyfin or Plex|Plex server|plex_',flags=__import__('re').I)
  def test_catalogue_visibility_permissions_and_revision(self):
   owner=self.login('owner');guest=self.login('guest');other=self.login('other');platform=self.login('platform');t=self.title(owner)
   self.assertEqual(self.client.get('/v1/media/titles',headers=guest).json(),[]);self.assertEqual(self.client.get('/v1/media/titles',headers=other).json(),[]);self.assertEqual(self.client.get('/v1/media/titles',headers=platform).status_code,403)

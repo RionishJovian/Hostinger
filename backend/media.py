@@ -3,7 +3,8 @@
 Media Pass rules (owner decisions Q36–Q49): Internet and Media passes are sold separately; a pass covers the whole
 library, one title (optionally with the library) or selected categories; a voucher pass starts its clock at the first
 successful redemption in the guest portal and a pass bought online at the guest's first use; one device, no transfer until expiry. Playback and device enforcement need
-the SME's local Jellyfin/Plex connection, which does not exist yet, so passes report playback 'not_connected'.
+the SME's local Jellyfin connection, which does not exist yet, so passes report playback 'not_connected'.
+Plex is out of scope (owner 2026-10-13); there are no Plex schema fields, credentials or adapters in this module.
 """
 import time
 from typing import Literal
