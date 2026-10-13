@@ -77,6 +77,8 @@ The frozen v1 tracker dated 2026-10-08 makes real-device acceptance the top prio
 
 Owner decision 2026-10-13 (router settings): build and test on the real router, through Safe Change, the guest SSID/Wi-Fi security change, the guest network IP/subnet/DHCP change, and a guest VLAN on a router port for an external AP feeding the HotSpot. Switch port VLAN management (Q70) stays later.
 
+Owner decision 2026-10-13 (router connection method): connect routers only through the technician QR scan flow in the app, not hand-written one-paste scripts. Every user, IP plan, device model, feature set (Ethernet-only or wireless, legacy `wireless` or `wifi` package) and RouterOS version differs: detect the router first and generate commands from the detected facts; never assume interface names, wireless hardware or version. Never include admin-password commands in generated router commands. Scratch routers with no default configuration must be supported.
+
 Owner decision 2026-10-13 (guest phone login): the router login page is MikroMagic's own design with exactly one voucher-code box (no username/password pair); codes work in any letter case, ignoring spaces and dashes.
 
 SME sidebar guidance is named 'Did you know?'. Platform publishers manage sourced cards. Keep compatibility marked unchecked until trusted router discovery exists. VPN, HotSpot/portal and RADIUS are separate roles. Local User Manager is a proposed authentication option; preserve it without claiming integration exists.
