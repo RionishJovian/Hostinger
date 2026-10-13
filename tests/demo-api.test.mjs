@@ -115,4 +115,7 @@ test('the demo navigation is limited to sample-safe pages',async()=>{
  assert.ok(knowledge.length>=2);
  assert.ok(knowledge.every(c=>c.published&&!c.archived&&c.fact&&c.title));
  assert.ok(knowledge.some(c=>/torch/i.test(c.title)));
+ const capability=await demoClient().request('magic-connect/capability');
+ assert.equal(capability.router_setup_available,true);
+ assert.equal(capability.pairing_available,false);
 });

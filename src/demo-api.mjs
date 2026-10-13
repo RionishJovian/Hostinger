@@ -162,6 +162,7 @@ function route(db,method,path,body){
   if(raw==='knowledge')return clone(db.knowledge.filter(c=>c.published&&!c.archived));
   if(raw in lists)return lists[raw];
   if(raw==='health')return {status:'ok'};
+  if(raw==='magic-connect/capability')return {pairing_available:false,router_setup_available:true,router_settings_changes_available:false,router_bootstrap_available:false,connection_verified:false};
   if(raw==='appearance/public'||raw==='appearance/effective')return clone(THEMES);
   if(raw==='me')return clone(db.user);
   if(raw==='tenants')return [clone(db.tenant)];
