@@ -18,7 +18,8 @@ try{
  assert.doesNotMatch(html,/Connected ·|is connected\./);
  const burmese=render(c.RouterSetupSteps,{sites:[],routers:[],navigate:()=>{}},'my');assert.match(burmese,/Router ချိတ်ဆက်ရန်/);assert.match(burmese,/ဆိုင်များ ဖွင့်ရန်/);
  assert.equal(c.changeNeedsAttention([{phase:'reconnected'}]),false);assert.equal(c.changeNeedsAttention([{phase:'reconnected'},{phase:'configuration_conflict'}]),true);assert.equal(c.changeNeedsAttention([]),false);
- const closed=render(c.RouterAdvanced,{},'en',React.createElement('p',null,'hub table'));assert.match(closed,/^<details class="router-advanced"><summary>Advanced \(technician\): Magic Hub, connection plans and router changes<\/summary>/);assert.match(closed,/hub table/);
+ const closed=render(c.RouterAdvanced,{},'en',React.createElement('p',null,'hub table'));assert.match(closed,/^<details class="router-advanced"><summary>Advanced: Magic Hub details and Safe Change<\/summary>/);assert.match(closed,/hub table/);
+ assert.doesNotMatch(closed,/technician|pairing|connection plans/i);
  assert.match(render(c.RouterAdvanced,{open:true}),/<details class="router-advanced" open="">/);
  console.log('Router setup UI checks passed: Magic Hub one-paste guide, step states, Advanced section, English and Burmese.');
 }finally{await rm(folder,{recursive:true,force:true})}

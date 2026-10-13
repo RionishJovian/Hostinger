@@ -116,9 +116,11 @@ try{
  result.http.portal_update=200;
 
  await ownerA.page.getByRole('button',{name:'Routers',exact:true}).click();
- await ownerA.page.getByText('Magic Connect pairing is unavailable in this release.').waitFor();
+ await ownerA.page.getByRole('heading',{name:'Connect your router'}).waitFor();
  assert.equal(await ownerA.page.getByRole('button',{name:'Generate 10-minute pairing QR'}).count(),0);
- await ownerA.page.screenshot({path:folder+'/magic-connect-unavailable.png',fullPage:true});
+ assert.equal(await ownerA.page.getByText('Secondary: connect with a technician').count(),0);
+ assert.equal(await ownerA.page.getByText('Create connection plan').count(),0);
+ await ownerA.page.screenshot({path:folder+'/magic-hub-only-routers.png',fullPage:true});
  const capability=await api(ownerA.page,ownerA.token,'GET','magic-connect/capability');
  assert.equal(capability.status,200);assert.equal(capability.body.pairing_available,false);
  const blocked=await api(ownerA.page,ownerA.token,'POST',`sites/${siteA}/magic-connect/attempts`,{router_name:'Blocked RC pairing'});
@@ -127,6 +129,7 @@ try{
  assert.equal(blockedClaim.status,503);
  const technician=await browser.newPage({viewport:{width:1100,height:800}});
  await technician.goto(origin+'/?magic_connect=technician');
+ await technician.getByText('Technician QR pairing is not used').waitFor();
  await technician.getByText('Magic Connect pairing is unavailable in this release.').waitFor();
  assert.equal(await technician.getByRole('button',{name:'Request owner approval'}).count(),0);
  await technician.screenshot({path:folder+'/technician-pairing-unavailable.png',fullPage:true});

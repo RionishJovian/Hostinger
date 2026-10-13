@@ -32,7 +32,7 @@ Owner ordered Cursor to complete G01→G06 before other offline increments.
 | G04 stable-page polish | Partial | Shared glass panels/shadows/radius from G01; lighter density on knowledge/overview panels; further page-by-page pass still open. |
 | G05 guidance presentation | Implemented (software) | Did you know? tip-first expandable cards; search includes topic/related page; result count; clear-filters empty recovery; bilingual copy. Authenticated UI walkthrough still under G06. |
 | G06 frontend QA | Partial | Midnight token/contrast + shell + knowledge search unit checks; authenticated multi-role device walkthroughs still open. |
-| Router connect path | Implemented (software) | Routers page leads with **Connect with Magic Hub** (one-paste WinBox script) per owner decision 2026-10-13. Technician QR pairing remains a secondary path for a registered router. Manual public-key plans and Safe Change stay under Advanced. |
+| Router connect path | Implemented (software) | Owner decision 2026-10-13 (later): **Magic Hub one-paste only** on Routers. QR technician pairing UI removed from the SME app; manual WireGuard public-key plan form removed from SME Advanced. Advanced keeps Hub details + Safe Change only. Shorter shop-facing connect and Deploy copy. |
 
 ## Classification
 
