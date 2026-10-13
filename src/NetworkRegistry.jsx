@@ -107,7 +107,13 @@ export function RouterRegistry({ sites, routers, act, busy, platform = false, lo
             <td>{router.name}</td>
             <td>{sites.find(item => item.id === router.site_id)?.name || router.site_id}</td>
             <td>{router.model}<small>{router.reported_routeros || c.versionMissing} · {c.ownerReported}</small></td>
-            <td><span className="pill warn">{c.unverified}</span></td>
+            <td>{(() => {
+              const fresh = router.connection_state === 'connected' || router.connection_verified;
+              const everConnected = router.lifecycle_state === 'connected' || router.management_read_verified_at;
+              if (fresh) return <span className="pill ok">{c.connected}</span>;
+              if (everConnected) return <span className="pill warn">{c.unableToVerify}</span>;
+              return <span className="pill warn">{c.unverified}</span>;
+            })()}</td>
             <td>{router.hub_id ? <>{c.assigned}<small>{router.hub_id}</small></> : c.notAssigned}</td>
             {!platform && <td><button className="button secondary" disabled={busy} onClick={async () => {
               const result = await act(`routers/${router.id}/preflight`, {});

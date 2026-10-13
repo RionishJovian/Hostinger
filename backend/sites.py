@@ -17,8 +17,11 @@ def router_display(device,plan=None,now=None):
  fresh=bool(plan and connection_is_fresh(plan,now))
  return {k:getattr(device,k) for k in ['id','tenant_id','site_id','name','model','reported_routeros','created']}|{
   'connection_state':'connected' if fresh else 'unverified',
+  'connection_verified':fresh,
   'hub_id':plan.hub_id if plan else None,
   'last_handshake':plan.handshake_verified_at if plan else None,
+  'lifecycle_state':plan.lifecycle_state if plan else None,
+  'management_read_verified_at':plan.management_read_verified_at if plan else None,
   'metadata_source':'owner_reported',
  }
 
@@ -57,4 +60,4 @@ def register_sites(app,current,db,owner,log):
   owner(u);allowed_site(s,u,b.site_id);x=RouterDevice(tenant_id=u.tenant_id,**b.model_dump(),registered_by=u.id,created=int(time.time()));s.add(x)
   try:s.flush();log(s,u,'router_registered',x.id);s.commit()
   except IntegrityError:s.rollback();raise HTTPException(409,'Router name already registered at this site')
-  return {'id':x.id,'connection_state':'unverified','hub_id':None}
+  return {'id':x.id,'connection_state':'unverified','connection_verified':False,'hub_id':None,'lifecycle_state':None,'management_read_verified_at':None}
