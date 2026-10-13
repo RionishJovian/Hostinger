@@ -166,7 +166,7 @@ function route(db,method,path,body){
   if(raw==='revenue/reconciliations')return clone(db.reconciliations);
   if(raw==='vouchers')return db.vouchers.filter(v=>!v.deleted).map(v=>voucherJson(db,v));
   if(raw==='sites')return db.sites.map(s=>siteJson(db,s));
-  if(raw==='routers')return db.routers.map(r=>({...clone(r),connection_state:'unverified',hub_id:null,last_handshake:null,metadata_source:'owner_reported'}));
+  if(raw==='routers')return db.routers.map(r=>({...clone(r),connection_state:'unverified',connection_verified:false,hub_id:null,last_handshake:null,lifecycle_state:null,management_read_verified_at:null,metadata_source:'owner_reported'}));
   if(raw==='hotspot-sessions/summary')return {status:'unable_to_verify',freshness:'none',active_count:null,routers_observed:0,detail:'The demo has no live HotSpot sessions. Connected customers stay Unable to Verify.',real_device_acceptance:'not_yet_performed'};
   if(raw==='portal'||is('GET',['sites','*','portal']))return {revision:1,draft:{business_name:db.tenant.name,welcome:'Welcome to Golden Cafe Wi-Fi.',language:'both',terms:'',contact:'',direct_purchase:true,voucher_login:true,payment_destination:'KBZPay 09-000 000 000 (sample)',payment_instructions:'Send the exact amount, then enter the transaction ID.',payment_methods:['Cash at counter','KBZPay','WavePay'],hostname:'',guest_interface:'',guest_subnet:'',tls_required:true,isolate_guests:true,allowed_hosts:[]},published:null,published_revision:null,local_portal_package:{status:'not_published',published_revision:null,sha256:null},router_deployment_status:'pending',router_apply_state:'not_connected'};
   if(is('GET',['orders','*','receipts']))return [];
