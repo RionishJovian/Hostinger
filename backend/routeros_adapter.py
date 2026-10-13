@@ -407,3 +407,320 @@ def remove_hotspot_portal_files(client:RouterOSClient,destination:str,names:list
   remaining=_destination_files(client.get(FILE_LIST,optional=True),destination)
  if remaining:raise RouterOSError('cleanup_incomplete','Newly created portal files remain after rollback cleanup',409)
  return {'destination':destination,'removed':list(names)}
+
+
+# --- Guest Wi-Fi / guest network Safe Change helpers (RouterOS 7 /interface/wifi) ---
+
+_WIFI_ID=re.compile(r'\*[A-Fa-f0-9]+')
+_IFACE_NAME=re.compile(r'^[A-Za-z0-9_.-]{1,64}$')
+HUB_MGMT_NETWORK='10.90.0.0/16'
+
+
+def _truthy(value):
+ return str(value).lower() in ('true','yes','1')
+
+
+def _iface_name_ok(name):
+ return isinstance(name,str) and bool(_IFACE_NAME.fullmatch(name))
+
+
+def _resource_path(kind,resource_id):
+ if not isinstance(resource_id,str) or not _WIFI_ID.fullmatch(resource_id):
+  raise RouterOSError('resource_invalid','Router resource identifier is invalid',409)
+ return f'{kind}/{resource_id}'
+
+
+def list_wifi_interfaces(client:RouterOSClient):
+ rows=client.get('interface/wifi',optional=True)
+ if rows is None:
+  rows=client.get('interface/wifiwave2',optional=True)
+ return _records(rows)
+
+
+def list_wifi_configurations(client:RouterOSClient):
+ rows=client.get('interface/wifi/configuration',optional=True)
+ if rows is None:rows=client.get('interface/wifiwave2/configuration',optional=True)
+ return _records(rows)
+
+
+def list_wifi_securities(client:RouterOSClient):
+ rows=client.get('interface/wifi/security',optional=True)
+ if rows is None:rows=client.get('interface/wifiwave2/security',optional=True)
+ return _records(rows)
+
+
+def list_bridge_ports(client:RouterOSClient):
+ return _records(client.get('interface/bridge/port',optional=True))
+
+
+def list_ip_addresses(client:RouterOSClient):
+ return _records(client.get('ip/address',optional=True))
+
+
+def list_ip_pools(client:RouterOSClient):
+ return _records(client.get('ip/pool',optional=True))
+
+
+def list_dhcp_servers(client:RouterOSClient):
+ return _records(client.get('ip/dhcp-server',optional=True))
+
+
+def list_dhcp_networks(client:RouterOSClient):
+ return _records(client.get('ip/dhcp-server/network',optional=True))
+
+
+def list_hotspot_servers(client:RouterOSClient):
+ return _records(client.get('ip/hotspot',optional=True))
+
+
+def list_hotspot_profiles(client:RouterOSClient):
+ return _records(client.get('ip/hotspot/profile',optional=True))
+
+
+def _wifi_mode(iface:dict):
+ for key in ('configuration.mode','mode'):
+  value=iface.get(key)
+  if isinstance(value,str) and value.strip():return value.strip().lower()
+ return ''
+
+
+def _wifi_ssid(iface:dict,configurations:list[dict]|None=None):
+ for key in ('configuration.ssid','ssid'):
+  value=iface.get(key)
+  if isinstance(value,str):return value
+ config_name=iface.get('configuration')
+ if isinstance(config_name,str) and config_name.strip() and configurations:
+  match=next((c for c in configurations if c.get('name')==config_name),None)
+  if match and isinstance(match.get('ssid'),str):return match['ssid']
+ return ''
+
+
+def _wifi_auth_types(iface:dict,securities:list[dict]|None=None):
+ for key in ('security.authentication-types','authentication-types'):
+  value=iface.get(key)
+  if isinstance(value,str):return value
+  if isinstance(value,list):return ','.join(str(x) for x in value)
+ sec_name=iface.get('security')
+ if isinstance(sec_name,str) and sec_name.strip() and securities:
+  match=next((s for s in securities if s.get('name')==sec_name),None)
+  if match:
+   value=match.get('authentication-types')
+   if isinstance(value,str):return value
+   if isinstance(value,list):return ','.join(str(x) for x in value)
+ return ''
+
+
+def _wifi_passphrase_value(iface:dict,securities:list[dict]|None=None):
+ """Return the live passphrase when RouterOS includes it; never log this value."""
+ for key in ('security.passphrase','passphrase'):
+  value=iface.get(key)
+  if isinstance(value,str) and value and value not in ('*','****','********'):
+   return value
+ sec_name=iface.get('security')
+ if isinstance(sec_name,str) and sec_name.strip() and securities:
+  match=next((s for s in securities if s.get('name')==sec_name),None)
+  if match:
+   value=match.get('passphrase')
+   if isinstance(value,str) and value and value not in ('*','****','********'):
+    return value
+ return None
+
+
+def _wifi_passphrase_present(iface:dict,securities:list[dict]|None=None):
+ return _wifi_passphrase_value(iface,securities) is not None or any(
+  isinstance(iface.get(key),str) and iface.get(key) for key in ('security.passphrase','passphrase')
+ )
+
+
+def _named_profile_users(interfaces:list[dict],field:str,name:str):
+ return [i for i in interfaces if isinstance(i.get(field),str) and i.get(field)==name]
+
+
+def wifi_interface_state(client:RouterOSClient,interface_name:str):
+ """Return secret-free wifi interface state for Safe Change fingerprinting."""
+ if not _iface_name_ok(interface_name):raise RouterOSError('resource_invalid','Wi-Fi interface name is invalid',409)
+ interfaces=list_wifi_interfaces(client)
+ if not interfaces:raise RouterOSError('wifi_unsupported','This router has no /interface/wifi package',409)
+ iface=next((i for i in interfaces if i.get('name')==interface_name),None)
+ if not iface or not iface.get('.id'):raise RouterOSError('wifi_missing','The selected Wi-Fi interface is not present',409)
+ configurations=list_wifi_configurations(client)
+ securities=list_wifi_securities(client)
+ config_name=iface.get('configuration') if isinstance(iface.get('configuration'),str) and iface.get('configuration') and not str(iface.get('configuration')).startswith('{') else None
+ # Named profile when `configuration` is a plain profile name (no nested ssid on the interface itself).
+ if config_name and iface.get('configuration.ssid') is None:
+  users=_named_profile_users(interfaces,'configuration',config_name)
+  config_shared=len(users)>1
+ else:
+  config_name=None;config_shared=False
+ sec_name=iface.get('security') if isinstance(iface.get('security'),str) and iface.get('security') and iface.get('security.authentication-types') is None and iface.get('authentication-types') is None else None
+ if sec_name:
+  users=_named_profile_users(interfaces,'security',sec_name)
+  security_shared=len(users)>1
+ else:
+  sec_name=None;security_shared=False
+ auth=_wifi_auth_types(iface,securities)
+ mode=_wifi_mode(iface)
+ open_network=not auth or auth.strip() in ('','none')
+ secret=_wifi_passphrase_value(iface,securities)
+ state={
+  'resource_id':str(iface['.id']),
+  'interface':interface_name,
+  'ssid':_wifi_ssid(iface,configurations) or '',
+  'mode':mode or 'ap',
+  'security_mode':'open' if open_network else 'wpa2_wpa3_psk',
+  'authentication_types':auth or '',
+  'passphrase_set':bool(secret) or (not open_network and _wifi_passphrase_present(iface,securities)),
+  'configuration_binding':'named' if config_name else 'inline',
+  'configuration_name':config_name,
+  'configuration_shared':config_shared,
+  'security_binding':'named' if sec_name else 'inline',
+  'security_name':sec_name,
+  'security_shared':security_shared,
+  'disabled':_truthy(iface.get('disabled',False)),
+ }
+ # Ephemeral only — callers must encrypt or drop before persisting.
+ if secret:state['_passphrase_secret']=secret
+ return state
+
+
+def apply_wifi_settings(client:RouterOSClient,state:dict,*,ssid:str,security_mode:str,passphrase:str|None,touch_security:bool=True):
+ """Write SSID/security. Named profiles only when used solely by this interface.
+
+ When touch_security is False, only the SSID is changed (rollback-safe without the passphrase).
+ """
+ if state.get('configuration_shared') or state.get('security_shared'):
+  raise RouterOSError('shared_wifi_profile','The Wi-Fi configuration or security profile is shared with another interface; refusing to change it',409)
+ resource_id=state['resource_id']
+ payload={}
+ if state.get('configuration_binding')=='named' and state.get('configuration_name'):
+  configs=list_wifi_configurations(client)
+  match=next((c for c in configs if c.get('name')==state['configuration_name'] and c.get('.id')),None)
+  if not match:raise RouterOSError('wifi_config_missing','Named Wi-Fi configuration profile is missing',409)
+  client.write('PATCH',_resource_path('interface/wifi/configuration',str(match['.id'])),{'ssid':ssid})
+ else:
+  payload['configuration.ssid']=ssid
+ if touch_security:
+  if security_mode=='open':
+   sec_payload={'authentication-types':'','passphrase':''}
+  else:
+   if not isinstance(passphrase,str) or not (8<=len(passphrase)<=63):
+    raise RouterOSError('passphrase_invalid','WPA passphrase must be 8–63 characters',409)
+   sec_payload={'authentication-types':'wpa2-psk,wpa3-psk','passphrase':passphrase}
+  if state.get('security_binding')=='named' and state.get('security_name'):
+   secs=list_wifi_securities(client)
+   match=next((s for s in secs if s.get('name')==state['security_name'] and s.get('.id')),None)
+   if not match:raise RouterOSError('wifi_security_missing','Named Wi-Fi security profile is missing',409)
+   client.write('PATCH',_resource_path('interface/wifi/security',str(match['.id'])),sec_payload)
+  else:
+   payload['security.authentication-types']=sec_payload['authentication-types']
+   payload['security.passphrase']=sec_payload['passphrase']
+ if payload:
+  client.write('PATCH',_resource_path('interface/wifi',resource_id),payload)
+ return wifi_interface_state(client,state['interface'])
+
+
+def guest_network_objects(client:RouterOSClient,interface_name:str):
+ """Collect address/pool/DHCP/HotSpot objects bound to the guest HotSpot interface."""
+ if not _iface_name_ok(interface_name):raise RouterOSError('resource_invalid','Interface name is invalid',409)
+ addresses=[a for a in list_ip_addresses(client) if a.get('interface')==interface_name and a.get('.id')]
+ if not addresses:raise RouterOSError('address_missing','No IP address is configured on the guest HotSpot interface',409)
+ if len(addresses)>1:raise RouterOSError('address_ambiguous','Multiple IP addresses on the guest interface; refuse until only one remains',409)
+ address=addresses[0]
+ servers=[s for s in list_hotspot_servers(client) if s.get('interface')==interface_name]
+ if not servers:raise RouterOSError('hotspot_missing','No HotSpot server is bound to this interface',409)
+ if len(servers)>1:raise RouterOSError('hotspot_ambiguous','Multiple HotSpot servers on this interface',409)
+ server=servers[0]
+ profile_name=server.get('profile')
+ profiles=list_hotspot_profiles(client)
+ profile=next((p for p in profiles if p.get('name')==profile_name and p.get('.id')),None)
+ if not profile:raise RouterOSError('hotspot_profile_missing','HotSpot profile for this server is missing',409)
+ dhcp_servers=[d for d in list_dhcp_servers(client) if d.get('interface')==interface_name and d.get('.id')]
+ if not dhcp_servers:raise RouterOSError('dhcp_missing','No DHCP server is bound to the guest interface',409)
+ if len(dhcp_servers)>1:raise RouterOSError('dhcp_ambiguous','Multiple DHCP servers on the guest interface',409)
+ dhcp=dhcp_servers[0]
+ pool_name=dhcp.get('address-pool')
+ pools=list_ip_pools(client)
+ pool=next((p for p in pools if p.get('name')==pool_name and p.get('.id')),None)
+ if not pool:raise RouterOSError('pool_missing','DHCP address pool is missing',409)
+ networks=list_dhcp_networks(client)
+ # Match by gateway pointing at the interface address or by network covering it.
+ iface_addr=str(address.get('address') or '')
+ network=None
+ for item in networks:
+  if item.get('gateway') and iface_addr.startswith(str(item.get('gateway')).split('/')[0]):
+   network=item;break
+ if network is None and networks:
+  # Fall back: single network whose address contains the interface IP network.
+  import ipaddress as _ip
+  try:iface_net=_ip.ip_interface(iface_addr).network
+  except ValueError:iface_net=None
+  candidates=[]
+  if iface_net is not None:
+   for item in networks:
+    raw=item.get('address')
+    if not isinstance(raw,str):continue
+    try:net=_ip.ip_network(raw,strict=False)
+    except ValueError:continue
+    if iface_net.network_address in net or net.network_address==iface_net.network_address:
+     candidates.append(item)
+   if len(candidates)==1:network=candidates[0]
+ if not network or not network.get('.id'):raise RouterOSError('dhcp_network_missing','DHCP server network for the guest subnet is missing',409)
+ return {
+  'interface':interface_name,
+  'address':{'.id':str(address['.id']),'address':iface_addr,'network':address.get('network'),'interface':interface_name},
+  'pool':{'.id':str(pool['.id']),'name':pool.get('name'),'ranges':pool.get('ranges')},
+  'dhcp_server':{'.id':str(dhcp['.id']),'name':dhcp.get('name'),'interface':interface_name,'address-pool':pool_name},
+  'dhcp_network':{'.id':str(network['.id']),'address':network.get('address'),'gateway':network.get('gateway'),'dns-server':network.get('dns-server') or network.get('dns')},
+  'hotspot_server':{'.id':str(server['.id']),'name':server.get('name'),'interface':interface_name,'profile':profile_name},
+  'hotspot_profile':{'.id':str(profile['.id']),'name':profile.get('name'),'hotspot-address':profile.get('hotspot-address')},
+ }
+
+
+def guest_network_state(client:RouterOSClient,interface_name:str):
+ objects=guest_network_objects(client,interface_name)
+ return {
+  'resource_id':objects['address']['.id'],
+  'interface':interface_name,
+  'address':objects['address']['address'],
+  'pool_name':objects['pool']['name'],
+  'pool_ranges':objects['pool']['ranges'],
+  'dhcp_server_name':objects['dhcp_server']['name'],
+  'dhcp_network_address':objects['dhcp_network']['address'],
+  'dhcp_gateway':objects['dhcp_network']['gateway'],
+  'dhcp_dns':objects['dhcp_network'].get('dns-server'),
+  'hotspot_profile_name':objects['hotspot_profile']['name'],
+  'hotspot_address':objects['hotspot_profile'].get('hotspot-address'),
+  'ids':{
+   'address':objects['address']['.id'],
+   'pool':objects['pool']['.id'],
+   'dhcp_network':objects['dhcp_network']['.id'],
+   'hotspot_profile':objects['hotspot_profile']['.id'],
+  },
+ }
+
+
+def apply_guest_network_addressing(client:RouterOSClient,before_ids:dict,*,address:str,pool_ranges:str,network_address:str,gateway:str,dns:str,hotspot_address:str):
+ """Apply guest addressing in a safe order; caller verifies and rolls back."""
+ for key in ('pool','address','dhcp_network','hotspot_profile'):
+  if key not in before_ids or not _WIFI_ID.fullmatch(str(before_ids[key])):
+   raise RouterOSError('resource_invalid','Guest network resource id is invalid',409)
+ # 1) pool ranges (new hosts can be allocated after address/network catch up)
+ client.write('PATCH',_resource_path('ip/pool',before_ids['pool']),{'ranges':pool_ranges})
+ # 2) interface address
+ client.write('PATCH',_resource_path('ip/address',before_ids['address']),{'address':address})
+ # 3) dhcp network
+ client.write('PATCH',_resource_path('ip/dhcp-server/network',before_ids['dhcp_network']),{
+  'address':network_address,'gateway':gateway,'dns-server':dns,
+ })
+ # 4) hotspot profile address
+ client.write('PATCH',_resource_path('ip/hotspot/profile',before_ids['hotspot_profile']),{'hotspot-address':hotspot_address})
+
+
+def restore_guest_network_addressing(client:RouterOSClient,before:dict):
+ ids=before['ids']
+ client.write('PATCH',_resource_path('ip/hotspot/profile',ids['hotspot_profile']),{'hotspot-address':before['hotspot_address']})
+ client.write('PATCH',_resource_path('ip/dhcp-server/network',ids['dhcp_network']),{
+  'address':before['dhcp_network_address'],'gateway':before['dhcp_gateway'],'dns-server':before.get('dhcp_dns') or before['dhcp_gateway'],
+ })
+ client.write('PATCH',_resource_path('ip/address',ids['address']),{'address':before['address']})
+ client.write('PATCH',_resource_path('ip/pool',ids['pool']),{'ranges':before['pool_ranges']})

@@ -105,6 +105,8 @@ def make_app(url=None,initialize=False):
  app.state.magic_connect_pairing_enabled=isolated_pairing or dedicated_pairing
  # Off until a hardware window; enabling it is a reviewed environment change.
  app.state.magic_connect_router_setup_enabled=app.state.magic_connect_pairing_enabled and os.environ.get('MIKROMAGIC_MAGIC_CONNECT_ROUTER_SETUP','').lower()=='true'
+ # Off until a hardware window; enabling is a reviewed environment change (not in default compose).
+ app.state.router_settings_changes_enabled=os.environ.get('MIKROMAGIC_ROUTER_SETTINGS_CHANGES','').lower()=='true'
  app.state.trusted_proxy_networks=trusted_proxy_networks(os.environ.get('MIKROMAGIC_TRUSTED_PROXY_CIDRS',''))
  @app.exception_handler(RequestValidationError)
  async def validation_errors_without_input(request:Request,exc:RequestValidationError):

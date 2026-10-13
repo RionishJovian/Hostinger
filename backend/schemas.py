@@ -161,17 +161,55 @@ class BackupIn(Strict):
  storage_ref:str=Field(min_length=1,max_length=400)
  retention_until:int|None=Field(default=None,gt=0)
 class RouterChangePreviewIn(Strict):
- operation:Literal['wireguard_peer_keepalive','hotspot_portal_publish']='wireguard_peer_keepalive'
+ operation:Literal['wireguard_peer_keepalive','hotspot_portal_publish','guest_wifi_settings','guest_network_addressing']='wireguard_peer_keepalive'
  persistent_keepalive_seconds:int|None=Field(default=None,ge=1,le=3600)
  hotspot_portal_plan_id:str|None=Field(default=None,min_length=1,max_length=36)
+ wifi_interface:str|None=Field(default=None,min_length=1,max_length=64)
+ ssid:str|None=Field(default=None,max_length=64)
+ security_mode:Literal['open','wpa2_wpa3_psk']|None=None
+ passphrase:str|None=Field(default=None,min_length=8,max_length=63)
+ network_cidr:str|None=Field(default=None,min_length=5,max_length=18)
+ gateway:str|None=Field(default=None,min_length=7,max_length=15)
+ pool_start:str|None=Field(default=None,min_length=7,max_length=15)
+ pool_end:str|None=Field(default=None,min_length=7,max_length=15)
+ dns:str|None=Field(default=None,min_length=7,max_length=15)
+ @field_validator('ssid')
+ @classmethod
+ def valid_change_ssid(cls,v):
+  if v is None:return v
+  return printed_ssid(v)
  @model_validator(mode='after')
  def validate_preview_fields(self):
   if self.operation=='wireguard_peer_keepalive':
    if self.persistent_keepalive_seconds is None:raise ValueError('persistent_keepalive_seconds is required for WireGuard keepalive')
    if self.hotspot_portal_plan_id is not None:raise ValueError('hotspot_portal_plan_id is only for portal publish')
-  else:
+   if any(x is not None for x in (self.wifi_interface,self.ssid,self.security_mode,self.passphrase,self.network_cidr,self.gateway,self.pool_start,self.pool_end,self.dns)):
+    raise ValueError('guest Wi-Fi/addressing fields are not valid for WireGuard keepalive')
+  elif self.operation=='hotspot_portal_publish':
    if not self.hotspot_portal_plan_id:raise ValueError('hotspot_portal_plan_id is required for portal publish')
    if self.persistent_keepalive_seconds is not None:raise ValueError('persistent_keepalive_seconds is only for WireGuard keepalive')
+   if any(x is not None for x in (self.wifi_interface,self.ssid,self.security_mode,self.passphrase,self.network_cidr,self.gateway,self.pool_start,self.pool_end,self.dns)):
+    raise ValueError('guest Wi-Fi/addressing fields are not valid for portal publish')
+  elif self.operation=='guest_wifi_settings':
+   if self.persistent_keepalive_seconds is not None or self.hotspot_portal_plan_id is not None:
+    raise ValueError('keepalive and portal plan fields are not valid for guest Wi-Fi settings')
+   if not self.wifi_interface:raise ValueError('wifi_interface is required for guest Wi-Fi settings')
+   if not self.ssid:raise ValueError('ssid is required for guest Wi-Fi settings')
+   if self.security_mode is None:raise ValueError('security_mode is required for guest Wi-Fi settings')
+   # passphrase optional when leaving WPA unchanged (SSID-only); enforced against live state in preview
+   if self.security_mode=='open' and self.passphrase is not None:
+    raise ValueError('passphrase is not used for an open guest network')
+   if any(x is not None for x in (self.network_cidr,self.gateway,self.pool_start,self.pool_end,self.dns)):
+    raise ValueError('guest addressing fields are not valid for guest Wi-Fi settings')
+  else:
+   if self.persistent_keepalive_seconds is not None or self.hotspot_portal_plan_id is not None:
+    raise ValueError('keepalive and portal plan fields are not valid for guest network addressing')
+   if any(x is not None for x in (self.ssid,self.security_mode,self.passphrase)):
+    raise ValueError('Wi-Fi SSID/security fields are not valid for guest network addressing')
+   if not self.wifi_interface:raise ValueError('wifi_interface is required for guest network addressing')
+   if not self.network_cidr:raise ValueError('network_cidr is required for guest network addressing')
+   if not self.gateway:raise ValueError('gateway is required for guest network addressing')
+   if not self.pool_start or not self.pool_end:raise ValueError('pool_start and pool_end are required for guest network addressing')
   return self
 class RouterChangeApplyIn(Strict):
  expected_revision:int=Field(gt=0)

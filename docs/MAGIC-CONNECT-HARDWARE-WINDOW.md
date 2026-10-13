@@ -147,6 +147,107 @@ These RouterOS behaviours are assumptions; each failure stops the window with a 
 - Security: the login API's validation error echoed the submitted request body, including the password (seen when a wrong field name was sent). **Fixed in `85de0a9` (not yet re-verified on the live login form):** 422 details keep `loc`/`msg`/`type` and strip `input` app-wide.
 - Still unverified: phone test of the new page, quota and device-limit enforcement, automatic Safe Change rollback, backup restore, the WireGuard keepalive Safe Change, gateway-loss timeout rollback, and Hub restart recovery.
 
+## Next window: guest Wi-Fi and addressing tests
+
+Software-only Safe Change operations `guest_wifi_settings` and `guest_network_addressing` are built for the lab guest radio. **Do not contact the router until the owner starts the window.** The feature flag stays **off** in production until then.
+
+### Enable for the window only
+
+1. Add to the API environment in `compose.hostinger-public-test.yaml`:
+   `MIKROMAGIC_ROUTER_SETTINGS_CHANGES: "true"`
+2. Deploy with `ALLOW_INFRA_CHANGE=1` (compose env change).
+3. Confirm `GET /v1/magic-connect/capability` shows `router_settings_changes_available: true`.
+4. Owner uses Routers → Safe RouterOS change → Guest Wi-Fi / Guest network forms (Burmese-first labels).
+5. After the window, remove the flag and redeploy so the UI and API stay closed.
+
+Design note — wifi configuration/security profiles: inline `configuration.ssid` / `security.*` on the interface are patched directly. Named `/interface/wifi/configuration` or `/interface/wifi/security` profiles are patched only when used solely by the selected interface; shared profiles are refused. Passphrases never appear in diffs, evidence or API JSON (set/changed/unset only); ciphertext for apply/rollback uses a purpose-bound Fernet key from `MIKROMAGIC_BACKUP_KEY`.
+
+Lab targets (read-only facts from 2026-10-13): guest `wifi2`, SSID `Magic Cafe`, open, `10.5.50.1/24`, pool/DHCP `mm-lab-guest`, HotSpot `mm-lab-hotspot` / profile `mm-lab-hsprof`. Never change `wifi1` (station WAN), bridge `192.168.88.1/24`, or WireGuard `mm-97546f1a` `10.90.1.2`.
+
+Resource ids in REST paths must be sent **unencoded** (`*1`, not `%2A1`). `DELETE` must have **no body**. Prefer `.proplist` on file lists. `/rest/export` may return `[]` — the Safe Change backup already falls back to `/rest/execute`.
+
+### Expected REST — `guest_wifi_settings` (example: rename + WPA)
+
+Read (monitoring or Safe Change):
+
+```
+GET /rest/interface/wifi
+GET /rest/interface/wifi/configuration
+GET /rest/interface/wifi/security
+GET /rest/ip/hotspot
+GET /rest/interface/bridge/port
+```
+
+Write (Safe Change only), after verified export backup — inline binding on `wifi2` id `*W2` (replace with live `.id`):
+
+```
+PATCH /rest/interface/wifi/*W2
+{"configuration.ssid":"Magic Cafe Secure","security.authentication-types":"wpa2-psk,wpa3-psk","security.passphrase":"<secret>"}
+```
+
+Open network instead:
+
+```
+PATCH /rest/interface/wifi/*W2
+{"configuration.ssid":"Magic Cafe","security.authentication-types":"","security.passphrase":""}
+```
+
+Named sole-use profile variant (only if live state shows a non-shared `configuration` / `security` name):
+
+```
+PATCH /rest/interface/wifi/configuration/*C1
+{"ssid":"Magic Cafe Secure"}
+PATCH /rest/interface/wifi/security/*S1
+{"authentication-types":"wpa2-psk,wpa3-psk","passphrase":"<secret>"}
+```
+
+Verify: re-GET wifi; compare SSID and authentication-types; passphrase only by presence, never echo.
+
+Manual rollback (lab open SSID on wifi2):
+
+```
+/interface/wifi set [find name="wifi2"] configuration.ssid="Magic Cafe" security.authentication-types="" security.passphrase=""
+```
+
+### Expected REST — `guest_network_addressing` (example: 10.5.50.0/24 → 10.5.60.0/24)
+
+Read:
+
+```
+GET /rest/ip/address
+GET /rest/ip/pool
+GET /rest/ip/dhcp-server
+GET /rest/ip/dhcp-server/network
+GET /rest/ip/hotspot
+GET /rest/ip/hotspot/profile
+```
+
+Write order (ids from live lab; replace `*A1` / `*P1` / `*N1` / `*HP1`):
+
+```
+PATCH /rest/ip/pool/*P1
+{"ranges":"10.5.60.10-10.5.60.200"}
+PATCH /rest/ip/address/*A1
+{"address":"10.5.60.1/24"}
+PATCH /rest/ip/dhcp-server/network/*N1
+{"address":"10.5.60.0/24","gateway":"10.5.60.1","dns-server":"10.5.60.1"}
+PATCH /rest/ip/hotspot/profile/*HP1
+{"hotspot-address":"10.5.60.1"}
+```
+
+Manual rollback to the lab defaults:
+
+```
+/ip hotspot profile set [find name="mm-lab-hsprof"] hotspot-address=10.5.50.1
+/ip dhcp-server network set [find address="10.5.60.0/24"] address=10.5.50.0/24 gateway=10.5.50.1 dns-server=10.5.50.1
+/ip address set [find interface="wifi2"] address=10.5.50.1/24
+/ip pool set [find name="mm-lab-guest"] ranges=10.5.50.10-10.5.50.254
+```
+
+(If the DHCP network `.id` is clearer than `find address`, use `/ip dhcp-server network set *N1 ...` with the live id.)
+
+These Safe Changes create the normal encrypted safety backup before apply; they do **not** schedule an extra product backup beyond that (requirements § backup rules for SSID/LAN-style changes).
+
 ## Known gaps after the window
 
 - Router credential files are stored unencrypted on the API's `routeros_credentials` volume (directory mode 0700, files 0600). Encryption at rest (M1) is still required before launch.

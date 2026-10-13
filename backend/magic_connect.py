@@ -155,7 +155,13 @@ def register_magic_connect(app,current,db,owner,log,resolve_ip,digest_ip):
 
  @app.get('/v1/magic-connect/capability')
  def capability():
-  return {'pairing_available':app.state.magic_connect_pairing_enabled,'router_setup_available':router_setup_enabled(),'router_bootstrap_available':False,'connection_verified':False}
+  return {
+   'pairing_available':app.state.magic_connect_pairing_enabled,
+   'router_setup_available':router_setup_enabled(),
+   'router_settings_changes_available':bool(getattr(app.state,'router_settings_changes_enabled',False)),
+   'router_bootstrap_available':False,
+   'connection_verified':False,
+  }
 
  @app.post('/v1/sites/{site_id}/magic-connect/attempts',status_code=201)
  def create_attempt(site_id:str,b:PairingCreate,u=Depends(current),s=Depends(db)):
