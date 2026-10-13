@@ -283,7 +283,8 @@ def wireguard_peer_state(client:RouterOSClient,hub_public_key:str):
 
 def set_wireguard_keepalive(client:RouterOSClient,resource_id:str,seconds:int):
  if not isinstance(resource_id,str) or not re.fullmatch(r'\*[A-Fa-f0-9]+',resource_id):raise RouterOSError('resource_invalid','Router resource identifier is invalid',409)
- return client.write('PATCH','interface/wireguard/peers/'+quote(resource_id,safe=''),{'persistent-keepalive':str(seconds)})
+ # RouterOS rejects a percent-encoded `*` in resource ids.
+ return client.write('PATCH','interface/wireguard/peers/'+resource_id,{'persistent-keepalive':str(seconds)})
 
 def _int_field(value):
  if value is None or value=='':return 0
@@ -390,7 +391,7 @@ def set_hotspot_profile_html_directory(client:RouterOSClient,resource_id:str,dir
  if not isinstance(resource_id,str) or not re.fullmatch(r'\*[A-Fa-f0-9]+',resource_id):raise RouterOSError('resource_invalid','Router resource identifier is invalid',409)
  if not isinstance(directory,str) or not directory or len(directory)>200 or '..' in directory.split('/'):
   raise RouterOSError('resource_invalid','HotSpot html-directory value is invalid',409)
- return client.write('PATCH','ip/hotspot/profile/'+quote(resource_id,safe=''),{'html-directory':directory})
+ return client.write('PATCH','ip/hotspot/profile/'+resource_id,{'html-directory':directory})
 
 def remove_hotspot_portal_files(client:RouterOSClient,destination:str,names:list[str]):
  """Delete only MikroMagic-created portal files after the profile no longer points at them."""

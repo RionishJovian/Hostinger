@@ -78,7 +78,7 @@ class RouterOSAdapterTests(unittest.TestCase):
  def test_controlled_peer_write_and_sensitive_redacted_export_transport(self):
   seen=[]
   def handle(request):
-   seen.append((request.method,request.url.path,request.read()))
+   seen.append((request.method,request.url.raw_path.decode(),request.read()))
    if request.url.path=='/rest/interface/wireguard/peers':return httpx.Response(200,json=[{'.id':'*A','interface':'mm-router','public-key':'hub-key','persistent-keepalive':'25','disabled':'false'}])
    if request.url.path=='/rest/export':return httpx.Response(200,json={'ret':'/interface wireguard peers export show-sensitive=no'})
    return httpx.Response(200,json={})

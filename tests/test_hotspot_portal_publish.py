@@ -93,8 +93,9 @@ class FakePortalClient:
                 return []
             raise RouterOSError('router_write_failed', 'cannot remove')
         if method == 'PATCH' and path.startswith('ip/hotspot/profile/'):
-            from urllib.parse import unquote
-            rid = unquote(path.rsplit('/', 1)[-1])
+            rid = path.rsplit('/', 1)[-1]
+            if rid not in self.router.profiles:
+                raise RouterOSError('router_write_failed', 'no such command prefix')
             self.router.profiles[rid].update(payload)
             return {}
         if method == 'DELETE' and path.startswith('file/'):
