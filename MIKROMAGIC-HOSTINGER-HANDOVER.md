@@ -1389,6 +1389,27 @@ artifact sha256 b97f9315a2b103d5a70f962a65c7dc5bf3822036e202f0c08406296621057df3
 
 **No router contact.** Guest Wi-Fi page preview shows the Lantern Leaf login, connected, failed, status and signed-out pages. Settings-changes flag remained off.
 
+### Scripted redeploy — restore Magic Hub one-paste primary path (2026-10-13 22:29 UTC)
+
+| Item | Value |
+|---|---|
+| Source | Commits `4e75857` / `fa4f56c` / tip `2ec13f6` on `origin/main`; artifact `1f8cf946e4d670b1864d90c0190b06bbf9e94be5e85cff67a4efba542b51ad32` (236 files) |
+| Directory | `/opt/mikromagic-build21-public-test-20261013T222947Z`; previous `-20261013T220213Z` |
+| Pre-deploy dump | `backups/pre-deploy.dump` (525 restore-list entries) |
+| Migration | **061 → 061** (no new revision); rehearsal skipped |
+| Rollback images | `…-{api,web,magic-hub,migrate}:rollback-20261013T222947Z` |
+| Result | api, web and safe-change-worker recreated; Hub untouched (`TG1jLN13+hA1Eg9/1h0DykQ768ZHZO54WFGAZWhjL0o=`, UDP `156.67.216.128:51820`). Bundle `index-Dj3I9H9u.js`. Worker **running**. Ops symlink `/opt/mikromagic-build21-public-test` → tip. |
+
+**Deployed 2ec13f6 at 20261013T222947Z**
+artifact sha256 1f8cf946e4d670b1864d90c0190b06bbf9e94be5e85cff67a4efba542b51ad32 (236 files), bundle index-Dj3I9H9u.js
+
+**Rollback:** on the VPS, for s in api web magic-hub migrate; do docker tag mikromagic-build21-public-test-$s:rollback-20261013T222947Z mikromagic-build21-public-test-$s:latest; done
+          then cd /opt/mikromagic-build21-public-test-20261013T220213Z && docker compose -p mikromagic-build21-public-test -f compose.hostinger-public-test.yaml up -d --no-deps --force-recreate api web safe-change-worker
+          Restore /opt/mikromagic-build21-public-test-20261013T222947Z/backups/pre-deploy.dump only if the migration itself is at fault.
+
+**No router contact.** Restored owner-approved Connect with Magic Hub one-paste as the primary Routers path (technician QR secondary). Demo exposes Guest Wi-Fi page and the Magic Hub connect button for owner QA. Live capability: `router_setup_available=true`. Settings-changes flag remained off.
+
+
 - Next app work (as of 2026-10-12 09:00 UTC+6:30, live at migration 049, commit `13d40af`):
   - Terminology and Burmese (P0a) owner-facing chrome is live across SME pages including Integrations, Did you know?, guided first-shop acceptance, Magic Boy, Media, Account, Sites, Revenue, Payments and Packages/Passes. Platform screens stay English. Native-speaker/mobile QA remains open.
   - Routers page guided (P0a step 5): Connect your router steps first; Magic Hub, connection plans and Safe RouterOS changes under a closed Advanced (technician) section that opens when a change needs attention.
