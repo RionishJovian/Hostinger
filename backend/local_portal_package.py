@@ -15,17 +15,14 @@ FILES = ("login.html", "alogin.html", "flogin.html", "status.html", "logout.html
 MAX_ARCHIVE_BYTES = 128_000
 MAX_FILE_BYTES = 32_000
 
-# Compact bilingual UI (Burmese first). No remote fonts/CDN; system stack only.
-_CSS = (
+# Compact guest UI. No remote fonts/CDN; system stack only.
+# `both` keeps Burmese-first toggle CSS; single-language modes omit the toggle rules.
+_CSS_BASE = (
     'body{font:16px/1.45 system-ui,sans-serif;margin:0;min-height:100vh;color:#14261f;'
     'background:linear-gradient(160deg,#e8f3ee 0%,#f7f4ec 55%,#efe8d8 100%)}'
     'main{max-width:22rem;margin:0 auto;padding:1.25rem 1rem 2rem}'
     '.brand{font-size:1.35rem;font-weight:700;letter-spacing:-.02em;margin:0 0 .35rem}'
     '.lead{margin:0 0 1rem;color:#3a5348;font-size:.95rem}'
-    '.langs{display:flex;gap:.5rem;margin:0 0 1rem}'
-    '.langs button{flex:0;min-width:4.5rem;padding:.45rem .7rem;font:inherit;border:1px solid #9bb5a8;'
-    'background:#fff;border-radius:.45rem;color:#16382b;min-height:40px}'
-    '.langs button[aria-pressed="true"]{background:#176b50;border-color:#176b50;color:#fff}'
     'label{display:block;font-weight:600;margin:.2rem 0}'
     'input,button.primary{display:block;width:100%;box-sizing:border-box;font:inherit;'
     'padding:.85rem;margin:.35rem 0 1rem;min-height:48px;border-radius:.55rem;border:1px solid #b7c9bf}'
@@ -34,10 +31,17 @@ _CSS = (
     '#voucher::placeholder{text-transform:none;letter-spacing:normal;font-weight:400;font-size:1rem}'
     'a{color:#176b50}.err{color:#8b1e1e;margin:0 0 1rem}.ok{color:#176b50;margin:0 0 1rem}'
     '.mm{margin:2rem 0 0;text-align:center;font-size:.78rem;color:#5d7368;letter-spacing:.04em}'
-    '.my{display:none}html[lang="my"] .my{display:inline}html[lang="my"] .en{display:none}'
-    'html[lang="en"] .en{display:inline}html[lang="en"] .my{display:none}'
-    'html[lang="my"] .my-block{display:block}html[lang="my"] .en-block{display:none}'
-    'html[lang="en"] .en-block{display:block}html[lang="en"] .my-block{display:none}'
+)
+_CSS_BOTH = (
+    _CSS_BASE
+    + '.langs{display:flex;gap:.5rem;margin:0 0 1rem}'
+    + '.langs button{flex:0;min-width:4.5rem;padding:.45rem .7rem;font:inherit;border:1px solid #9bb5a8;'
+    + 'background:#fff;border-radius:.45rem;color:#16382b;min-height:40px}'
+    + '.langs button[aria-pressed="true"]{background:#176b50;border-color:#176b50;color:#fff}'
+    + '.my{display:none}html[lang="my"] .my{display:inline}html[lang="my"] .en{display:none}'
+    + 'html[lang="en"] .en{display:inline}html[lang="en"] .my{display:none}'
+    + 'html[lang="my"] .my-block{display:block}html[lang="my"] .en-block{display:none}'
+    + 'html[lang="en"] .en-block{display:block}html[lang="en"] .my-block{display:none}'
 )
 
 _LANG_BAR = (
@@ -56,6 +60,18 @@ _LANG_JS = (
     'document.querySelectorAll(".langs button").forEach(function(b){'
     'b.addEventListener("click",function(){set(b.getAttribute("data-lang"))})})})()</script>'
 )
+
+
+def _language_mode(cfg: PortalConfig) -> str:
+    return cfg.language if cfg.language in ('en', 'my', 'both') else 'both'
+
+
+def _guest_ui_label(mode: str) -> str:
+    if mode == 'en':
+        return 'english_only_single_voucher_field'
+    if mode == 'my':
+        return 'myanmar_only_single_voucher_field'
+    return 'burmese_first_single_voucher_field'
 
 # Inline MD5 for RouterOS HTTP-CHAP (must stay local; no PAP fallback).
 _MD5_JS = (
@@ -78,19 +94,34 @@ _MD5_JS = (
 def _page(title_my: str, title_en: str, content: str, cfg: PortalConfig) -> str:
     # Owner-controlled text is escaped. Pages use only RouterOS-local template
     # variables and inline CSS/JS; no cloud origin, CDN, or PAP fallback.
+    mode = _language_mode(cfg)
     brand = html.escape(cfg.business_name)
     welcome = html.escape(cfg.welcome) if cfg.welcome else ''
+    if mode == 'en':
+        lang, title, heading = 'en', title_en, html.escape(title_en)
+        lang_bar, lang_js, css = '', '', _CSS_BASE
+        headings = f'<h1 style="font-size:1.1rem;margin:0 0 .5rem">{heading}</h1>'
+    elif mode == 'my':
+        lang, title, heading = 'my', title_my, html.escape(title_my)
+        lang_bar, lang_js, css = '', '', _CSS_BASE
+        headings = f'<h1 style="font-size:1.1rem;margin:0 0 .5rem">{heading}</h1>'
+    else:
+        lang, title = 'my', title_my
+        lang_bar, lang_js, css = _LANG_BAR, _LANG_JS, _CSS_BOTH
+        headings = (
+            f'<h1 class="my-block" style="font-size:1.1rem;margin:0 0 .5rem">{html.escape(title_my)}</h1>'
+            f'<h1 class="en-block" style="font-size:1.1rem;margin:0 0 .5rem">{html.escape(title_en)}</h1>'
+        )
     return (
-        '<!doctype html><html lang="my"><head><meta charset="utf-8">'
+        f'<!doctype html><html lang="{lang}"><head><meta charset="utf-8">'
         '<meta name="viewport" content="width=device-width,initial-scale=1">'
-        f'<title>{html.escape(title_my)} · {brand}</title>'
-        f'<style>{_CSS}</style></head><body><main>'
-        f'{_LANG_BAR}<p class="brand">{brand}</p>'
-        f'<h1 class="my-block" style="font-size:1.1rem;margin:0 0 .5rem">{html.escape(title_my)}</h1>'
-        f'<h1 class="en-block" style="font-size:1.1rem;margin:0 0 .5rem">{html.escape(title_en)}</h1>'
+        f'<title>{html.escape(title)} · {brand}</title>'
+        f'<style>{css}</style></head><body><main>'
+        f'{lang_bar}<p class="brand">{brand}</p>'
+        + headings
         + (f'<p class="lead">{welcome}</p>' if welcome else '')
         + content
-        + _LANG_JS
+        + lang_js
         + '<p class="mm">MikroMagic</p></main></body></html>'
     )
 
@@ -101,9 +132,54 @@ def _bilingual(my: str, en: str, *, block: bool = False) -> str:
     return f'<span class="{cls}">{my}</span><span class="{cls_en}">{en}</span>'
 
 
+def _phrase(my: str, en: str, mode: str, *, block: bool = False) -> str:
+    if mode == 'my':
+        return my
+    if mode == 'en':
+        return en
+    return _bilingual(my, en, block=block)
+
+
+def _flogin_error_script(mode: str) -> str:
+    """Emit RouterOS $(error) mapping for bilingual or single-language guest pages."""
+    if mode == 'both':
+        return (
+            '<script>(function(){var el=document.getElementById("msg"),r=(el.getAttribute("data-raw")||"").toLowerCase(),my,en;'
+            'if(/traffic|bytes|limit.*data|quota/.test(r)){my="ဒေတာ ကုန်သွားပါပြီ။";en="Data allowance used up."}'
+            'else if(/uptime|time limit|session time|expired|lifetime/.test(r)){my="အချိန် ကုန်သွားပါပြီ။";en="Time allowance used up or expired."}'
+            'else if(/no more sessions|simultaneous|shared-users|session limit|too many/.test(r)){my="စက် အရေအတွက် ပြည့်နေပါပြီ။";en="Too many devices are already connected."}'
+            'else if(/disabled|not allowed/.test(r)){my="ဤကုဒ်ကို အသုံးပြု၍ မရပါ။";en="This code cannot be used."}'
+            'else if(/invalid|password|unknown|not found|wrong/.test(r)||!r.trim()){my="ကုဒ် မှားနေပါသည်။";en="Wrong code. Check and try again."}'
+            'else{my="ချိတ်ဆက်၍ မရပါ။ ထပ်ကြိုးစားပါ။";en="Could not connect. Try again."}'
+            "el.innerHTML='<span class=\"my\">'+my+'</span><span class=\"en\">'+en+'</span>'})()</script>"
+        )
+    if mode == 'my':
+        return (
+            '<script>(function(){var el=document.getElementById("msg"),r=(el.getAttribute("data-raw")||"").toLowerCase(),msg;'
+            'if(/traffic|bytes|limit.*data|quota/.test(r)){msg="ဒေတာ ကုန်သွားပါပြီ။"}'
+            'else if(/uptime|time limit|session time|expired|lifetime/.test(r)){msg="အချိန် ကုန်သွားပါပြီ။"}'
+            'else if(/no more sessions|simultaneous|shared-users|session limit|too many/.test(r)){msg="စက် အရေအတွက် ပြည့်နေပါပြီ။"}'
+            'else if(/disabled|not allowed/.test(r)){msg="ဤကုဒ်ကို အသုံးပြု၍ မရပါ။"}'
+            'else if(/invalid|password|unknown|not found|wrong/.test(r)||!r.trim()){msg="ကုဒ် မှားနေပါသည်။"}'
+            'else{msg="ချိတ်ဆက်၍ မရပါ။ ထပ်ကြိုးစားပါ။"}'
+            'el.textContent=msg})()</script>'
+        )
+    return (
+        '<script>(function(){var el=document.getElementById("msg"),r=(el.getAttribute("data-raw")||"").toLowerCase(),msg;'
+        'if(/traffic|bytes|limit.*data|quota/.test(r)){msg="Data allowance used up."}'
+        'else if(/uptime|time limit|session time|expired|lifetime/.test(r)){msg="Time allowance used up or expired."}'
+        'else if(/no more sessions|simultaneous|shared-users|session limit|too many/.test(r)){msg="Too many devices are already connected."}'
+        'else if(/disabled|not allowed/.test(r)){msg="This code cannot be used."}'
+        'else if(/invalid|password|unknown|not found|wrong/.test(r)||!r.trim()){msg="Wrong code. Check and try again."}'
+        'else{msg="Could not connect. Try again."}'
+        'el.textContent=msg})()</script>'
+    )
+
+
 def build_local_hotspot_package(settings: PortalConfig | dict, *, tenant_id: str, site_id: str | None, revision: int) -> bytes:
     """Build a reviewable RouterOS servlet-content archive, not an installer."""
     cfg = settings if isinstance(settings, PortalConfig) else PortalConfig.model_validate(settings)
+    mode = _language_mode(cfg)
     if not tenant_id or len(tenant_id) > 80 or not re.fullmatch(r"[A-Za-z0-9_-]+", tenant_id):
         raise ValueError("A stable tenant identifier is required")
     if site_id is not None and (len(site_id) > 80 or not re.fullmatch(r"[A-Za-z0-9_-]+", site_id)):
@@ -118,12 +194,12 @@ def build_local_hotspot_package(settings: PortalConfig | dict, *, tenant_id: str
         '<form name="login" action="$(link-login-only)" method="post" onsubmit="return doLogin()">'
         '<input type="hidden" name="dst" value="$(link-orig-esc)">'
         '<input type="hidden" name="popup" value="true">'
-        f'<label>{_bilingual("Voucher ကုဒ်", "Voucher code")}'
+        f'<label>{_phrase("Voucher ကုဒ်", "Voucher code", mode)}'
         '<input name="username" id="voucher" autocomplete="username" required '
         'inputmode="text" autocapitalize="characters" spellcheck="false" '
         'placeholder="$(username)" value="$(username)"></label>'
-        f'<button class="primary" type="submit">{_bilingual("ချိတ်ဆက်ရန်", "Connect")}</button></form>'
-        f'<p class="lead">{_bilingual("ကုဒ်ကို ရိုက်ထည့်ပါ။ QR ဖြင့် ဖွင့်ထားလျှင် ကုဒ် ဖြည့်ပြီး ဖြစ်နိုင်သည်။", "Enter your code. A QR link may fill it for you.")}</p>'
+        f'<button class="primary" type="submit">{_phrase("ချိတ်ဆက်ရန်", "Connect", mode)}</button></form>'
+        f'<p class="lead">{_phrase("ကုဒ်ကို ရိုက်ထည့်ပါ။ QR ဖြင့် ဖွင့်ထားလျှင် ကုဒ် ဖြည့်ပြီး ဖြစ်နိုင်သည်။", "Enter your code. A QR link may fill it for you.", mode)}</p>'
         '<noscript><p class="err">JavaScript is required for the router challenge login.</p></noscript>'
         '<script>' + _MD5_JS +
         # Codes are stored upper-case without spaces/hyphens; RouterOS user names are case-sensitive.
@@ -138,68 +214,66 @@ def build_local_hotspot_package(settings: PortalConfig | dict, *, tenant_id: str
         '</script>'
     )
 
-    # Map common RouterOS HotSpot English $(error) strings to plain Burmese/English.
+    # Map common RouterOS HotSpot English $(error) strings to the configured guest language(s).
     flogin = (
         '<p class="err" id="msg" data-raw="$(error)"></p>'
-        f'<a href="$(link-login-only)">{_bilingual("ထပ်ကြိုးစားရန်", "Try again")}</a>'
-        '<script>(function(){var el=document.getElementById("msg"),r=(el.getAttribute("data-raw")||"").toLowerCase(),my,en;'
-        'if(/traffic|bytes|limit.*data|quota/.test(r)){my="ဒေတာ ကုန်သွားပါပြီ။";en="Data allowance used up."}'
-        'else if(/uptime|time limit|session time|expired|lifetime/.test(r)){my="အချိန် ကုန်သွားပါပြီ။";en="Time allowance used up or expired."}'
-        'else if(/no more sessions|simultaneous|shared-users|session limit|too many/.test(r)){my="စက် အရေအတွက် ပြည့်နေပါပြီ။";en="Too many devices are already connected."}'
-        'else if(/disabled|not allowed/.test(r)){my="ဤကုဒ်ကို အသုံးပြု၍ မရပါ။";en="This code cannot be used."}'
-        'else if(/invalid|password|unknown|not found|wrong/.test(r)||!r.trim()){my="ကုဒ် မှားနေပါသည်။";en="Wrong code. Check and try again."}'
-        'else{my="ချိတ်ဆက်၍ မရပါ။ ထပ်ကြိုးစားပါ။";en="Could not connect. Try again."}'
-        'el.innerHTML=\'<span class="my">\'+my+\'</span><span class="en">\'+en+\'</span>\'})()</script>'
+        f'<a href="$(link-login-only)">{_phrase("ထပ်ကြိုးစားရန်", "Try again", mode)}</a>'
+        + _flogin_error_script(mode)
     )
 
     pages = {
         "login.html": _page("Wi-Fi ဝင်ရန်", "Wi-Fi login", login, cfg),
         "alogin.html": _page(
             "ချိတ်ဆက်ပြီးပါပြီ", "Connected",
-            f'<p class="ok">{_bilingual("အင်တာနက် သုံးနိုင်ပါပြီ။", "You are connected.")}</p>'
-            f'<a href="$(link-status)">{_bilingual("အခြေအနေ ကြည့်ရန်", "Session status")}</a>',
+            f'<p class="ok">{_phrase("အင်တာနက် သုံးနိုင်ပါပြီ။", "You are connected.", mode)}</p>'
+            f'<a href="$(link-status)">{_phrase("အခြေအနေ ကြည့်ရန်", "Session status", mode)}</a>',
             cfg,
         ),
         "flogin.html": _page("ချိတ်ဆက် မရပါ", "Could not connect", flogin, cfg),
         "status.html": _page(
             "Session အခြေအနေ", "Session status",
-            f'<p>{_bilingual("ကျန်အချိန်", "Time left")}: $(session-time-left)</p>'
-            f'<p>{_bilingual("ကျန်ဒေတာ", "Data left")}: $(remain-bytes-total)</p>'
+            f'<p>{_phrase("ကျန်အချိန်", "Time left", mode)}: $(session-time-left)</p>'
+            f'<p>{_phrase("ကျန်ဒေတာ", "Data left", mode)}: $(remain-bytes-total)</p>'
             f'<form action="$(link-logout)" method="post"><button class="primary" type="submit">'
-            f'{_bilingual("ထွက်ရန်", "Sign out")}</button></form>',
+            f'{_phrase("ထွက်ရန်", "Sign out", mode)}</button></form>',
             cfg,
         ),
         "logout.html": _page(
             "ထွက်ပြီးပါပြီ", "Signed out",
-            f'<p>{_bilingual("Session ပြီးဆုံးပါပြီ။", "Your HotSpot session has ended.")}</p>'
-            f'<a href="$(link-login-only)">{_bilingual("ပြန်ဝင်ရန်", "Return to login")}</a>',
+            f'<p>{_phrase("Session ပြီးဆုံးပါပြီ။", "Your HotSpot session has ended.", mode)}</p>'
+            f'<a href="$(link-login-only)">{_phrase("ပြန်ဝင်ရန်", "Return to login", mode)}</a>',
             cfg,
         ),
         "fstatus.html": _page(
             "Session မရှိပါ", "No session",
-            f'<p class="err">{_bilingual("လက်ရှိ HotSpot session မရှိပါ။", "No active HotSpot session.")}</p>'
-            f'<a href="$(link-login-only)">{_bilingual("ပြန်ဝင်ရန်", "Return to login")}</a>',
+            f'<p class="err">{_phrase("လက်ရှိ HotSpot session မရှိပါ။", "No active HotSpot session.", mode)}</p>'
+            f'<a href="$(link-login-only)">{_phrase("ပြန်ဝင်ရန်", "Return to login", mode)}</a>',
             cfg,
         ),
         "flogout.html": _page(
             "ထွက်ပြီးသား", "Already signed out",
-            f'<p>{_bilingual("Session မရှိတော့ပါ။", "There is no active HotSpot session.")}</p>'
-            f'<a href="$(link-login-only)">{_bilingual("ပြန်ဝင်ရန်", "Return to login")}</a>',
+            f'<p>{_phrase("Session မရှိတော့ပါ။", "There is no active HotSpot session.", mode)}</p>'
+            f'<a href="$(link-login-only)">{_phrase("ပြန်ဝင်ရန်", "Return to login", mode)}</a>',
             cfg,
         ),
         "error.html": _page(
             "ဆက်မလုပ်နိုင်ပါ", "Unable to continue",
-            f'<p class="err">{_bilingual("Router က ဤတောင်းဆိုမှုကို ဆက်မလုပ်နိုင်ပါ။", "The router could not continue this request.")}</p>'
-            f'<a href="$(link-login-only)">{_bilingual("ပြန်ဝင်ရန်", "Return to login")}</a>',
+            f'<p class="err">{_phrase("Router က ဤတောင်းဆိုမှုကို ဆက်မလုပ်နိုင်ပါ။", "The router could not continue this request.", mode)}</p>'
+            f'<a href="$(link-login-only)">{_phrase("ပြန်ဝင်ရန်", "Return to login", mode)}</a>',
             cfg,
         ),
         "redirect.html": _page(
             "ဆက်သွားရန်", "Continue",
-            f'<a href="$(link-orig-esc)">{_bilingual("တောင်းဆိုထားသော စာမျက်နှာသို့ ဆက်သွားရန်", "Continue to your requested page")}</a>',
+            f'<a href="$(link-orig-esc)">{_phrase("တောင်းဆိုထားသော စာမျက်နှာသို့ ဆက်သွားရန်", "Continue to your requested page", mode)}</a>',
             cfg,
         ),
         "api.json": '{"captive":$(if logged-in == \'yes\')false$(else)true$(endif),"user-portal-url":"$(link-login-only)","can-extend-session":false}',
     }
+    ui_note = {
+        'both': 'Burmese first with English toggle',
+        'my': 'Myanmar only (no language toggle)',
+        'en': 'English only (no language toggle)',
+    }[mode]
     manifest = {
         "format": FORMAT,
         "scope": {"tenant_id": tenant_id, "site_id": site_id, "published_revision": revision},
@@ -208,13 +282,14 @@ def build_local_hotspot_package(settings: PortalConfig | dict, *, tenant_id: str
         "installation_performed": False,
         "router_compatibility_verified": False,
         "authentication": "RouterOS local HotSpot HTTP-CHAP template; no PAP fallback",
-        "guest_ui": "burmese_first_single_voucher_field",
+        "guest_language": mode,
+        "guest_ui": _guest_ui_label(mode),
     }
     readme = (
         "MikroMagic local HotSpot content package\n\n"
         "Content-only review artifact. It has NOT been installed or verified on a router.\n"
         "No RouterOS commands, profile changes, credentials, remote assets, or cloud dependencies are included.\n"
-        "Guest UI: Burmese first with English toggle; one voucher field (CHAP username=password); QR username= prefill.\n"
+        f"Guest UI: {ui_note}; one voucher field (CHAP username=password); QR username= prefill.\n"
         "The login template requires RouterOS HTTP-CHAP variables and a compatible HotSpot profile.\n"
         "Before any future deployment: inspect target/version/profile sharing/storage/file collisions, explain the exact diff, obtain owner confirmation, back up if required, install only into a new unique persistent directory, update only the selected profile directory if justified, then verify.\n"
         "Never overwrite existing portal files or change auth methods, firewall, DHCP, DNS, users, sessions, or unrelated HotSpot settings.\n"
@@ -284,10 +359,29 @@ def validate_local_hotspot_package(payload: bytes) -> dict:
     login = data["login.html"].decode("utf-8")
     if "$(chap-id)" not in login or "$(chap-challenge)" not in login or "md5(" not in login or "method=\"post\"" not in login:
         raise ValueError("Login page must use the local RouterOS CHAP challenge flow")
-    if 'lang="my"' not in login and "lang='my'" not in login:
-        raise ValueError("Guest login must default to Burmese")
-    if "data-lang" not in login or "Voucher" not in login:
-        raise ValueError("Guest login must offer language choice and a voucher field")
+    if 'id="voucher"' not in login and "id='voucher'" not in login:
+        raise ValueError("Guest login must offer a voucher field")
+    guest_language = manifest.get("guest_language")
+    if guest_language not in ('en', 'my', 'both'):
+        # Older packages defaulted to Burmese-first bilingual UI.
+        guest_language = 'both' if "data-lang" in login else None
+    if guest_language == 'both':
+        if 'lang="my"' not in login and "lang='my'" not in login:
+            raise ValueError("Bilingual guest login must default to Burmese")
+        if "data-lang" not in login:
+            raise ValueError("Bilingual guest login must offer a language choice")
+    elif guest_language == 'my':
+        if 'lang="my"' not in login and "lang='my'" not in login:
+            raise ValueError("Myanmar-only guest login must use Burmese")
+        if "data-lang" in login:
+            raise ValueError("Myanmar-only guest login must not include a language toggle")
+    elif guest_language == 'en':
+        if 'lang="en"' not in login and "lang='en'" not in login:
+            raise ValueError("English-only guest login must use English")
+        if "data-lang" in login:
+            raise ValueError("English-only guest login must not include a language toggle")
+    else:
+        raise ValueError("Guest login language mode is missing or invalid")
     if re.search(r"name=\"password\"[^>]*value=|http-pap|password.*type=.?text", login, re.I):
         raise ValueError("Unsafe password handling detected")
     # Visible password field must not appear; CHAP uses the hidden sendin form only.
@@ -296,4 +390,4 @@ def validate_local_hotspot_package(payload: bytes) -> dict:
     flogin = data["flogin.html"].decode("utf-8")
     if "$(error)" not in flogin:
         raise ValueError("Failed-login page must surface the RouterOS error for guest messaging")
-    return {"valid": True, "format": FORMAT, "file_count": len(FILES), "archive_bytes": len(payload), "installation_performed": False, "router_compatibility_verified": False}
+    return {"valid": True, "format": FORMAT, "file_count": len(FILES), "archive_bytes": len(payload), "installation_performed": False, "router_compatibility_verified": False, "guest_language": guest_language}

@@ -13,6 +13,12 @@ Baseline preserved: Build 21; 281 Python tests and the production frontend build
 - **G01:** CSS-only zip tip `689da39` is not a full checkout; ChatGPT needs owner-granted GitHub read or a secret-free full archive of current `main` before claiming full-app build/QA.
 - Previous coarse overall percentages (e.g. 15.9%) are not current; do not invent a new overall percentage from mixed subtask counts.
 
+## Portal language → local package — 2026-10-13
+
+- **Was:** `PortalConfig.language` (`en` / `my` / `both`) was ignored by `build_local_hotspot_package`; every package was bilingual Burmese-first with a toggle; owner preview said “translation is pending.”
+- **Now (software):** package generation and validation honor the owner language setting; manifest records `guest_language`. Owner preview copy explains republish + send-to-router after a language change.
+- **Still open:** on-router install and phone captive-browser acceptance require a Connected router and owner republish/Safe Change; hardware evidence separate.
+
 ## Classification
 
 - ✅ Implemented and verified — implemented in Build 21 and covered by local automated verification.

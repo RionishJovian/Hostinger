@@ -46,10 +46,49 @@ class LocalPortalPackageTests(unittest.TestCase):
             self.assertIn('ကုဒ် မှားနေပါသည်', flogin)
             self.assertIn('Too many devices', flogin)
             self.assertEqual(manifest.get('guest_ui'), 'burmese_first_single_voucher_field')
+            self.assertEqual(manifest.get('guest_language'), 'both')
             self.assertIn('router_compatibility_verified', manifest)
             self.assertFalse(manifest['router_compatibility_verified'])
             self.assertLess(len(package), 128_000)
             self.assertLess(len(archive.read('login.html')), 32_000)
+
+    def test_myanmar_only_package_has_no_language_toggle(self):
+        settings = PortalConfig(business_name='Shop', language='my')
+        package = build_local_hotspot_package(settings, tenant_id='tenant_01', site_id='site_01', revision=2)
+        report = validate_local_hotspot_package(package)
+        self.assertEqual(report['guest_language'], 'my')
+        with zipfile.ZipFile(io.BytesIO(package)) as archive:
+            manifest = json.loads(archive.read('portal-manifest.json'))
+            login = archive.read('login.html').decode()
+            flogin = archive.read('flogin.html').decode()
+            self.assertEqual(manifest['guest_language'], 'my')
+            self.assertEqual(manifest['guest_ui'], 'myanmar_only_single_voucher_field')
+            self.assertIn('lang="my"', login)
+            self.assertNotIn('data-lang', login)
+            self.assertIn('ချိတ်ဆက်ရန်', login)
+            self.assertNotIn('Connect', login)
+            self.assertIn('ကုဒ် မှားနေပါသည်', flogin)
+            self.assertNotIn('Wrong code', flogin)
+            self.assertIn('el.textContent=msg', flogin)
+
+    def test_english_only_package_has_no_language_toggle(self):
+        settings = PortalConfig(business_name='Shop', language='en')
+        package = build_local_hotspot_package(settings, tenant_id='tenant_01', site_id='site_01', revision=3)
+        report = validate_local_hotspot_package(package)
+        self.assertEqual(report['guest_language'], 'en')
+        with zipfile.ZipFile(io.BytesIO(package)) as archive:
+            manifest = json.loads(archive.read('portal-manifest.json'))
+            login = archive.read('login.html').decode()
+            flogin = archive.read('flogin.html').decode()
+            self.assertEqual(manifest['guest_language'], 'en')
+            self.assertEqual(manifest['guest_ui'], 'english_only_single_voucher_field')
+            self.assertIn('lang="en"', login)
+            self.assertNotIn('data-lang', login)
+            self.assertIn('Connect', login)
+            self.assertNotIn('ချိတ်ဆက်ရန်', login)
+            self.assertIn('Wrong code', flogin)
+            self.assertNotIn('ကုဒ် မှားနေပါသည်', flogin)
+            self.assertIn('el.textContent=msg', flogin)
 
     def test_rejects_invalid_scope(self):
         with self.assertRaises(ValueError):
