@@ -732,6 +732,22 @@ Restore /opt/mikromagic-build21-public-test-20261012T222601Z/backups/pre-deploy.
 then cd /opt/mikromagic-build21-public-test-20261012T222601Z && docker compose -p mikromagic-build21-public-test -f compose.hostinger-public-test.yaml up -d --no-deps --force-recreate api web
 Restore /opt/mikromagic-build21-public-test-20261012T235906Z/backups/pre-deploy.dump only if the migration itself is at fault.
 
+### Scripted redeploy — Jellyfin-only Media (remove Plex product promises) (2026-10-13 04:37 UTC)
+
+| Item | Value |
+|---|---|
+| Source | Commit `358044b` on `origin/main` (feature `781515b`); artifact `538b7b31e037a2d130b305a58efb62c96b6d2a7c7b1f96268dae582aa8898a68` (213 files); local checks already recorded for this tree |
+| Directory | `/opt/mikromagic-build21-public-test-20261013T043734Z`; previous `-20261012T235906Z` |
+| Infra files | none |
+| Pre-deploy dump | `backups/pre-deploy.dump` (at 054, 490 restore-list entries) |
+| Migration | none (stays 054); rehearsal skipped |
+| Rollback images | `…-{api,web,magic-hub,migrate}:rollback-20261013T043734Z` |
+| Result | api and web recreated; db and Hub untouched (Hub key `TG1jLN13+hA1Eg9/1h0DykQ768ZHZO54WFGAZWhjL0o=`, UDP `156.67.216.128:51820` unchanged); bundle `index-ZPaDeM6E.js`. Owner 2026-10-13: product Media catalogue EN/MY is Jellyfin-only (no Plex promises). Inventory: no Plex schema/adapters — no destructive migration. Media Pass rules unchanged. Jellyfin connector/playback/hardware still NOT DONE |
+
+**Rollback:** on the VPS, for s in api web magic-hub migrate; do docker tag mikromagic-build21-public-test-$s:rollback-20261013T043734Z mikromagic-build21-public-test-$s:latest; done
+then cd /opt/mikromagic-build21-public-test-20261012T235906Z && docker compose -p mikromagic-build21-public-test -f compose.hostinger-public-test.yaml up -d --no-deps --force-recreate api web
+Restore /opt/mikromagic-build21-public-test-20261013T043734Z/backups/pre-deploy.dump only if the migration itself is at fault.
+
 - Next app work (as of 2026-10-12 09:00 UTC+6:30, live at migration 049, commit `13d40af`):
   - Terminology and Burmese (P0a) owner-facing chrome is live across SME pages including Integrations, Did you know?, guided first-shop acceptance, Magic Boy, Media, Account, Sites, Revenue, Payments and Packages/Passes. Platform screens stay English. Native-speaker/mobile QA remains open.
   - Routers page guided (P0a step 5): Connect your router steps first; Magic Hub, connection plans and Safe RouterOS changes under a closed Advanced (technician) section that opens when a change needs attention.
