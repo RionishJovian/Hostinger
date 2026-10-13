@@ -156,6 +156,9 @@ class RouterOSClient:
   if not isinstance(text,str) or not text.strip():raise RouterOSError('backup_invalid','Router did not return a usable sensitive-redacted configuration export')
   return text.encode('utf-8')
 
+# Without .proplist RouterOS REST inlines file contents, and binary files break JSON.
+FILE_LIST='file?.proplist=name,type,size,last-modified'
+
 def _first(value):
  if isinstance(value,list):return value[0] if value else {}
  return value if isinstance(value,dict) else {}
@@ -209,7 +212,7 @@ def read_hotspot_portal_inventory(client):
  if not servers:return hotspot_portal_inventory([],[],[],[])
  profiles=client.get('ip/hotspot/profile',optional=True)
  garden=client.get('ip/hotspot/walled-garden',optional=True)
- files=client.get('file',optional=True)
+ files=client.get(FILE_LIST,optional=True)
  return hotspot_portal_inventory(servers,profiles,garden,files)
 
 def discover_routeros(client:RouterOSClient):
@@ -343,7 +346,7 @@ def hotspot_portal_publish_state(client:RouterOSClient,*,profile_name:str,destin
  profiles=client.get('ip/hotspot/profile')
  profile=next((item for item in _records(profiles) if item.get('name')==profile_name),None)
  if not profile or not profile.get('.id'):raise RouterOSError('profile_missing','The selected HotSpot profile is not present on this router',409)
- files=client.get('file',optional=True)
+ files=client.get(FILE_LIST,optional=True)
  present=_destination_files(files,destination)
  installed=[]
  expected=list(expected_files or [])
@@ -363,7 +366,7 @@ def hotspot_portal_publish_state(client:RouterOSClient,*,profile_name:str,destin
 def install_hotspot_portal_files(client:RouterOSClient,destination:str,files:dict[str,str]):
  """Create-only upload of portal servlet files into a new unique directory."""
  if not files:raise RouterOSError('package_invalid','Portal package has no installable files',409)
- state_files=client.get('file',optional=True)
+ state_files=client.get(FILE_LIST,optional=True)
  if _destination_files(state_files,destination):raise RouterOSError('file_collision','Destination portal directory already exists; refusing to overwrite',409)
  for name,contents in files.items():
   if not isinstance(name,str) or '/' in name or name in ('.','..') or not re.fullmatch(r'[A-Za-z0-9._-]+',name):
@@ -371,7 +374,7 @@ def install_hotspot_portal_files(client:RouterOSClient,destination:str,files:dic
   if not isinstance(contents,str):raise RouterOSError('package_invalid','Portal package file contents must be text',409)
   path=destination.rstrip('/')+'/'+name
   client.write('PUT','file/'+quote(path,safe=''),{'contents':contents})
- after=client.get('file',optional=True)
+ after=client.get(FILE_LIST,optional=True)
  missing=[name for name in files if not any(item.get('name')==destination.rstrip('/')+'/'+name for item in _destination_files(after,destination))]
  if missing:raise RouterOSError('install_incomplete','Portal files were not all present after create-only upload',409)
  return {'destination':destination,'files':sorted(files)}
@@ -389,6 +392,6 @@ def remove_hotspot_portal_files(client:RouterOSClient,destination:str,names:list
   try:client.write('DELETE','file/'+quote(path,safe=''),{})
   except RouterOSError as error:
    if error.code not in ('router_write_failed',):raise
- remaining=_destination_files(client.get('file',optional=True),destination)
+ remaining=_destination_files(client.get(FILE_LIST,optional=True),destination)
  if remaining:raise RouterOSError('cleanup_incomplete','Newly created portal files remain after rollback cleanup',409)
  return {'destination':destination,'removed':list(names)}

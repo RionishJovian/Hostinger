@@ -39,6 +39,8 @@ class RouterOSAdapterTests(unittest.TestCase):
     '/rest/file':[{'name':'flash','type':'disk'},{'name':'hotspot/login.html','type':'html','size':'512'}],
     '/rest/ip/dhcp-server':[{'name':'dhcp1'}],'/rest/system/ntp/client':{'enabled':'true'},
    }
+   if request.url.path=='/rest/file' and request.url.params.get('.proplist')!='name,type,size,last-modified':
+    return httpx.Response(200,content=b'[{"name":"hotspot/img/logo.png","contents":"\x89PNG"}]')
    return httpx.Response(200,json=data[request.url.path])
   credential=type('Credential',(),{'base_url':'https://router.example','username':'api','password':'secret','verify':True})()
   with RouterOSClient(credential,transport=httpx.MockTransport(handle)) as client:r=discover_routeros(client)
