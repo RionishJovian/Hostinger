@@ -8,8 +8,8 @@ from backend.routeros_adapter import RouterOSCredential,RouterOSError
 from backend.voucher_vault import unseal
 
 class FakeHotspot:
- """RouterOS HotSpot REST stand-in: users, profiles, active sessions and the expiry scheduler."""
- def __init__(self):self.users={};self.profiles={};self.schedulers={};self.active=[];self.next=1;self.fail=None;self.writes=[]
+ """RouterOS HotSpot REST stand-in: users, profiles, active sessions, cookies and the expiry scheduler."""
+ def __init__(self):self.users={};self.profiles={};self.schedulers={};self.active=[];self.cookies=[];self.next=1;self.fail=None;self.writes=[]
  def client(self,credential,router_id=None,**kwargs):return FakeClient(self)
  def new_id(self):self.next+=1;return f'*{self.next:X}'
  def user(self,name):return next((u for u in self.users.values() if u['name']==name),None)
@@ -24,6 +24,7 @@ class FakeClient:
   table={'ip/hotspot/user':self.router.users,'ip/hotspot/user/profile':self.router.profiles,'system/scheduler':self.router.schedulers}.get(menu)
   if table is not None:return [dict(x) for x in table.values() if x.get(key)==value]
   if menu=='ip/hotspot/active':return [dict(x) for x in self.router.active if x['user']==value]
+  if menu=='ip/hotspot/cookie':return [dict(x) for x in self.router.cookies if x['user']==value]
   raise AssertionError(path)
  def write(self,method,path,payload):
   if self.router.fail:raise RouterOSError(self.router.fail,'simulated')
@@ -35,6 +36,7 @@ class FakeClient:
    new=self.router.new_id();tables[path][new]={'.id':new,'disabled':'false',**payload};return {}
   menu,_,item=path.rpartition('/')
   if menu=='ip/hotspot/active':self.router.active=[x for x in self.router.active if x['.id']!=item];return {}
+  if menu=='ip/hotspot/cookie':self.router.cookies=[x for x in self.router.cookies if x['.id']!=item];return {}
   if method=='PATCH':tables[menu][item].update(payload);return {}
   if method=='DELETE':del tables[menu][item];return {}
   raise AssertionError((method,path))
@@ -94,13 +96,18 @@ class HotspotSyncTests(unittest.TestCase):
   self.assertEqual(fake.schedulers[next(iter(fake.schedulers))]['on-event'],EXPIRY_CHECK);self.assertEqual(next(iter(fake.schedulers.values()))['name'],SCHEDULER)
   self.assertEqual(self.sync(router,fake)['applied'],0)
   fake.active.append({'.id':'*S1','user':first['code']})
+  fake.cookies.append({'.id':'*C1','user':first['code'],'mac-address':'AA:BB:CC:DD:EE:FF'})
+  fake.cookies.append({'.id':'*C2','user':second['code'],'mac-address':'11:22:33:44:55:66'})
   self.assertEqual(self.client.post(f"/v1/vouchers/{first['id']}/disable",headers=owner,json={'reason':'Lost'}).status_code,200);self.assertEqual(self.triggered,[router])
   self.client.post(f"/v1/vouchers/{second['id']}/delete",headers=owner)
   self.client.post(f"/v1/vouchers/{third['id']}/revoke",headers=owner,json={'reason':'Fraud'})
   fourth=self.issue(owner,package,site,'sync-d');fake.writes.clear()
   result=self.sync(router,fake);self.assertEqual(result['applied'],4)
-  self.assertEqual(fake.user(first['code'])['disabled'],'true');self.assertEqual(fake.active,[]);self.assertIsNone(fake.user(second['code']))
+  self.assertEqual(fake.user(first['code'])['disabled'],'true');self.assertEqual(fake.active,[]);self.assertEqual(fake.cookies,[])
+  self.assertIsNone(fake.user(second['code']))
   self.assertEqual(fake.user(third['code'])['disabled'],'true');self.assertEqual(fake.user(fourth['code'])['disabled'],'false')
+  self.assertTrue(any(m=='DELETE' and p.startswith('ip/hotspot/cookie/') for m,p,_ in fake.writes))
+  self.assertIn('/ip hotspot cookie remove [find where user=$u]',EXPIRY_CHECK)
   self.assertEqual(fake.writes[-1][0],'PUT')
   self.client.post(f"/v1/vouchers/{first['id']}/enable",headers=owner);self.sync(router,fake)
   self.assertEqual(fake.user(first['code'])['disabled'],'false')

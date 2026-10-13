@@ -39,7 +39,7 @@ Owner order: MikroTik / captive portal ahead of remaining P0a. ChatGPT owns G01�
 2. ~~**Per-router REST serialization**~~ — shipped `8f9e6e2` @ 20261013T093530Z.
 3. ~~**Safe Change backup completeness**~~ — shipped `c362d5d` @ 20261013T094841Z.
 4. ~~**GET /v1/routers connection_state**~~ — shipped `e7c8eb3` @ 20261013T100051Z.
-5. HotSpot cookie removal on voucher disable/revoke — **next**.
+5. HotSpot cookie removal on voucher disable/revoke — **in this increment**.
 6. Add `safe_change_worker` to Hostinger compose with reviewed `ALLOW_INFRA_CHANGE=1`.
 7. Do **not** enable `MIKROMAGIC_ROUTER_SETTINGS_CHANGES` on production until the owner opens a hardware window.
 8. Leave ChatGPT presentation (G01+) alone unless reviewing a PR they open.

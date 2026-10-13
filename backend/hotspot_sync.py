@@ -45,7 +45,8 @@ def expiry_on_login(seconds):
 
 EXPIRY_CHECK=(':local now [:timestamp];:foreach i in=[/ip hotspot user find where comment~"^'+USER_COMMENT+'" and disabled=no] do={'
  ':local c [/ip hotspot user get $i comment];:local p [:find $c "|exp="];:if ([:typeof $p]!="nil") do={'
- ':if ($now>=[:totime [:pick $c ($p+5) [:len $c]]]) do={:local u [/ip hotspot user get $i name];/ip hotspot user disable $i;/ip hotspot active remove [find where user=$u]}}}')
+ ':if ($now>=[:totime [:pick $c ($p+5) [:len $c]]]) do={:local u [/ip hotspot user get $i name];/ip hotspot user disable $i;'
+ '/ip hotspot active remove [find where user=$u];/ip hotspot cookie remove [find where user=$u]}}}')
 
 def profile_for(limits):
  fields={'shared-users':str(limits['devices']),'rate-limit':f"{limits['rate_kbps']}k/{limits['rate_kbps']}k" if limits['rate_kbps'] else '',
@@ -98,8 +99,11 @@ class RouterHotspot:
   if user and not str(user.get('comment') or '').startswith(USER_COMMENT):raise HotspotSyncError('hotspot_user_conflict','A HotSpot user with this voucher code exists and was not created by MikroMagic')
   return user
  def disconnect(self,code):
+  """Drop active sessions and HotSpot cookies so a disabled/removed voucher cannot stay logged in."""
   sessions=self.client.get('ip/hotspot/active?user='+code)
   for session in sessions if isinstance(sessions,list) else []:self.client.write('DELETE','ip/hotspot/active/'+session['.id'],None)
+  cookies=self.client.get('ip/hotspot/cookie?user='+code)
+  for cookie in cookies if isinstance(cookies,list) else []:self.client.write('DELETE','ip/hotspot/cookie/'+cookie['.id'],None)
  def apply(self,code,desired,profile,fields):
   user=self._user(code)
   if desired=='present':
