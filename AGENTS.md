@@ -74,6 +74,8 @@ Small non-router fixes may still ship, but do not start new P1–P3 features unt
 
 The frozen v1 tracker dated 2026-10-08 makes real-device acceptance the top priority. Continue RouterOS enrollment, WireGuard, HotSpot/accounting/enforcement, backup/restore and vendor acceptance work without claiming success until real infrastructure evidence exists. `MIKROMAGIC-REQUIREMENTS.md` is authoritative and `REQUIREMENTS-GAP.md` is the current audit.
 
+Owner decision 2026-10-13 (guest phone login): the router login page is MikroMagic's own design with exactly one voucher-code box (no username/password pair); codes work in any letter case, ignoring spaces and dashes.
+
 SME sidebar guidance is named 'Did you know?'. Platform publishers manage sourced cards. Keep compatibility marked unchecked until trusted router discovery exists. VPN, HotSpot/portal and RADIUS are separate roles. Local User Manager is a proposed authentication option; preserve it without claiming integration exists.
 
 The user requested continuing through remaining non-live work without pausing for approval after each feature on 2026-10-06. Implement and verify consecutive work items, retaining the whole product scope. Pause only for real permission/access blockers or material business choices. Do not imply background execution continues after a final reply. Site WAN/budget and topology editors share one revision; preserve both settings when saving. Manual estimates/topology never count as discovered telemetry or verified enforcement.

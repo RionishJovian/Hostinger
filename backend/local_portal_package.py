@@ -30,7 +30,10 @@ _CSS = (
     'input,button.primary{display:block;width:100%;box-sizing:border-box;font:inherit;'
     'padding:.85rem;margin:.35rem 0 1rem;min-height:48px;border-radius:.55rem;border:1px solid #b7c9bf}'
     'button.primary{background:#176b50;color:#fff;border:0;font-weight:600}'
+    '#voucher{text-transform:uppercase;letter-spacing:.14em;text-align:center;font-size:1.3rem;font-weight:600}'
+    '#voucher::placeholder{text-transform:none;letter-spacing:normal;font-weight:400;font-size:1rem}'
     'a{color:#176b50}.err{color:#8b1e1e;margin:0 0 1rem}.ok{color:#176b50;margin:0 0 1rem}'
+    '.mm{margin:2rem 0 0;text-align:center;font-size:.78rem;color:#5d7368;letter-spacing:.04em}'
     '.my{display:none}html[lang="my"] .my{display:inline}html[lang="my"] .en{display:none}'
     'html[lang="en"] .en{display:inline}html[lang="en"] .my{display:none}'
     'html[lang="my"] .my-block{display:block}html[lang="my"] .en-block{display:none}'
@@ -87,7 +90,7 @@ def _page(title_my: str, title_en: str, content: str, cfg: PortalConfig) -> str:
         + (f'<p class="lead">{welcome}</p>' if welcome else '')
         + content
         + _LANG_JS
-        + '</main></body></html>'
+        + '<p class="mm">MikroMagic</p></main></body></html>'
     )
 
 
@@ -122,13 +125,15 @@ def build_local_hotspot_package(settings: PortalConfig | dict, *, tenant_id: str
         f'<p class="lead">{_bilingual("ကုဒ်ကို ရိုက်ထည့်ပါ။ QR ဖြင့် ဖွင့်ထားလျှင် ကုဒ် ဖြည့်ပြီး ဖြစ်နိုင်သည်။", "Enter your code. A QR link may fill it for you.")}</p>'
         '<noscript><p class="err">JavaScript is required for the router challenge login.</p></noscript>'
         '<script>' + _MD5_JS +
-        'function doLogin(){var c=(document.getElementById("voucher").value||"").trim();'
+        # Codes are stored upper-case without spaces/hyphens; RouterOS user names are case-sensitive.
+        'function norm(v){return (v||"").replace(/[\\s-]+/g,"").toUpperCase()}'
+        'function doLogin(){var c=norm(document.getElementById("voucher").value);'
         'if(!c)return false;document.sendin.username.value=c;'
         'document.sendin.password.value=md5("$(chap-id)"+c+"$(chap-challenge)");'
         'document.sendin.submit();return false}'
         '(function(){var u=new URLSearchParams(location.search).get("username");'
         'var el=document.getElementById("voucher");'
-        'if(u&&el&&(!el.value||el.value==="$(username)"))el.value=u})()'
+        'if(u&&el&&(!el.value||el.value==="$(username)"))el.value=norm(u)})()'
         '</script>'
     )
 

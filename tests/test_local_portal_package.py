@@ -87,5 +87,17 @@ class LocalPortalPackageTests(unittest.TestCase):
         result = subprocess.run(['node', '-e', script + ';process.stdout.write(md5("abc"))'], capture_output=True, text=True, check=True)
         self.assertEqual(result.stdout, '900150983cd24fb0d6963f7d28e17f72')
 
+    @unittest.skipUnless(shutil.which('node'), 'Node.js is required for the code normalization check')
+    def test_typed_code_is_normalized_like_issued_codes(self):
+        package = build_local_hotspot_package(self.settings, tenant_id='tenant_01', site_id='site_01', revision=1)
+        with zipfile.ZipFile(io.BytesIO(package)) as archive:
+            login = archive.read('login.html').decode()
+        start = login.index('function norm(v){')
+        script = login[start:login.index('function doLogin()', start)]
+        result = subprocess.run(['node', '-e', script + ';process.stdout.write(norm(" ym-fv ln\\t"))'], capture_output=True, text=True, check=True)
+        self.assertEqual(result.stdout, 'YMFVLN')
+        self.assertIn('text-transform:uppercase', login)
+        self.assertIn('MikroMagic', login)
+
 
 if __name__ == '__main__': unittest.main()
