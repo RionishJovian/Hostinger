@@ -120,40 +120,40 @@ def register_first_site_acceptance(app, current, db):
             ).order_by(RouterChange.created.desc(), RouterChange.id.desc()))
 
         stages = [
-            _stage('site_details', 'Site details', True,
+            _stage('site_details', 'Shop details', True,
                    f'{site.name} · {site.timezone}'),
-            _stage('router_registered', 'Add MikroTik', bool(router),
-                   f'{router.name} · owner-reported {router.model}' if router else
-                   ('Choose one of the registered routers.' if routers else 'Register a MikroTik for this site.')),
-            _stage('connection_verified', 'Verify Magic Connect', connected,
-                   'Fresh Hub handshake followed by an authenticated identity-bound management read.' if connected else
-                   'Connected requires a real Hub handshake and a newer authenticated RouterOS management read.',
+            _stage('router_registered', 'Add your MikroTik', bool(router),
+                   (f'{router.name}' + (f' · {router.model}' if router.model else '')).strip(' ·') if router else
+                   ('Choose which router this shop uses.' if routers else 'Add a MikroTik router for this shop.')),
+            _stage('connection_verified', 'Connect the router to MikroMagic', connected,
+                   'This router is connected and ready for remote checks.' if connected else
+                   'Connect the router with Magic Hub so MikroMagic can manage it remotely. This needs a real router online.',
                    blocked=not router),
-            _stage('preflight_verified', 'Detect model, RouterOS and capabilities', preflight_verified,
-                   'Compatible post-connection evidence from the dedicated Monitoring identity.' if preflight_verified else
-                   'Run the read-only post-connection preflight; owner-reported model/version do not count.',
+            _stage('preflight_verified', 'Check what the router can do', preflight_verified,
+                   'MikroMagic read the live router and checked that guest Wi-Fi setup is safe to continue.' if preflight_verified else
+                   'After the router is connected, run a quick check so MikroMagic can see the real model and guest Wi-Fi setup. Typing the model yourself is not enough.',
                    blocked=not connected),
-            _stage('portal_published', 'Publish portal content to MikroMagic', portal_prepared,
-                   f'Published revision {portal.published_revision} has a deterministic local content package.' if portal_prepared else
-                   'Publish this site portal to prepare a reviewable local content package.'),
-            _stage('hotspot_change_prepared', 'Prepare RouterOS HotSpot change', hotspot_plan_prepared,
-                   'An exact content/profile diff is prepared for guided Safe Change publish.' if hotspot_plan_prepared else
-                   'Select an observed HotSpot server to prepare an exact diff for Publish to MikroTik.',
+            _stage('portal_published', 'Save guest Wi-Fi page in MikroMagic', portal_prepared,
+                   f'Guest Wi-Fi page revision {portal.published_revision} is saved in MikroMagic and ready for the router.' if portal_prepared else
+                   'On Guest Wi-Fi page, finish and save the login page design for this shop. This stores it in MikroMagic — it does not change the router yet.'),
+            _stage('hotspot_change_prepared', 'Choose guest Wi-Fi for the page', hotspot_plan_prepared,
+                   'The guest Wi-Fi target on the router is chosen and ready for your review.' if hotspot_plan_prepared else
+                   'After the router check, choose which guest Wi-Fi HotSpot should show your login page.',
                    blocked=not (preflight_verified and portal_prepared)),
-            _stage('owner_review', 'Owner review and confirmation', owner_reviewed,
-                   'The Owner/Admin confirmed the exact proposal scope before Safe Change backup and apply.' if owner_reviewed else
-                   'Review shared-profile impact, exclusions, backup gate and rollback before confirming the proposal.', blocked=not hotspot_plan_prepared),
-            _stage('router_apply_verified', 'Apply and verify on the router', router_apply_verified,
-                   (f"Safe Change {applied.id} installed the local package and switched the selected profile; real-router acceptance is still pending."
+            _stage('owner_review', 'Review before sending to the router', owner_reviewed,
+                   'You confirmed what will change on the router, including backup and undo.' if owner_reviewed else
+                   'Review the planned guest-page change, backup, and undo steps before MikroMagic touches the router.', blocked=not hotspot_plan_prepared),
+            _stage('router_apply_verified', 'Send guest page to the router', router_apply_verified,
+                   ('The guest Wi-Fi page was sent to the router with backup and verify. A real phone test is still required before the shop is ready.'
                     if router_apply_verified else
-                    'Publish to MikroTik through Safe Change: backup, create-only install, profile switch, verify and rollback.'),
+                    'Send the saved guest Wi-Fi page to the router safely: backup first, install, switch the guest page, verify, and undo if needed.'),
                    blocked=not owner_reviewed),
-            _stage('temporary_test_voucher', 'Create temporary test voucher', test_voucher_issued,
-                   'Withheld until real-router portal and enforcement verification exists; it must be excluded from revenue and normal voucher statistics.', blocked=True),
-            _stage('first_customer_test', 'First Customer Test', customer_test_verified,
-                   'Requires a real phone through Wi-Fi, captive portal, voucher and internet plus router session/accounting evidence.', blocked=True),
-            _stage('site_ready', 'Site Ready', site_ready,
-                   'Fail closed until every earlier technical and owner-confirmation gate is verified on a real router.', blocked=True),
+            _stage('temporary_test_voucher', 'Create a test voucher', test_voucher_issued,
+                   'Available after the guest page works on the real router. Test vouchers are not counted as normal sales.', blocked=True),
+            _stage('first_customer_test', 'Test with a real phone', customer_test_verified,
+                   'Join the shop Wi-Fi on a real phone, open the guest page, use a voucher, and confirm internet works.', blocked=True),
+            _stage('site_ready', 'Shop ready', site_ready,
+                   'Opens only after the router is connected, the guest page is on the router, and a real phone test succeeds.', blocked=True),
         ]
         return {
             'site': {'id': site.id, 'name': site.name, 'timezone': site.timezone},

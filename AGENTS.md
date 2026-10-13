@@ -54,6 +54,8 @@ Run the local server yourself and open the preview in the browser available to t
 
 Before making substantial visual changes, use the Product Design plugin's `get-context` skill when the visual source is unclear or no longer matches the current goal. When the user gives durable prototype-specific design feedback, preferences, or decisions, record them in `AGENTS.md`.
 
+Owner product-voice decision 2026-10-13: `megamagic.tech` is a B2B product for MikroMagic customers (shop owners / staff), not an engineering status board or agent chat. SME-facing copy must speak to the customer about their daily shop and MikroTik jobs (connect router, guest Wi-Fi page, vouchers, remote management). Do not show internal acceptance jargon, evidence-boundary wording, or feature-build narration on owner screens. Prefer plain steps (“Save guest Wi-Fi page in MikroMagic” vs “Publish portal content to MikroMagic”). Keep fail-closed honesty without sounding like a lab checklist.
+
 When implementing from a selected generated mock, treat that image as the source of truth for layout, component anatomy, density, spacing, color, typography, visible content, and hierarchy.
 
 Build app UI in `src/`. Keep `.openai/hosting.json`, `worker/index.js`, `scripts/prepare-sites-build.mjs`, and `tests/sites-worker.test.mjs` intact so the same local prototype can be handed to Sites. Before a Sites handoff, run `npm run build` and `npm run test:sites`; the build must leave `dist/client/index.html`, `dist/server/index.js`, and `dist/.openai/hosting.json`.
