@@ -130,6 +130,19 @@ These RouterOS behaviours are assumptions; each failure stops the window with a 
 - Still unverified: the scheduler actually expiring a user at `|exp=` (needs the hour to pass), data quotas (`limit-bytes-total`), `limit-uptime` (connected-clock plans), multi-device `shared-users`, and a real phone. HotSpot cookies (`/ip hotspot cookie`) remain after disable; the disabled user could not log in, but removing them on disable is a small follow-up.
 - Display gap: `GET /v1/routers` still reports `connection_state: unverified` for every router (hardcoded); the router plan carries the real state.
 
+### Later the same day — guest login page publish and extra checks
+
+- Guest page (`3e7c0a4`): one voucher-code box; typed codes are uppercased and spaces/dashes dropped before CHAP login. Lab profile `mm-lab-hsprof` set to `login-by=cookie,http-chap`.
+- Publish to MikroTik needed four adapter fixes, each found on the router and tested: configuration export fallback to `execute as-string` because `/rest/export` returns `[]` on 7.24.2 (`ba2e3a2`); files created with `PUT /rest/file {name,contents}`, which is create-only and creates the directory (`a519cc5`); `api.json` skipped because RouterOS REST refuses `.json` files, and `DELETE` sent without a body (`f0aabb3`); resource ids sent unencoded because RouterOS answers `%2A1` with `no such command prefix` (`5a2ac1b`).
+- Two failed attempts left the 9 new files in `mm-b21-731723e8-r2` while the profile stayed on `hotspot`; the engineer removed them and a manual scheduler pass recorded `manual_or_delayed_recovery_verified` / `rolled_back`. The Hostinger public test does not run `backend.safe_change_worker`, so `recovery_required` changes are only re-checked manually until that reviewed infra change lands.
+- Applied publish (13:5x local, before `5a2ac1b` was deployed, because the owner's Mac battery was failing): the normal Safe Change apply ran in a one-off process inside the public-test API container with only the corrected `set_hotspot_profile_html_directory`. Result `applied`, safety backup verified, profile `html-directory=mm-b21-731723e8-r2`, 9 files present. The same fix was deployed through the script at 20261013T073052Z.
+- Voucher `6ZYRPM` (Test 1 hour) synced for the owner's phone test; the phone test of the new page (lowercase code) is still pending.
+- Expiry verified: `YMFVLN` (`|exp=` 14:00:26 router time) was disabled by `mm-voucher-expiry` at the 14:01 run without the app.
+- Quota/devices sync verified (router settings only): plan "Test 2 devices 1GB" (both, 2 h, 1 GB, 2 devices, 3 Mbps) gave user `P4DVBC` `limit-bytes-total=1000000000` and profile `mm-ab6de62fe9` `shared-users=2`, `rate-limit=1500k/1500k` (package speed split per device). Enforcement at 1 GB and a third device were not exercised.
+- Accounting read: `POST /v1/routers/{id}/hotspot-sessions/collect` returned `verified`, `fresh`, 0 active guests.
+- Reboot recovery verified: `/system reboot` at 14:01:26; by 14:03:01 the Hub saw a 34 s-old handshake, preflight `connected` with `management_read_verified`, accounting `fresh`. Engineer SSH could not be reopened afterwards (admin password was entered privately), so post-reboot router-side state beyond the app reads was not inspected.
+- Still unverified: phone test of the new page, quota and device-limit enforcement, automatic Safe Change rollback, backup restore, the WireGuard keepalive Safe Change, gateway-loss timeout rollback, and Hub restart recovery.
+
 ## Known gaps after the window
 
 - Router credential files are stored unencrypted on the API's `routeros_credentials` volume (directory mode 0700, files 0600). Encryption at rest (M1) is still required before launch.
