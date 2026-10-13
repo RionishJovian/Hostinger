@@ -1409,6 +1409,25 @@ artifact sha256 1f8cf946e4d670b1864d90c0190b06bbf9e94be5e85cff67a4efba542b51ad32
 
 **No router contact.** Restored owner-approved Connect with Magic Hub one-paste as the primary Routers path (technician QR secondary). Demo exposes Guest Wi-Fi page and the Magic Hub connect button for owner QA. Live capability: `router_setup_available=true`. Settings-changes flag remained off.
 
+### Scripted redeploy — remove the Guest Wi-Fi page (2026-10-13 23:19 UTC)
+
+| Item | Value |
+|---|---|
+| Source | Removal `7ab2e0b`, tip `5f1611f` on `origin/main`; artifact `bd354685836b93984987d9c163118b8adcac9f1dc62b5418cf3751543ebd334c` (236 files) |
+| Directory | `/opt/mikromagic-build21-public-test-20261013T231924Z`; previous `-20261013T222947Z` |
+| Pre-deploy dump | `backups/pre-deploy.dump` (525 restore-list entries) |
+| Migration | **061 → 061** (no new revision); rehearsal skipped |
+| Rollback images | `…-{api,web,magic-hub,migrate}:rollback-20261013T231924Z` |
+| Result | api, web and safe-change-worker recreated; Hub untouched (`TG1jLN13+hA1Eg9/1h0DykQ768ZHZO54WFGAZWhjL0o=`, UDP `156.67.216.128:51820`). Bundle `index-BKvq1EpK.js`. Worker **running**. |
+
+**Deployed 5f1611f at 20261013T231924Z**
+artifact sha256 bd354685836b93984987d9c163118b8adcac9f1dc62b5418cf3751543ebd334c (236 files), bundle index-BKvq1EpK.js
+
+**Rollback:** on the VPS, for s in api web magic-hub migrate; do docker tag mikromagic-build21-public-test-$s:rollback-20261013T231924Z mikromagic-build21-public-test-$s:latest; done
+          then cd /opt/mikromagic-build21-public-test-20261013T222947Z && docker compose -p mikromagic-build21-public-test -f compose.hostinger-public-test.yaml up -d --no-deps --force-recreate api web safe-change-worker
+          Restore /opt/mikromagic-build21-public-test-20261013T231924Z/backups/pre-deploy.dump only if the migration itself is at fault.
+
+**No router contact.** Owner decision: the Guest Wi-Fi page is removed from the shop app (menu, phone preview, Publish to MikroMagic, and Shops Deploy to RouterBoard). Guest sign-in orders stay. Stored portal rows and the router HotSpot package stay in the backend. Settings-changes flag remained off.
 
 - Next app work (as of 2026-10-12 09:00 UTC+6:30, live at migration 049, commit `13d40af`):
   - Terminology and Burmese (P0a) owner-facing chrome is live across SME pages including Integrations, Did you know?, guided first-shop acceptance, Magic Boy, Media, Account, Sites, Revenue, Payments and Packages/Passes. Platform screens stay English. Native-speaker/mobile QA remains open.
