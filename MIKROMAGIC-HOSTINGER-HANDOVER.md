@@ -812,6 +812,88 @@ Restore /opt/mikromagic-build21-public-test-20261013T061225Z/backups/pre-deploy.
 then cd /opt/mikromagic-build21-public-test-20261013T061225Z && docker compose -p mikromagic-build21-public-test -f compose.hostinger-public-test.yaml up -d --no-deps --force-recreate api web
 Restore /opt/mikromagic-build21-public-test-20261013T062138Z/backups/pre-deploy.dump only if the migration itself is at fault.
 
+### Scripted redeploy — guest login page single voucher-code box (2026-10-13 06:40 UTC)
+
+| Item | Value |
+|---|---|
+| Source | Commit `3e7c0a4` on `origin/main`; artifact `065657bdf95bef352d85185bfebf34ebd0389551fb00de2897dbce7234bdd6f9` (214 files) |
+| Directory | `/opt/mikromagic-build21-public-test-20261013T064014Z`; previous `-20261013T062138Z` |
+| Infra files | none |
+| Pre-deploy dump | `backups/pre-deploy.dump` |
+| Migration | none (stays 054); rehearsal skipped |
+| Rollback images | `…-{api,web,magic-hub,migrate}:rollback-20261013T064014Z` |
+| Result | api and web recreated; Hub untouched. Guest login page: single voucher-code box (no username/password pair), codes accepted in any letter case ignoring spaces and dashes, MikroMagic styling (`backend/local_portal_package.py`) |
+
+**Rollback:** on the VPS, for s in api web magic-hub migrate; do docker tag mikromagic-build21-public-test-$s:rollback-20261013T064014Z mikromagic-build21-public-test-$s:latest; done
+then cd /opt/mikromagic-build21-public-test-20261013T062138Z && docker compose -p mikromagic-build21-public-test -f compose.hostinger-public-test.yaml up -d --no-deps --force-recreate api web
+Restore /opt/mikromagic-build21-public-test-20261013T064014Z/backups/pre-deploy.dump only if the migration itself is at fault.
+
+### Scripted redeploy — RouterOS 7 configuration export fallback (2026-10-13 06:50 UTC)
+
+| Item | Value |
+|---|---|
+| Source | Commit `ba2e3a2` on `origin/main`; artifact `465003253443bc97e2544c4fdf713a6d0f1db5c4c18cfc1ad7b751c1fbe2f091` (214 files) |
+| Directory | `/opt/mikromagic-build21-public-test-20261013T065026Z`; previous `-20261013T064014Z` |
+| Infra files | none |
+| Pre-deploy dump | `backups/pre-deploy.dump` |
+| Migration | none (stays 054); rehearsal skipped |
+| Rollback images | `…-{api,web,magic-hub,migrate}:rollback-20261013T065026Z` |
+| Result | api and web recreated; Hub untouched. RouterOS 7 configuration export fallback: `/rest/export` returns `[]`; now `POST /rest/execute {"script":"/export terse","as-string":""}`, requires text starting with `# `; secrets hidden by RouterOS 7 default |
+
+**Rollback:** on the VPS, for s in api web magic-hub migrate; do docker tag mikromagic-build21-public-test-$s:rollback-20261013T065026Z mikromagic-build21-public-test-$s:latest; done
+then cd /opt/mikromagic-build21-public-test-20261013T064014Z && docker compose -p mikromagic-build21-public-test -f compose.hostinger-public-test.yaml up -d --no-deps --force-recreate api web
+Restore /opt/mikromagic-build21-public-test-20261013T065026Z/backups/pre-deploy.dump only if the migration itself is at fault.
+
+### Scripted redeploy — portal files via PUT /rest/file (2026-10-13 07:04 UTC)
+
+| Item | Value |
+|---|---|
+| Source | Commit `a519cc5` on `origin/main`; artifact `f131fa14168a8ede9b4ca17792f820f085c08fd71dbeec246cccee269317f67f` (214 files) |
+| Directory | `/opt/mikromagic-build21-public-test-20261013T070436Z`; previous `-20261013T065026Z` |
+| Infra files | none |
+| Pre-deploy dump | `backups/pre-deploy.dump` |
+| Migration | none (stays 054); rehearsal skipped |
+| Rollback images | `…-{api,web,magic-hub,migrate}:rollback-20261013T070436Z` |
+| Result | api and web recreated; Hub untouched. Portal files created with `PUT /rest/file {name,contents}` (create-only, auto-creates directory); rollback removes the empty directory via `POST /rest/file/remove` |
+
+**Rollback:** on the VPS, for s in api web magic-hub migrate; do docker tag mikromagic-build21-public-test-$s:rollback-20261013T070436Z mikromagic-build21-public-test-$s:latest; done
+then cd /opt/mikromagic-build21-public-test-20261013T065026Z && docker compose -p mikromagic-build21-public-test -f compose.hostinger-public-test.yaml up -d --no-deps --force-recreate api web
+Restore /opt/mikromagic-build21-public-test-20261013T070436Z/backups/pre-deploy.dump only if the migration itself is at fault.
+
+### Scripted redeploy — skip api.json on router install; bodyless DELETE (2026-10-13 07:15 UTC)
+
+| Item | Value |
+|---|---|
+| Source | Commit `f0aabb3` on `origin/main`; artifact `26cba54f29a10f9a00cdf4996cfeef41c2d0644de0fb7411b722d0e59f4956c1` (214 files) |
+| Directory | `/opt/mikromagic-build21-public-test-20261013T071506Z`; previous `-20261013T070436Z` |
+| Infra files | none |
+| Pre-deploy dump | `backups/pre-deploy.dump` |
+| Migration | none (stays 054); rehearsal skipped |
+| Rollback images | `…-{api,web,magic-hub,migrate}:rollback-20261013T071506Z` |
+| Result | api and web recreated; Hub untouched. `api.json` skipped on router install (RouterOS REST refuses `.json` files: "permission denied"); RouterOS DELETE sent without body |
+
+**Rollback:** on the VPS, for s in api web magic-hub migrate; do docker tag mikromagic-build21-public-test-$s:rollback-20261013T071506Z mikromagic-build21-public-test-$s:latest; done
+then cd /opt/mikromagic-build21-public-test-20261013T070436Z && docker compose -p mikromagic-build21-public-test -f compose.hostinger-public-test.yaml up -d --no-deps --force-recreate api web
+Restore /opt/mikromagic-build21-public-test-20261013T071506Z/backups/pre-deploy.dump only if the migration itself is at fault.
+
+### Scripted redeploy — RouterOS literal resource ids in PATCH paths (2026-10-13 07:30 UTC)
+
+| Item | Value |
+|---|---|
+| Source | Commit `5a2ac1b` on `origin/main`; artifact `ae7eea8b6ca3e9878975c1725f8d61c9ef41836e00de3798a86e08dc1977031f` (214 files) |
+| Directory | `/opt/mikromagic-build21-public-test-20261013T073052Z`; previous `-20261013T071506Z` |
+| Infra files | none |
+| Pre-deploy dump | `backups/pre-deploy.dump` (at 054, 490 restore-list entries) |
+| Migration | none (stays 054); rehearsal skipped |
+| Rollback images | `…-{api,web,magic-hub,migrate}:rollback-20261013T073052Z` |
+| Result | api and web recreated; Hub untouched. RouterOS resource ids (e.g. `*1`) are sent unencoded in PATCH paths for `ip/hotspot/profile/<id>` and `interface/wireguard/peers/<id>` (RouterOS 7.24.2 answers `400 no such command prefix` to `%2A1`); bundle `index-CNwmMELv.js` |
+
+**Rollback:** on the VPS, for s in api web magic-hub migrate; do docker tag mikromagic-build21-public-test-$s:rollback-20261013T073052Z mikromagic-build21-public-test-$s:latest; done
+then cd /opt/mikromagic-build21-public-test-20261013T071506Z && docker compose -p mikromagic-build21-public-test -f compose.hostinger-public-test.yaml up -d --no-deps --force-recreate api web
+Restore /opt/mikromagic-build21-public-test-20261013T073052Z/backups/pre-deploy.dump only if the migration itself is at fault.
+
+**Note — Safe Change worker not in Hostinger public-test compose:** `python -m backend.safe_change_worker` exists in `compose.yaml` but not in `compose.hostinger-public-test.yaml`, so `recovery_required` changes are only re-checked by a manual scheduler pass. Adding the worker is a reviewed infra change left for owner review (not applied in this deploy).
+
 - Next app work (as of 2026-10-12 09:00 UTC+6:30, live at migration 049, commit `13d40af`):
   - Terminology and Burmese (P0a) owner-facing chrome is live across SME pages including Integrations, Did you know?, guided first-shop acceptance, Magic Boy, Media, Account, Sites, Revenue, Payments and Packages/Passes. Platform screens stay English. Native-speaker/mobile QA remains open.
   - Routers page guided (P0a step 5): Connect your router steps first; Magic Hub, connection plans and Safe RouterOS changes under a closed Advanced (technician) section that opens when a change needs attention.
