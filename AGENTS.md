@@ -75,6 +75,8 @@ Before making substantial visual changes, use the Product Design plugin's `get-c
 
 Owner product-voice decision 2026-10-13: `megamagic.tech` is a B2B product for MikroMagic customers (shop owners / staff), not an engineering status board or agent chat. SME-facing copy must speak to the customer about their daily shop and MikroTik jobs (connect router, guest Wi-Fi page, vouchers, remote management). Do not show internal acceptance jargon, evidence-boundary wording, or feature-build narration on owner screens. Prefer plain steps (“Save guest Wi-Fi page in MikroMagic” vs “Publish portal content to MikroMagic”). Keep fail-closed honesty without sounding like a lab checklist.
 
+Owner decision 2026-10-13 (sole builder): Cursor owns **all** implementation and progress for MikroMagic on this repository — including former ChatGPT support lanes G01–G06 (presentation tokens/components, responsive shell, copy/a11y, page polish, guidance presentation, frontend QA) as well as C01–C07. Do not wait on ChatGPT handoffs, CSS-only zips, or support patches. Notion may still mention historical G01–G06 labels for traceability; Cursor builds and deploys them.
+
 When implementing from a selected generated mock, treat that image as the source of truth for layout, component anatomy, density, spacing, color, typography, visible content, and hierarchy.
 
 Build app UI in `src/`. Keep `.openai/hosting.json`, `worker/index.js`, `scripts/prepare-sites-build.mjs`, and `tests/sites-worker.test.mjs` intact so the same local prototype can be handed to Sites. Before a Sites handoff, run `npm run build` and `npm run test:sites`; the build must leave `dist/client/index.html`, `dist/server/index.js`, and `dist/.openai/hosting.json`.
