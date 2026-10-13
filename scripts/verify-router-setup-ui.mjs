@@ -10,9 +10,10 @@ try{
  assert.equal(states({sites:[],routers:[]}),'next,later,later,later');
  assert.equal(states({sites:[{}],routers:[]}),'done,next,later,later');
  assert.equal(states({sites:[{}],routers:[{connection_state:'unverified'}]}),'done,done,next,later','an unverified router is not connected');
- assert.equal(states({sites:[{}],routers:[{connection_state:'connected'}]}),'done,done,done,next');
+ assert.equal(states({sites:[{}],routers:[{connection_state:'connected'}]}),'done,done,done,done','a fresh Connected router completes the check step');
  const html=render(c.RouterSetupSteps,{sites:[{id:'s'}],routers:[],navigate:()=>{}});
- for(const text of ['Connect your router','1. Add your shop','1 shop added.','2. Register your router','Go to the form','3. Connect it with a technician','Automatic setup is not available yet','4. Check the connection'])assert.ok(html.includes(text),text);
+ for(const text of ['Connect your router','1. Add your shop','1 shop added.','2. Register your router','Go to the form','3. Connect it with a technician','pairing section','Do not paste a separate WinBox script','4. Check the connection','Check handshake'])assert.ok(html.includes(text),text);
+ assert.doesNotMatch(html,/Open Routers|Paste the one script/);
  assert.equal(html.split('<button').length-1,1,'only the next step has a button');
  assert.doesNotMatch(html,/Connected ·|is connected\./);
  const burmese=render(c.RouterSetupSteps,{sites:[],routers:[],navigate:()=>{}},'my');assert.match(burmese,/Router ချိတ်ဆက်ရန်/);assert.match(burmese,/ဆိုင်များ ဖွင့်ရန်/);

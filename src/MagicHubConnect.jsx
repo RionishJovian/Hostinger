@@ -88,6 +88,19 @@ export function MagicHubConnectPopup({router,api,busy,onClose,onConnected}){
  </div>;
 }
 
+export function MagicHubConnectAdvanced({routers=[],api,busy,onChanged}){
+ const c=useSmeCopy('routersPage');
+ const [setupAvailable,setSetupAvailable]=useState(false);
+ useEffect(()=>{
+  if(!api)return;
+  let live=true;
+  api.request('magic-connect/capability').then(x=>{if(live)setSetupAvailable(x?.router_setup_available===true)}).catch(()=>{if(live)setSetupAvailable(false)});
+  return()=>{live=false};
+ },[api]);
+ if(!setupAvailable||!routers.length)return null;
+ return <section className="panel"><h2>{c.hubConnectTitle}</h2><p className="muted">{c.hubConnectAdvancedNote}</p><div className="magic-attempt-list">{routers.map(router=><article className="magic-attempt" key={router.id}><div><b>{router.name}</b></div><MagicHubConnectButton router={router} api={api} busy={busy} setupAvailable onChanged={onChanged}/></article>)}</div></section>;
+}
+
 export function MagicHubConnectButton({router,api,busy,setupAvailable,onChanged}){
  const c=useSmeCopy('routersPage');
  const [open,setOpen]=useState(false);

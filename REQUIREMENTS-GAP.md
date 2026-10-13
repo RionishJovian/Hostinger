@@ -31,6 +31,7 @@ Owner ordered Cursor to complete G01→G06 before other offline increments.
 | G04 stable-page polish | Partial | Shared glass panels/shadows/radius from G01; lighter density on knowledge/overview panels; further page-by-page pass still open. |
 | G05 guidance presentation | Implemented (software) | Did you know? tip-first expandable cards; search includes topic/related page; result count; clear-filters empty recovery; bilingual copy. Authenticated UI walkthrough still under G06. |
 | G06 frontend QA | Partial | Midnight token/contrast + shell + knowledge search unit checks; authenticated multi-role device walkthroughs still open. |
+| Router connect path | Implemented (software) | Routers page has one next step: technician pairing for an already registered router. One-paste WinBox script, manual public-key plans and Safe Change stay under Advanced. Unverified rows no longer offer preflight, voucher sync or health reads as a second way to connect. |
 
 ## Classification
 
