@@ -994,6 +994,27 @@ artifact sha256 768fd820fbdd9a174a6485ef9c4fe6b1dd08cdf019c828066f71008b000d79a3
 
 **Flag remained off.** Router not contacted.
 
+### Scripted redeploy — Safe Change backup completeness (2026-10-13 09:48 UTC)
+
+| Item | Value |
+|---|---|
+| Source | Commit `c362d5d` on `origin/main`; artifact `4e64b187fbe887b1173ad90eac91262bc80e05584eff364fba1738ff574bf635` (221 files) |
+| Directory | `/opt/mikromagic-build21-public-test-20261013T094841Z`; previous `-20261013T093530Z` |
+| Infra files | none (`infra_changed= none`) |
+| Pre-deploy dump | `backups/pre-deploy.dump` (490 restore-list entries) |
+| Migration | 057 → 057 (no new head); rehearsal skipped |
+| Rollback images | `…-{api,web,magic-hub,migrate}:rollback-20261013T094841Z` |
+| Result | api and web recreated; Hub untouched. Export completeness check live (file size + `/file/read` chunks; truncated `as-string` → `backup_incomplete`); `router_settings_changes_available: false`; Alembic **057**; bundle `index-Bl6r2e59.js` |
+
+**Deployed c362d5d at 20261013T094841Z**
+artifact sha256 4e64b187fbe887b1173ad90eac91262bc80e05584eff364fba1738ff574bf635 (221 files), bundle index-Bl6r2e59.js
+
+**Rollback:** on the VPS, for s in api web magic-hub migrate; do docker tag mikromagic-build21-public-test-$s:rollback-20261013T094841Z mikromagic-build21-public-test-$s:latest; done
+          then cd /opt/mikromagic-build21-public-test-20261013T093530Z && docker compose -p mikromagic-build21-public-test -f compose.hostinger-public-test.yaml up -d --no-deps --force-recreate api web
+          Restore /opt/mikromagic-build21-public-test-20261013T094841Z/backups/pre-deploy.dump only if the migration itself is at fault.
+
+**Flag remained off.** Router not contacted.
+
 - Next app work (as of 2026-10-12 09:00 UTC+6:30, live at migration 049, commit `13d40af`):
   - Terminology and Burmese (P0a) owner-facing chrome is live across SME pages including Integrations, Did you know?, guided first-shop acceptance, Magic Boy, Media, Account, Sites, Revenue, Payments and Packages/Passes. Platform screens stay English. Native-speaker/mobile QA remains open.
   - Routers page guided (P0a step 5): Connect your router steps first; Magic Hub, connection plans and Safe RouterOS changes under a closed Advanced (technician) section that opens when a change needs attention.
