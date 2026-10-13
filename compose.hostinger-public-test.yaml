@@ -50,6 +50,9 @@ services:
       MIKROMAGIC_HUB_PEER_READS_ENABLED: "true"
       MIKROMAGIC_HUB_PEER_WRITES_ENABLED: "true"
       MIKROMAGIC_MAGIC_CONNECT_ENABLED: "true"
+      # Hardware window only: technician-guided router setup (owner 2026-10-13).
+      # Remove and redeploy with ALLOW_INFRA_CHANGE=1 when the window closes.
+      MIKROMAGIC_MAGIC_CONNECT_ROUTER_SETUP: "true"
       # The API sees requests only from the fixed web reverse-proxy address.
       MIKROMAGIC_TRUSTED_PROXY_CIDRS: "${MIKROMAGIC_WEB_PROXY_IP:-172.31.21.10}/32"
     secrets: &api_secrets

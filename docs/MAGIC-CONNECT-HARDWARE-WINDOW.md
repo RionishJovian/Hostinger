@@ -1,6 +1,6 @@
 # Magic Connect hardware window — hAP ax² on the production Hub
 
-Status: prepared 2026-10-12, not yet run. This document is not authorization to contact or change the router. The owner chooses the window.
+Status: software readiness verified 2026-10-13; window not yet run. This document is not authorization to contact or change the router until the owner starts the window. The owner chooses the moment to power on and apply router commands.
 
 ## Goal
 
@@ -10,9 +10,35 @@ Enroll the owner's hAP ax² through the real Magic Connect flow on `mm-prod-hub`
 2. MikroMagic-created monitoring and Safe Change logins (S1 evidence)
 3. an authenticated, TLS-pinned, identity-checked management read: **Connected** (D1 evidence)
 
+## Offline readiness — verified 2026-10-13 (engineer, read-only)
+
+| Check | Result |
+|---|---|
+| Technician-guided setup code on `origin/main` | YES (steps 1–2b + voucher/portal/session software behind Connected) |
+| Production Hub `mm-prod-hub` healthy, UDP `156.67.216.128:51820` | YES |
+| Hub peer count | **0** (no live tunnels to interrupt) |
+| Hub public key (fingerprint only) | `TG1jLN13+hA1Eg9/1h0DykQ768ZHZO54WFGAZWhjL0o=` |
+| API → Hub tunnel relay (`MIKROMAGIC_HUB_RELAY_URL`) | YES (deployed earlier; 8791 not public) |
+| RouterOS credential dirs present, empty, mode 0700 | YES (`monitoring` / `safe-change` / `enroll`) |
+| Historical tunnel conflict plan | Disable `mmh-8adfeb441215` inside the window; delete only after Connected is proven |
+| Exact router commands + rollback | Generated live on the technician page after Hub peer add; historical-tunnel commands below |
+| Public capability before flag enable | `pairing_available: true`, `router_setup_available: false` |
+| Flag enable for the window | `MIKROMAGIC_MAGIC_CONNECT_ROUTER_SETUP: "true"` in `compose.hostinger-public-test.yaml`, deploy with `ALLOW_INFRA_CHANGE=1`, then confirm `router_setup_available: true` |
+
+**Offline readiness: YES.** Hardware uncertainties remain (see “Unverified until the window”). Do not claim Connected until step 9 succeeds.
+
+## Owner checklist before power-on
+
+1. Sign in at [megamagic.tech](https://megamagic.tech) as the business Owner/Admin.
+2. **Shops:** the shop that will own the hAP ax² already exists.
+3. **Routers:** register the hAP ax² on that shop if it is not already registered. Leave it with **no connection plan** yet. Have the **serial number from the router label** ready (typed later at approval).
+4. Technician device ready (phone or laptop) with WinBox or RouterOS terminal to the router on the local LAN, using **Safe Mode** for writes.
+5. Confirm local Wi-Fi / customer traffic that must stay up; stop if any step would touch WAN, LAN, Wi-Fi, HotSpot servers, other VPNs or unrelated firewall rules.
+6. After the engineer confirms `router_setup_available: true`, power on the router and start the sequence table below.
+
 ## Before the window (engineer)
 
-- `origin/main` deployed with step 2b; capability shows `router_setup_available: false`.
+- `origin/main` deployed with step 2b; capability showed `router_setup_available: false` before the window flag.
 - Enable setup for the window only: add `MIKROMAGIC_MAGIC_CONNECT_ROUTER_SETUP: "true"` to the API environment in `compose.hostinger-public-test.yaml`, commit, deploy with `ALLOW_INFRA_CHANGE=1`, confirm `router_setup_available: true`.
 - The router is registered on the owner's Routers page for the right shop, with no plan yet.
 - Hub has 0 peers; Hub key `TG1jLN13+hA1Eg9/1h0DykQ768ZHZO54WFGAZWhjL0o=`.
