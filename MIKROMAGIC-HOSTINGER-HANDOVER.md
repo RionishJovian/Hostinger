@@ -1369,6 +1369,26 @@ artifact sha256 579aa25db54e48e36f359ca8d1df7481833b6f8089f94adad3783346693f04d7
 
 **No router contact.** Routers page next step is technician pairing for an already registered router. One-paste WinBox script stays under Advanced. Settings-changes flag remained off.
 
+### Scripted redeploy — actual HotSpot pages in the guest preview (2026-10-13 21:44 UTC)
+
+| Item | Value |
+|---|---|
+| Source | Commit `a2056bb` on `origin/main`; artifact `b97f9315a2b103d5a70f962a65c7dc5bf3822036e202f0c08406296621057df3` (236 files) |
+| Directory | `/opt/mikromagic-build21-public-test-20261013T214449Z`; previous `-20261013T211616Z` |
+| Pre-deploy dump | `backups/pre-deploy.dump` (525 restore-list entries) |
+| Migration | **061 → 061** (no new revision); rehearsal skipped |
+| Rollback images | `…-{api,web,magic-hub,migrate}:rollback-20261013T214449Z` |
+| Result | api, web and safe-change-worker recreated; Hub untouched (`TG1jLN13+hA1Eg9/1h0DykQ768ZHZO54WFGAZWhjL0o=`, UDP `156.67.216.128:51820`). Bundle `index-B83DH29m.js`. Worker **running**. |
+
+**Deployed a2056bb at 20261013T214449Z**
+artifact sha256 b97f9315a2b103d5a70f962a65c7dc5bf3822036e202f0c08406296621057df3 (236 files), bundle index-B83DH29m.js
+
+**Rollback:** on the VPS, for s in api web magic-hub migrate; do docker tag mikromagic-build21-public-test-$s:rollback-20261013T214449Z mikromagic-build21-public-test-$s:latest; done
+          then cd /opt/mikromagic-build21-public-test-20261013T211616Z && docker compose -p mikromagic-build21-public-test -f compose.hostinger-public-test.yaml up -d --no-deps --force-recreate api web safe-change-worker
+          Restore /opt/mikromagic-build21-public-test-20261013T214449Z/backups/pre-deploy.dump only if the migration itself is at fault.
+
+**No router contact.** Guest Wi-Fi page preview shows the Lantern Leaf login, connected, failed, status and signed-out pages. Settings-changes flag remained off.
+
 - Next app work (as of 2026-10-12 09:00 UTC+6:30, live at migration 049, commit `13d40af`):
   - Terminology and Burmese (P0a) owner-facing chrome is live across SME pages including Integrations, Did you know?, guided first-shop acceptance, Magic Boy, Media, Account, Sites, Revenue, Payments and Packages/Passes. Platform screens stay English. Native-speaker/mobile QA remains open.
   - Routers page guided (P0a step 5): Connect your router steps first; Magic Hub, connection plans and Safe RouterOS changes under a closed Advanced (technician) section that opens when a change needs attention.
