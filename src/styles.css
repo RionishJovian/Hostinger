@@ -81,6 +81,7 @@ aside nav{flex:1;min-height:0;overflow-y:auto;align-content:start}
 .router-steps{list-style:none;margin:0;padding:0;display:grid;gap:0}.router-step{display:flex;gap:14px;padding:14px 0;border-top:1px solid var(--border)}.router-step:first-child{border-top:0}.router-step p{margin:6px 0 0;color:var(--muted)}.router-step .button{margin-top:10px;min-height:44px}.router-step-mark{color:var(--muted);flex:none;padding-top:1px}.router-step.is-done .router-step-mark{color:var(--primary)}.router-step.is-next{background:color-mix(in srgb,var(--accent) 8%,transparent);margin:0 -12px;padding:14px 12px;border-radius:9px}.router-step.is-later strong{color:var(--muted)}
 .router-register-more{border:0;margin:0}.router-register-more>summary{cursor:pointer;font-weight:700;min-height:44px;display:flex;align-items:center;list-style:none}.router-register-more>summary::-webkit-details-marker{display:none}.router-register-more[open]>summary{margin-bottom:12px}
 .router-advanced{border:1px solid var(--border);border-radius:12px;padding:0 24px;margin-bottom:23px}.router-advanced>summary{cursor:pointer;font-weight:700;padding:18px 0;list-style-position:inside}.router-advanced[open]>summary{border-bottom:1px solid var(--border);margin-bottom:18px}.router-advanced>p{margin-top:0}@media(max-width:720px){.router-advanced{padding:0 14px}}
+.router-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,22rem),1fr));gap:16px}.router-card{min-width:0;border:1px solid var(--border);border-radius:var(--mm-radius,12px);padding:18px;background:color-mix(in srgb,var(--surface) 82%,var(--background))}.router-card-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px}.router-card-head h3{margin:5px 0 0;overflow-wrap:anywhere}.router-card-label,.router-card-facts dt{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}.router-card-facts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin:20px 0}.router-card-facts>div{min-width:0}.router-card-facts dd{margin:6px 0 0;overflow-wrap:anywhere}.router-card-facts small{display:block;margin-top:5px;color:var(--muted);overflow-wrap:anywhere}.router-primary-action{display:grid;gap:8px}.router-primary-action>.button{width:100%;white-space:normal}.router-card-more{margin:16px 0 0;border-top:1px solid var(--border);padding-top:8px}.router-card-more>summary{min-height:44px;display:flex;align-items:center;font-weight:700}.router-operational-actions{display:grid;gap:8px;margin-top:8px}.router-operational-actions .button{width:100%;white-space:normal}
 .langs{display:flex;flex-wrap:wrap;gap:.5rem;margin:0 0 1rem}.langs .button[aria-pressed="true"]{background:var(--primary);color:var(--primary-contrast,#fff);border-color:var(--primary)}
 
 /* G01 Midnight Studio tokens — shared presentation foundation (Notion U02/U03) */
@@ -113,7 +114,7 @@ html,body{max-width:100%;overflow-x:clip}
 .app,.shell,main,.panel,.title,.columns,.formgrid,.metrics,.tablewrap{min-width:0}
 .shell,main,.panel,.title h1,.title p,.breadcrumb,.workspace,.navgroup,button,.button,label,td,th,p,li,small,.muted,.pill,.callout,.pass,.notice,.demo-banner{overflow-wrap:anywhere;word-break:normal}
 @media(max-width:720px){
-  .app{padding-left:0}
+  .app{min-height:100dvh;padding-left:0}
   .shell{width:100%;padding-bottom:calc(18px + env(safe-area-inset-bottom,0px))}
   .shell>header{position:sticky;top:0;z-index:8;padding-top:calc(10px + env(safe-area-inset-top,0px));gap:8px;flex-wrap:wrap}
   .headtools{flex-wrap:wrap;justify-content:flex-end;row-gap:6px;max-width:100%}
@@ -124,10 +125,20 @@ html,body{max-width:100%;overflow-x:clip}
   .tablewrap table{min-width:520px}
   aside.menuopen, .app.menuopen aside{display:flex;position:fixed;inset:0 auto 0 0;width:min(86vw,280px);max-width:100%;padding-top:calc(20px + env(safe-area-inset-top,0px));box-shadow:var(--mm-shadow,0 12px 40px rgba(0,0,0,.35));z-index:20}
   .app.menuopen::before{content:"";position:fixed;inset:0;background:color-mix(in srgb,#000 45%,transparent);z-index:15}
+  body,p,li,dd,label,details,summary,table,td,.actionrows span,.notice{font-size:16px!important;line-height:1.6!important}
+  small,.muted,.pill,th,.field>span,.router-card-label,.router-card-facts dt,.eyebrow{font-size:14px!important;line-height:1.6!important}
+  input,select,textarea{font-size:16px!important;line-height:1.5}
+  button,.button,.iconbutton,.mobilemenu,.headbutton,.workspace-language button,a[href]{min-width:44px;min-height:44px}
+  a[href]{display:inline-flex;align-items:center}
+  .headtools,.buttons,.workspace-language{gap:8px}
+  .router-cards{grid-template-columns:1fr}
+  .router-card{padding:16px}
+  .router-card-facts{grid-template-columns:1fr;gap:14px}
+  .router-card-more>summary{min-width:44px}
 }
 @media(max-width:420px){
   .breadcrumb{font-size:12px}
-  .workspace-language button,.langs .button{min-width:0;flex:1 1 auto}
+  .workspace-language button,.langs .button{min-width:44px;flex:1 1 auto}
 }
 
 /* G03–G05 presentation a11y + guidance polish */

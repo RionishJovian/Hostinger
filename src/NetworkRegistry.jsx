@@ -8,6 +8,66 @@ function Field({ label, children }) {
   return <label className="field"><span>{label}</span>{children}</label>;
 }
 
+function routerIdentity(router, c) {
+  const model = router.model || c.modelPending;
+  const version = router.reported_routeros || c.versionMissing;
+  const details = [version, router.architecture, router.reported_serial ? `${c.serialLabel} ${router.reported_serial}` : null].filter(Boolean).join(' · ');
+  const source = router.model || router.reported_routeros || router.architecture || router.reported_serial ? c.scriptReported : c.nameOnly;
+  return { model, details: `${details} · ${source}` };
+}
+
+function RouterConnectionState({ router, c }) {
+  const fresh = router.connection_state === 'connected' || router.connection_verified;
+  const everConnected = router.lifecycle_state === 'connected' || router.management_read_verified_at;
+  if (fresh) return <span className="pill ok">{c.connected}</span>;
+  if (everConnected) return <span className="pill warn">{c.unableToVerify}</span>;
+  return <span className="pill warn">{c.unverified}</span>;
+}
+
+function RouterOperationalActions({ router, c, act, busy, setPreflight, setSync, setSessions, setHealth, setWan }) {
+  return <div className="router-operational-actions">
+    <button className="button secondary" disabled={busy} onClick={async () => {
+      const result = await act(`routers/${router.id}/preflight`, {});
+      if (result) setPreflight(result);
+    }}>{c.preflight}</button>
+    <button className="button secondary" disabled={busy} onClick={async () => {
+      const result = await act(`routers/${router.id}/hotspot-sync`, {});
+      if (result) setSync({ ...result, router: router.name });
+    }}>{c.syncVouchers}</button>
+    <button className="button secondary" disabled={busy} onClick={async () => {
+      const result = await act(`routers/${router.id}/hotspot-sessions/collect`, {});
+      if (result) setSessions({ ...result, router: router.name });
+    }}>{c.collectSessions}</button>
+    <button className="button secondary" disabled={busy} onClick={async () => {
+      const result = await act(`routers/${router.id}/health/collect`, {});
+      if (result) setHealth({ ...result, router: router.name });
+    }}>{c.collectHealth}</button>
+    <button className="button secondary" disabled={busy} onClick={async () => {
+      const result = await act(`routers/${router.id}/wan/collect`, {});
+      if (result) setWan({ ...result, router: router.name });
+    }}>{c.collectWan}</button>
+  </div>;
+}
+
+export function RouterCard({ router, sites, c, act, api, busy, setupAvailable, onRefresh, setPreflight, setSync, setSessions, setHealth, setWan }) {
+  const identity = routerIdentity(router, c);
+  return <article className="router-card">
+    <div className="router-card-head"><div><span className="router-card-label">{c.cols[0]}</span><h3>{router.name}</h3></div><RouterConnectionState router={router} c={c} /></div>
+    <dl className="router-card-facts">
+      <div><dt>{c.cols[1]}</dt><dd>{sites.find(item => item.id === router.site_id)?.name || router.site_id}</dd></div>
+      <div><dt>{c.cols[2]}</dt><dd>{identity.model}<small>{identity.details}</small></dd></div>
+      <div><dt>{c.cols[4]}</dt><dd>{router.hub_id ? <>{c.assigned}<small>{router.hub_id}</small></> : c.notAssigned}</dd></div>
+    </dl>
+    <div className="router-primary-action">
+      {api && <MagicHubConnectButton router={router} api={api} busy={busy} setupAvailable={setupAvailable} onChanged={onRefresh} />}
+      {!setupAvailable && !routerEverConnected(router) && <span className="muted">{c.connectSecondaryHint}</span>}
+    </div>
+    <details className="router-card-more"><summary>{c.moreActions}</summary>
+      <RouterOperationalActions router={router} c={c} act={act} busy={busy} setPreflight={setPreflight} setSync={setSync} setSessions={setSessions} setHealth={setHealth} setWan={setWan} />
+    </details>
+  </article>;
+}
+
 function ShopSettings({ sites, act, busy }) {
   const c = useSmeCopy('sites');
   const [site, setSite] = useState('');
@@ -114,54 +174,22 @@ export function RouterRegistry({ sites, routers, act, api, busy, platform = fals
     </section>}
     <section className="panel" id="router-list">
       <div className="panelhead"><h2>{platform ? c.fleetTitle : c.listTitle}</h2></div>
-      <div className="tablewrap">
+      {platform ? <div className="tablewrap">
         <table>
-          <thead><tr>{(platform ? c.cols.slice(0, 5) : c.cols).map(label => <th key={label}>{label}</th>)}</tr></thead>
+          <thead><tr>{c.cols.slice(0, 5).map(label => <th key={label}>{label}</th>)}</tr></thead>
           <tbody>{routers.map(router => <tr key={router.id}>
             <td>{router.name}</td>
             <td>{sites.find(item => item.id === router.site_id)?.name || router.site_id}</td>
-            <td>{(() => {
-              const model = router.model || c.modelPending;
-              const version = router.reported_routeros || c.versionMissing;
-              const arch = router.architecture;
-              const serial = router.reported_serial;
-              const details = [version, arch, serial ? `${c.serialLabel} ${serial}` : null].filter(Boolean).join(' · ');
-              const source = router.model || router.reported_routeros || router.architecture || router.reported_serial
-                ? c.scriptReported
-                : c.nameOnly;
-              return <>{model}<small>{details} · {source}</small></>;
-            })()}</td>
-            <td>{(() => {
-              const fresh = router.connection_state === 'connected' || router.connection_verified;
-              const everConnected = router.lifecycle_state === 'connected' || router.management_read_verified_at;
-              if (fresh) return <span className="pill ok">{c.connected}</span>;
-              if (everConnected) return <span className="pill warn">{c.unableToVerify}</span>;
-              return <span className="pill warn">{c.unverified}</span>;
-            })()}</td>
+            <td>{routerIdentity(router, c).model}<small>{routerIdentity(router, c).details}</small></td>
+            <td><RouterConnectionState router={router} c={c} /></td>
             <td>{router.hub_id ? <>{c.assigned}<small>{router.hub_id}</small></> : c.notAssigned}</td>
-            {!platform && <td className="mm-router-actions">
-              {api && <MagicHubConnectButton router={router} api={api} busy={busy} setupAvailable={hubSetup} onChanged={onRefresh} />}
-              {!hubSetup && !routerEverConnected(router) && <span className="muted">{c.connectSecondaryHint}</span>}
-              <button className="button secondary" disabled={busy} onClick={async () => {
-              const result = await act(`routers/${router.id}/preflight`, {});
-              if (result) setPreflight(result);
-            }}>{c.preflight}</button> <button className="button secondary" disabled={busy} onClick={async () => {
-              const result = await act(`routers/${router.id}/hotspot-sync`, {});
-              if (result) setSync({ ...result, router: router.name });
-            }}>{c.syncVouchers}</button> <button className="button secondary" disabled={busy} onClick={async () => {
-              const result = await act(`routers/${router.id}/hotspot-sessions/collect`, {});
-              if (result) setSessions({ ...result, router: router.name });
-            }}>{c.collectSessions}</button> <button className="button secondary" disabled={busy} onClick={async () => {
-              const result = await act(`routers/${router.id}/health/collect`, {});
-              if (result) setHealth({ ...result, router: router.name });
-            }}>{c.collectHealth}</button> <button className="button secondary" disabled={busy} onClick={async () => {
-              const result = await act(`routers/${router.id}/wan/collect`, {});
-              if (result) setWan({ ...result, router: router.name });
-            }}>{c.collectWan}</button></td>}
           </tr>)}
-          {!routers.length && <tr><td colSpan={platform ? 5 : 6}>{c.empty}</td></tr>}</tbody>
+          {!routers.length && <tr><td colSpan={5}>{c.empty}</td></tr>}</tbody>
         </table>
-      </div>
+      </div> : <div className="router-cards" aria-label={c.listTitle}>
+        {routers.map(router => <RouterCard key={router.id} router={router} sites={sites} c={c} act={act} api={api} busy={busy} setupAvailable={hubSetup} onRefresh={onRefresh} setPreflight={setPreflight} setSync={setSync} setSessions={setSessions} setHealth={setHealth} setWan={setWan} />)}
+        {!routers.length && <p className="empty">{c.empty}</p>}
+      </div>}
     </section>
     {health && <section className="panel">
       <div className="panelhead"><h2>{c.healthTitle} · {health.router}</h2><button className="button secondary" onClick={() => setHealth(null)}>{c.close}</button></div>

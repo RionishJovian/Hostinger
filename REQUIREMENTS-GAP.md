@@ -32,6 +32,12 @@ Owner ordered Cursor to complete G01→G06 before other offline increments.
 | G04 stable-page polish | Partial | Shared glass panels/shadows/radius from G01; lighter density on knowledge/overview panels; further page-by-page pass still open. |
 | G05 guidance presentation | Implemented (software) | Did you know? tip-first expandable cards; search includes topic/related page; result count; clear-filters empty recovery; bilingual copy. Authenticated UI walkthrough still under G06. |
 | G06 frontend QA | Partial | Midnight token/contrast + shell + knowledge search unit checks; authenticated multi-role device walkthroughs still open. |
+
+### U12 mobile minimal baseline — 2026-10-14
+
+- **Status: Ongoing / Partial.** Controlled live-demo checks at 375px and 430px found no page-level horizontal overflow and acceptable Burmese wrapping, but header/language controls were below 44×44px, visible form controls computed to 12px, and the owner Routers table hid status/actions in an 802px internal scroll surface.
+- **Current increment:** replace the owner router table with responsive summary cards; keep Magic Hub as the visible primary action; collapse preflight/sync/session/health/WAN operations under More router actions; raise mobile form text to 16px, secondary text to 14px and mobile controls to 44×44px; add `scripts/verify-mobile-baseline.mjs` for 375/430 English/Burmese/light/dark checks.
+- **Closure gate:** the focused checks and full `scripts/check.sh` must pass on a named GitHub SHA from a Cursor cloud agent, then the deployed bundle must pass the same browser check. Authenticated all-role, guest-page, pinch-zoom and assistive-technology acceptance remain separate; no production or router change is implied by this source increment.
 | Router connect path | Implemented (software) | Owner decision 2026-10-13 (later): **Magic Hub one-paste only** on Routers. QR technician pairing UI removed from the SME app; manual WireGuard public-key plan form removed from SME Advanced. Advanced keeps Hub details + Safe Change only. Shorter shop-facing connect and Deploy copy. |
 
 ## Classification

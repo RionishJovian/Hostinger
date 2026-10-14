@@ -25,6 +25,8 @@ test('message lookup supports navigation and Overview in both locales with Engli
  assert.equal(getSmeMessage('my','navigation','Overview'),'အနှစ်ချုပ်');
  assert.equal(getSmeMessage('en','navigation','Overview'),'Overview');
  assert.equal(getSmeMessage('my','overview','question'),'လုပ်ငန်း၏ Wi-Fi အလုပ်လုပ်နေပါသလား။');
+ assert.equal(getSmeMessage('en','routersPage','moreActions'),'More router actions');
+ assert.equal(getSmeMessage('my','routersPage','moreActions'),'Router လုပ်ဆောင်ချက်များ ထပ်ကြည့်ရန်');
  assert.equal(getSmeMessage('my','navigation','Unknown page'),'Unknown page');
 });
 
