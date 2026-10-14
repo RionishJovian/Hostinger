@@ -1,8 +1,10 @@
 import time
+import types
 import unittest
 import test_backend as fixture
 from sqlalchemy import select
 from backend.models import Site,RouterDevice,RouterPlan,User
+from backend.sites import router_display
 class SiteTests(unittest.TestCase):
  setUp=fixture.AccountPaymentTests.setUp
  tearDown=fixture.AccountPaymentTests.tearDown
@@ -78,3 +80,28 @@ class SiteTests(unittest.TestCase):
  def test_bad_timezone_and_unpublished_sites(self):
   owner=self.login('owner');guest=self.login('guest');self.assertEqual(self.client.post('/v1/sites',headers=owner,json={'name':'Invalid','timezone':'not/a-zone'}).status_code,422)
   a=self.site(owner,'Unpublished');self.assertEqual(self.client.get('/v1/guest-sites',headers=guest).json(),[]);self.assertIsNone(self.client.get('/v1/portal/public',headers=guest,params={'site_id':a}).json()['settings'])
+
+class RouterDisplayTests(unittest.TestCase):
+  def test_fresh_flag_with_fixed_clock(self):
+    now=1_000_000_000
+    def make_device(extra=None):
+      d=types.SimpleNamespace(id='r1',tenant_id='t1',site_id='s1',name='Gateway',model=None,reported_routeros=None,architecture=None,reported_serial=None,created=now)
+      if extra:
+        for k,v in extra.items():setattr(d,k,v)
+      return d
+    # no plan -> fresh False
+    self.assertFalse(router_display(make_device()).get('fresh'))
+    # no handshake -> stale False
+    plan_no_handshake=types.SimpleNamespace(lifecycle_state='connected',handshake_verified_at=None,management_read_verified_at=now-20,hub_id='hub1')
+    self.assertFalse(router_display(make_device(),plan_no_handshake).get('fresh'))
+    # connected + both reads exactly 180s old -> fresh True
+    plan_180=types.SimpleNamespace(lifecycle_state='connected',handshake_verified_at=now-180,management_read_verified_at=now-180,hub_id='hub1')
+    self.assertTrue(router_display(make_device(),plan_180,now).get('fresh'))
+    # connected + read 181s old -> fresh False
+    plan_181=types.SimpleNamespace(lifecycle_state='connected',handshake_verified_at=now-181,management_read_verified_at=now-181,hub_id='hub1')
+    self.assertFalse(router_display(make_device(),plan_181,now).get('fresh'))
+    # connection_verified on the device never decides freshness
+    self.assertFalse(router_display(make_device({'connection_verified':True}),plan_180).get('fresh'))
+    # connection_verified=True but stale handshake -> fresh False
+    stale_device=make_device({'connection_verified':True});stale_plan=types.SimpleNamespace(lifecycle_state='connected',handshake_verified_at=now-181,management_read_verified_at=now-181,hub_id='hub1')
+    self.assertFalse(router_display(stale_device,stale_plan).get('fresh'))

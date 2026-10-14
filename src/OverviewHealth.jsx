@@ -14,12 +14,10 @@ function useOverviewText(){
  return t;
 }
 
-function routerConnectionTone(routers){
- const fresh=routers.length>0&&routers.every(router=>router.connection_state==='connected'||router.connection_verified);
- const ever=routers.some(router=>router.lifecycle_state==='connected'||router.management_read_verified_at||router.connection_state==='connected'||router.connection_verified);
- if(fresh)return 'connected';
- if(ever||routers.length)return 'unable';
- return 'offline';
+function routerConnectionTone(routers) {
+  if (routers.length === 0) return 'offline';
+  const allFresh = routers.every(router => router.fresh === true);
+  return allFresh ? 'connected' : 'unable';
 }
 
 export default function OverviewHealth({sites=[],routers=[],pendingPayments,navigate}){

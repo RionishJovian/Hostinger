@@ -25,6 +25,7 @@ def router_display(device,plan=None,now=None):
  return {k:getattr(device,k) for k in ['id','tenant_id','site_id','name','model','reported_routeros','architecture','reported_serial','created']}|{
   'connection_state':'connected' if fresh else 'unverified',
   'connection_verified':fresh,
+  'fresh':fresh,
   'hub_id':plan.hub_id if plan else None,
   'last_handshake':plan.handshake_verified_at if plan else None,
   'lifecycle_state':plan.lifecycle_state if plan else None,
