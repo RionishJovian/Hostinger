@@ -15,7 +15,7 @@ function useOverviewText(){
 }
 
 function routerConnectionTone(routers){
- const fresh=routers.some(router=>router.connection_state==='connected'||router.connection_verified);
+ const fresh=routers.length>0&&routers.every(router=>router.connection_state==='connected'||router.connection_verified);
  const ever=routers.some(router=>router.lifecycle_state==='connected'||router.management_read_verified_at||router.connection_state==='connected'||router.connection_verified);
  if(fresh)return 'connected';
  if(ever||routers.length)return 'unable';

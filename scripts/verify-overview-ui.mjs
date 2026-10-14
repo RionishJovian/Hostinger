@@ -17,9 +17,13 @@ try{
  const unverified=render(c.OverviewHealth,{sites:shop,routers:[{id:'r1',connection_state:'pending'}],pendingPayments:2});
  assert.equal(count(unverified,'The registered router connection is not verified.'),1);assert.match(unverified,/Unable to Verify/);
  assert.match(unverified,/2 payment reviews waiting/);assert.doesNotMatch(unverified,/Nothing else needs your attention/);
+ const mixed=render(c.OverviewHealth,{sites:shop,routers:[{id:'r1',connection_state:'connected',connection_verified:true},{id:'r2',connection_state:'unverified'}]});
+ assert.match(mixed,/Unable to Verify/);assert.doesNotMatch(mixed,/>Connected</);
+ const connected=render(c.OverviewHealth,{sites:shop,routers:[{id:'r1',connection_state:'connected',connection_verified:true},{id:'r2',connection_state:'connected',connection_verified:true}]});
+ assert.match(connected,/>Connected</);assert.doesNotMatch(connected,/Unable to Verify/);
  assert.doesNotMatch(noRouter,/Network summary/,'network summary is a separate section');
  const network=render(c.OverviewNetwork,{sites:shop,routers:[],devices:[{kind:'access_point'}],vouchers:[{}],netCollections:'MMK 3,000'});
  for(const text of ['Network summary','Shops','Registered routers','Registered APs','Connected customers','Generated vouchers','Net confirmed collections','MMK 3,000','Details on Revenue'])assert.ok(network.includes(text),text);
  const burmese=render(c.OverviewNetwork,{sites:shop,netCollections:'MMK 0'},'my');assert.match(burmese,/အတည်ပြုပြီး အသားတင် ငွေလက်ခံရရှိမှု/);
- console.log('Overview UI checks passed: one router message with its action, attention list without repeats, network summary with collections link, English and Burmese.');
+ console.log('Overview UI checks passed: fleet connection aggregation, one router message with its action, attention list without repeats, network summary with collections link, English and Burmese.');
 }finally{await rm(folder,{recursive:true,force:true})}
