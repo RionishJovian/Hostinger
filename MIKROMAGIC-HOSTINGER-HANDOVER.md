@@ -1449,6 +1449,28 @@ artifact sha256 94f591608da6a67c5867f3c1f145171cd665df508b14fb1f334fbc14fd7097a3
 
 **No router contact.** Owner-facing Routers is Magic Hub one-paste only: technician QR UI and SME manual WireGuard plan form removed. Settings-changes flag remained off.
 
+### Scripted redeploy — responsive router cards and U12 mobile baseline (2026-10-14 12:55 UTC)
+
+| Item | Value |
+|---|---|
+| Source | `c301d14fb7354e4e179ee343b975d27604e8dff0` on `origin/main`; artifact `a945abed31f55f9335bb231a2192ec5c49b522b1885cd313a1088175e0554a87` (236 files) |
+| Directory | `/opt/mikromagic-build21-public-test-20261014T125525Z`; previous `-20261013T232056Z` |
+| Pre-deploy dump | `backups/pre-deploy.dump` (525 restore-list entries; SHA-256 verified after deploy) |
+| Migration | **061 → 061** (no new revision); rehearsal skipped |
+| Rollback images | `…-{api,web,magic-hub,migrate}:rollback-20261014T125525Z` |
+| Result | api, web and safe-change-worker recreated; Hub untouched and identity/UDP publication unchanged. Bundle `index-B4NHbp_X.js`. Worker **running**. |
+
+**Deployed c301d14 at 20261014T125525Z**
+artifact sha256 a945abed31f55f9335bb231a2192ec5c49b522b1885cd313a1088175e0554a87 (236 files), bundle index-B4NHbp_X.js
+
+**Rollback:** on the VPS, for s in api web magic-hub migrate; do docker tag mikromagic-build21-public-test-$s:rollback-20261014T125525Z mikromagic-build21-public-test-$s:latest; done
+          then cd /opt/mikromagic-build21-public-test-20261013T232056Z && docker compose -p mikromagic-build21-public-test -f compose.hostinger-public-test.yaml up -d --no-deps --force-recreate api web safe-change-worker
+          Restore `/opt/mikromagic-build21-public-test-20261014T125525Z/backups/pre-deploy.dump` only if the migration itself is at fault.
+
+**Post-deploy verification:** all stack containers healthy; public apex, `www`, and `/v1/ready` returned 200; readiness returned `ready: true`; public HTML served `index-B4NHbp_X.js`. The automated 375 × 812 and 430 × 932 matrix passed for Burmese/English, light/dark, Overview/Routers with no page-level horizontal overflow, targets below 44 × 44 px, fields/body text below 16 px, or secondary text below 14 px. Owner router inventory is now a responsive card with Connect/Reconnect with Magic Hub primary and five operational actions under More router actions.
+
+**No router contact.** No RouterOS, tenant, account, firewall, DNS, Caddy, Compose, Dockerfile, Hub or infrastructure change occurred. Settings-changes flag remained off.
+
 
 
 - Next app work (as of 2026-10-12 09:00 UTC+6:30, live at migration 049, commit `13d40af`):
