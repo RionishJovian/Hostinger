@@ -1,0 +1,21 @@
+---
+description: Mandatory MikroMagic reconciliation, implementation, deployment, and evidence procedure
+alwaysApply: true
+---
+
+# MikroMagic Operations
+
+- Read `AGENTS.md` and `docs/HERMES-OPERATIONS-RUNBOOK.md` before acting.
+- Start from current `origin/main`; preserve unrelated work and stop on identity or scope mismatch.
+- Before requirement work, refresh the Notion tracker index, applicable domain page, page 07, and page 08; then reconcile current GitHub source and observed live state.
+- Declare a small task with requirement IDs, base SHA, files, checks, rollback impact, and boundaries.
+- Keep implemented, tested, migrated, deployed, live-verified, and RouterOS/hardware-verified separate.
+- Run focused checks while developing and `bash scripts/check.sh` before merge/deploy.
+- For mobile UI, verify 375 and 430 px, English and Burmese, light and dark, 44 px targets, 16 px fields/body, 14 px secondary text, and no page overflow.
+- Push only a clean, verified commit to `origin/main`.
+- Deploy only with `scripts/deploy-hostinger-public-test.sh`; do not bypass a stop. `ALLOW_INFRA_CHANGE=1` requires separately reviewed infrastructure changes.
+- After deployment, verify containers, release, migration, public HTTPS/readiness, served bundle, and the relevant live flow. Preserve the rollback dump and image tags.
+- Never contact or change RouterOS outside an approved hardware window. Never print secrets or inspect unformatted container environments.
+- Record deployment evidence in `MIKROMAGIC-HOSTINGER-HANDOVER.md`, append a verified Notion page 08 checkpoint, regenerate the manifest, commit, and push.
+- Finish with `bash scripts/local-housekeeping.sh`; confirm ports 5173/8787/8788 are clear.
+- Report `Changed / Tested / Migrated / Deployed / Verified / Blocker / Owner action` using only observed facts.

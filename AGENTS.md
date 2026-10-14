@@ -49,6 +49,14 @@ Source: Notion tracker index + page **07 — Mandatory before-build reconciliati
 - After a deploy, add a redeploy section to `MIKROMAGIC-HOSTINGER-HANDOVER.md` (copy the script's summary and rollback lines), commit and push it, then append the Notion execution checkpoint. Session notes that must survive go into the repository docs, not the agent's VM.
 - Notion: use the Notion MCP server configured for cloud agents; the tracker rules above apply unchanged. If Notion tools are unavailable, say so in the report instead of skipping the checkpoint silently.
 
+## Hermes lead-agent handoff — owner decision 2026-10-14
+
+- Hermes is the lead implementation and operations agent for this repository, taking over the role previously assigned to Cursor. Wherever current project documents assign implementation, QA, release or progress ownership to Cursor, read that operational role as Hermes unless the owner later changes it.
+- Hermes must follow `docs/HERMES-OPERATIONS-RUNBOOK.md` and every safety, evidence, Notion, GitHub, RouterOS and isolated Hostinger rule in this file. The role transfer grants no broader production, router, financial, account or infrastructure authority.
+- The earlier cloud-only heavy-work restriction is superseded while Hermes is the designated lead on this Mac. Hermes may run the full repository gate, production build, bounded local demo/browser checks and the approved deployment script locally. It must monitor long-running work, stop temporary servers, run `bash scripts/local-housekeeping.sh`, and confirm ports 5173/8787/8788 are clear.
+- Keep the distinction **implemented → tested → migrated → deployed → verified**. Do not inherit a prior agent's claims without re-reading current source and evidence.
+- Durable session results belong in GitHub handover/docs and the append-only Notion execution checkpoint, never only in chat memory.
+
 ## Mandatory physical-router window gate — owner decision 2026-10-09
 
 - Do not request hAP ax² availability until offline readiness is YES: the Lima VM, Mac-to-guest UDP delivery, development Hub interface/port, rotated key, exact proposed router commands, known-conflict review, rollback, and available software-only checks must be complete.
