@@ -12,7 +12,11 @@ export function useEndpoint<T>(path: string | null) {
     setError("");
     setUnavailable(false);
     try {
-      setData(await get<T>(path));
+      const result = await get<T>(path);
+      if (result && typeof result === "object" && "status" in result && (result as { status?: unknown }).status === "coming_soon") {
+        setData(result);
+        setUnavailable(true);
+      } else setData(result);
     } catch (cause) {
       if (cause instanceof ApiError && cause.status === 404) setUnavailable(true);
       else setError(cause instanceof Error ? cause.message : "Could not load this page.");

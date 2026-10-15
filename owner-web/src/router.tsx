@@ -1,5 +1,5 @@
 import { Navigate, Outlet, createRootRoute, createRoute, createRouter, useParams } from "@tanstack/react-router";
-import { Activity, Archive, BadgeDollarSign, Building2, ClipboardList, Radio, ShieldAlert, Ticket, UsersRound, WalletCards } from "lucide-react";
+import { Activity, Archive, BadgeDollarSign, Building2, Cable, CheckCircle2, ClipboardList, CloudCog, Coins, FlaskConical, HardDrive, Map, Network, Radio, ServerCog, ShieldAlert, Ticket, UsersRound, WalletCards } from "lucide-react";
 import { AppGuard } from "./components/Shell";
 import { AuthPage } from "./pages/AuthPage";
 import { DataPage } from "./pages/DataPage";
@@ -8,9 +8,14 @@ import { EasyVouchersPage } from "./pages/EasyVouchersPage";
 import { HomePage } from "./pages/HomePage";
 import { I18nPage } from "./pages/I18nPage";
 import { ManualPage } from "./pages/ManualPage";
+import { MagicDudePage } from "./pages/MagicDudePage";
+import { OwnerReadPage } from "./pages/OwnerReadPage";
 import { PortalPage } from "./pages/PortalPage";
 import { ProfilePage } from "./pages/ProfilePage";
 import { RoutersPage } from "./pages/RoutersPage";
+import { ScriptsPage } from "./pages/ScriptsPage";
+import { SyslogPage } from "./pages/SyslogPage";
+import { TerminalPage } from "./pages/TerminalPage";
 
 const rootRoute = createRootRoute({ component: Outlet });
 const indexRoute = createRoute({ getParentRoute: () => rootRoute, path: "/", component: () => <Navigate to="/app" replace /> });
@@ -37,6 +42,21 @@ const usersRoute = dataRoute("users", () => <DataPage title="Staff" description=
 const usageRoute = dataRoute("usage", () => <DataPage title="Usage & subscription" description="See the plan, term and limits currently recorded for your business." endpoint="/v1/subscription" icon={Activity} itemName="Subscription" readOnly fields={["state", "expires_on", "days_left", "warning", "restricted", "period_start", "period_end", "enforcement"]} />);
 const manualRoute = createRoute({ getParentRoute: () => appRoute, path: "manual", component: ManualPage });
 const i18nRoute = createRoute({ getParentRoute: () => appRoute, path: "i18n", component: I18nPage });
+const terminalRoute = dataRoute("terminal", TerminalPage);
+const scriptsRoute = dataRoute("scripts", () => <ScriptsPage />);
+const fleetRoute = dataRoute("fleet", () => <OwnerReadPage title="Fleet" description="A read-only view of your routers and their latest verified connection state." endpoint="/v1/owner/fleet" icon={Network} itemName="Router" fields={["site_id", "model", "routeros", "connected", "last_seen"]} />);
+const magicDudeRoute = dataRoute("magic-dude", MagicDudePage);
+const agentRoute = dataRoute("agent", () => <OwnerReadPage title="Magic Coins" description="Your read-only referral ledger and current coin balance." endpoint="/v1/agent/coins" icon={Coins} itemName="Ledger entry" fields={["amount", "currency", "state", "created", "reversed_at"]} />);
+const connectorsRoute = dataRoute("connectors", () => <OwnerReadPage title="Connectors" description="On-site PC connectors for managing equipment without exposing router secrets." endpoint="/v1/owner/connectors" icon={Cable} itemName="Connector" />);
+const devicesRoute = dataRoute("devices", () => <OwnerReadPage title="Devices & ports" description="Read-only switches, access points and available port observations." endpoint="/v1/owner/devices" icon={HardDrive} itemName="Device" fields={["kind", "vendor", "model", "location", "firmware", "last_seen", "ports"]} />);
+const topologyRoute = dataRoute("topology", () => <OwnerReadPage title="Topology" description="A read-only map built from stored router and device data." endpoint="/v1/owner/topology" icon={Map} itemName="Site" />);
+const syslogRoute = dataRoute("syslog", SyslogPage);
+const quickSetupRoute = dataRoute("quick-setup", () => <ScriptsPage quickSetup />);
+const deploymentsRoute = dataRoute("deployments", () => <OwnerReadPage title="Deployments" description="Safe Change history, backup checks and rollback outcomes." endpoint="/v1/owner/deployments" icon={CloudCog} itemName="Safe Change" fields={["router_id", "operation", "status", "risk", "backup_verified", "rollback_attempted", "created", "updated"]} />);
+const servicesRoute = dataRoute("services", () => <OwnerReadPage title="Services & plan" description="Your current MikroMagic plan and recorded service limits." endpoint="/v1/owner/services/plan" icon={ServerCog} itemName="Plan" fields={["state", "period_start", "period_end", "plan"]} />);
+const tenantsRoute = dataRoute("tenants", () => <OwnerReadPage title="Tenants" description="Platform administrator view of registered businesses. Removal requires a separate explicit confirmation." endpoint="/v1/owner/tenants" icon={Building2} itemName="Business" fields={["name"]} />);
+const readinessRoute = dataRoute("readiness", () => <OwnerReadPage title="Readiness" description="Connected requires both a fresh Hub handshake and authenticated management read within 180 seconds." endpoint="/v1/owner/readiness" icon={CheckCircle2} itemName="Router" fields={["hub", "management", "connected", "fix_path"]} />);
+const testLabRoute = dataRoute("test-lab", () => <OwnerReadPage title="Test lab" description="Platform-only test routers. Live customer routers are always refused." endpoint="/v1/owner/test-lab" icon={FlaskConical} itemName="Test router" />);
 
 function dataRoute(path: string, component: () => React.ReactNode) {
   return createRoute({ getParentRoute: () => appRoute, path, component });
@@ -50,7 +70,7 @@ function EasyDynamic() {
 const routeTree = rootRoute.addChildren([
   indexRoute,
   authRoute,
-  appRoute.addChildren([homeRoute, easyRoute, easyVouchersRoute, easyScreenRoute, routersRoute, vouchersRoute, layoutsRoute, portalRoute, ordersRoute, revenueRoute, resellerRoute, sitesRoute, incidentsRoute, liveRoute, auditRoute, backupsRoute, profileRoute, usersRoute, usageRoute, manualRoute, i18nRoute]),
+  appRoute.addChildren([homeRoute, easyRoute, easyVouchersRoute, easyScreenRoute, routersRoute, vouchersRoute, layoutsRoute, portalRoute, ordersRoute, revenueRoute, resellerRoute, sitesRoute, incidentsRoute, liveRoute, auditRoute, backupsRoute, profileRoute, usersRoute, usageRoute, manualRoute, i18nRoute, terminalRoute, scriptsRoute, fleetRoute, magicDudeRoute, agentRoute, connectorsRoute, devicesRoute, topologyRoute, syslogRoute, quickSetupRoute, deploymentsRoute, servicesRoute, tenantsRoute, readinessRoute, testLabRoute]),
 ]);
 
 export const router = createRouter({ routeTree, basepath: "/owner" });
