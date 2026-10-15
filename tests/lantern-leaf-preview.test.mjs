@@ -22,7 +22,8 @@ test('owner preview renders the HotSpot pages, not a text summary', () => {
     assert.match(html, /Café &lt;North&gt;/);
     assert.match(html, /class="seal"/);
     assert.match(html, /class="sheet"/);
-    assert.match(html, /#0A1210/);
+    assert.match(html, /linear-gradient\(180deg,#0B1014 0%,#121A1F 100%\)/);
+    assert.doesNotMatch(html, /#0A1210|#F3ECDD|#D98A32/);
     assert.match(html, /Use fairly &amp; safely/);
     assert.doesNotMatch(html, /https?:\/\//);
     assert.doesNotMatch(html, /<script src=/);
@@ -58,10 +59,14 @@ with zipfile.ZipFile(io.BytesIO(package)) as archive:
     print(archive.read('login.html').decode())
 `], {encoding: 'utf8'});
   const login = previewHotspotPages(settings).login;
-  for (const fragment of ['Café &lt;North&gt;', 'Welcome &lt;guest&gt;', 'class="seal"', 'class="sheet"', '#0A1210', 'ချိတ်ဆက်ရန်', 'Wi-Fi ကုဒ်', 'KBZPay 09 &lt;1&gt;', 'class="pay"', 'Use fairly &amp; safely', 'data-lang="my"']) {
+  for (const fragment of ['Café &lt;North&gt;', 'Welcome &lt;guest&gt;', 'class="seal"', 'class="sheet"', 'background:#0B1014 linear-gradient(180deg,#0B1014 0%,#121A1F 100%)', 'color:#E6E9ED', 'rgba(22,30,36,.78)', 'rgba(200,205,212,.72)', '#1F8F68,#147A56', '#A8B0B8', '#7A838C', 'ချိတ်ဆက်ရန်', 'Wi-Fi ကုဒ်', 'KBZPay 09 &lt;1&gt;', 'class="pay"', 'Use fairly &amp; safely', 'data-lang="my"']) {
     assert.match(login, new RegExp(fragment.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
     assert.match(raw, new RegExp(fragment.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
   }
+  const styleOf = html => html.match(/<style>([\s\S]*?)<\/style>/)[1];
+  assert.equal(styleOf(login), styleOf(raw), 'owner preview CSS must be identical to the router login.html CSS');
+  assert.doesNotMatch(login, /<h1 class="(my-block |en-block )?page-title">/);
+  assert.doesNotMatch(raw, /<h1 class="(my-block |en-block )?page-title">/);
 });
 
 test('english-only and myanmar-only previews drop the language toggle', () => {
