@@ -5,7 +5,7 @@ import { join, relative, sep } from 'node:path';
 const root = process.cwd();
 const output = '.corrective-source-manifest.txt';
 const excludedDirectories = new Set(['.git', '.venv', 'node_modules', 'dist', '__pycache__', '.pytest_cache', '.mypy_cache', '.ruff_cache', 'secrets', 'routeros-secrets']);
-const excludedFiles = new Set([output, '.env', '.DS_Store', '.coverage']);
+const excludedFiles = new Set([output, '.env', '.DS_Store', '.coverage', '.git']);
 const files = [];
 
 async function walk(directory) {
