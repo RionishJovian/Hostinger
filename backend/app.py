@@ -355,6 +355,8 @@ def make_app(url=None,initialize=False):
  register_magic_hub_connect(app,current,db,owner,log)
  from .revenue import register_revenue
  register_revenue(app,current,db,owner)
+ from .owner_api import register_owner_api
+ register_owner_api(app,current,db,owner)
  from .appearance import register_appearance
  register_appearance(app,current,db,log)
  from .review_api import register_review_api
