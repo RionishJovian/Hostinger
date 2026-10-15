@@ -90,10 +90,10 @@ class RestrictionLogicTests(unittest.TestCase):
   for path in blocked:
     self.assertFalse(renewal_allowed(path), f'{path} should be blocked')
  def test_staff_restricted_allowed_paths(self):
-  allowed = ['/v1/me','/v1/auth/logout']
+  allowed = ['/v1/me','/v1/auth/logout','/v1/auth/password']
   for path in allowed:
     self.assertTrue(staff_restricted_allowed(path), f'{path} should be allowed for staff')
-  blocked = ['/v1/auth/password','/v1/subscription','/v1/subscription/plans','/v1/subscription/requests',
+  blocked = ['/v1/subscription','/v1/subscription/plans','/v1/subscription/requests',
              '/v1/account/sessions','/v1/account/mfa','/v1/account/password',
              '/v1/packages','/v1/orders','/v1/entitlements','/v1/audit']
   for path in blocked:
@@ -287,6 +287,21 @@ class RestrictionRouteTests(unittest.TestCase):
   self.assertEqual(self.client.post('/v1/subscription/requests',headers=h,json={'plan_id':plan['id'],'months':1,'method':'KBZPay','reference':'r','evidence':'e','request_key':'staff-req-1'}).status_code,403)
   self.assertEqual(self.client.get('/v1/packages',headers=h).status_code,403)
   self.assertEqual(self.client.get('/v1/account/sessions',headers=h).status_code,403)
+
+ def test_locked_staff_with_temporary_password_can_change_it_and_reach_me(self):
+  p,plan=self.setup_plan()
+  self.set_term(self.tenant(),plan,midnight(self.today-timedelta(days=40)),midnight(self.today-timedelta(days=3)))
+  staff_id=self.add_staff()
+  with self.app.state.factory() as db:
+    u=db.get(User,staff_id);u.must_change_password=True;u.temporary_password_expires=int(time.time())+86400;db.commit()
+  response=self.client.post('/v1/auth/login',json={'username':'staff','password':'test'})
+  self.assertEqual(response.status_code,200,response.text)
+  h={'Authorization':'Bearer '+response.json()['access_token']}
+  self.assertTrue(self.client.get('/v1/me',headers=h).json()['must_change_password'])
+  changed=self.client.post('/v1/auth/password',headers=h,json={'current_password':'test','new_password':'locked-staff-personal-password'})
+  self.assertEqual(changed.status_code,200,changed.text)
+  me=self.client.get('/v1/me',headers=h)
+  self.assertEqual(me.status_code,200,me.text);self.assertFalse(me.json()['must_change_password']);self.assertTrue(me.json()['subscription_restricted'])
 
  def test_staff_past_due_shop_allowed_routes(self):
   p,plan=self.setup_plan()

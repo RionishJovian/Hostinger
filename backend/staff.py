@@ -7,7 +7,7 @@ from fastapi import Depends,HTTPException
 from sqlalchemy import select,update,delete
 from .schemas import Strict
 from .models import StaffGrant,User,SessionToken,ReviewCredential,LoginAttempt
-LEGACY_STAFF_PATHS=frozenset({'/v1/me','/v1/auth/logout'})
+LEGACY_STAFF_PATHS=frozenset({'/v1/me','/v1/auth/logout','/v1/auth/password'})
 LEGACY_STAFF_CLOSED='Legacy staff access is closed in MikroMagic v1; ask the business Owner/Admin'
 def staff_allowed(profile,method,path):return path in LEGACY_STAFF_PATHS
 class StaffCreate(Strict):

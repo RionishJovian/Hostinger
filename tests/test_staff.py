@@ -24,12 +24,16 @@ class StaffTests(unittest.TestCase):
   self.assertEqual(self.client.post('/v1/staff',headers=self.login('guest'),json={'username':'staff-new','profile':'cashier','request_key':'staff-request-key-new'}).status_code,403)
  def test_every_legacy_profile_is_denied_business_authority(self):
   reads=['sites','routers','hubs','router-plans','orders','vouchers','packages','revenue','audit','tenants','appearance/effective','staff','review-credentials','platform/businesses','account/sessions']
-  writes={'routers/missing/plan':{'hub_id':'missing','router_public_key':KEY},'router-plans/missing/review':{'confirmed_review':True},'routers/missing/preflight':None,'routers/missing/wireguard-evidence':None,'routers/missing/changes/preview':{'persistent_keepalive_seconds':25},'router-plans/missing/hub-peer/provision':None,'sites':{'name':'Staff site'},'orders/missing/decision':{'decision':'approved','expected_receipt_revision':0},'orders/missing/refund':{'reason':'Not allowed'},'vouchers':{'package_id':'missing','request_key':'staff-voucher-test-001'},'auth/password':{'current_password':'test-password-only','new_password':'staff-test-personal-password'}}
+  writes={'routers/missing/plan':{'hub_id':'missing','router_public_key':KEY},'router-plans/missing/review':{'confirmed_review':True},'routers/missing/preflight':None,'routers/missing/wireguard-evidence':None,'routers/missing/changes/preview':{'persistent_keepalive_seconds':25},'router-plans/missing/hub-peer/provision':None,'sites':{'name':'Staff site'},'orders/missing/decision':{'decision':'approved','expected_receipt_revision':0},'orders/missing/refund':{'reason':'Not allowed'},'vouchers':{'package_id':'missing','request_key':'staff-voucher-test-001'}}
   for profile in ['manager','cashier','technician']:
    with self.subTest(profile=profile):
-    _,h=self.legacy(profile);me=self.client.get('/v1/me',headers=h);self.assertEqual(me.status_code,200);self.assertEqual(me.json()['staff_profile'],profile)
+    sid,h=self.legacy(profile);me=self.client.get('/v1/me',headers=h);self.assertEqual(me.status_code,200);self.assertEqual(me.json()['staff_profile'],profile)
     for path in reads:self.assertEqual(self.client.get('/v1/'+path,headers=h).status_code,403,path)
     for path,body in writes.items():self.assertEqual(self.client.post('/v1/'+path,headers=h,json=body).status_code,403,path)
+    with self.app.state.factory() as s:staff_before=s.get(User,sid).password_hash;owner_before=s.get(User,self.users['owner']).password_hash
+    changed=self.client.post('/v1/auth/password',headers=h,json={'current_password':'test-password-only','new_password':'staff-test-personal-password'})
+    self.assertEqual(changed.status_code,200,changed.text)
+    with self.app.state.factory() as s:self.assertNotEqual(s.get(User,sid).password_hash,staff_before);self.assertEqual(s.get(User,self.users['owner']).password_hash,owner_before)
     self.assertEqual(self.client.post('/v1/auth/logout',headers=h).status_code,200);self.assertEqual(self.client.get('/v1/me',headers=h).status_code,401)
  def test_owner_checks_exclude_staff_even_if_allowlist_widens(self):
   _,h=self.legacy('manager')
