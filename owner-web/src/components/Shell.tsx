@@ -1,17 +1,20 @@
 import { Link, Outlet, useLocation, useNavigate } from "@tanstack/react-router";
-import { Activity, Archive, BadgeDollarSign, BookOpen, Building2, Cable, CheckCircle2, ChevronDown, CircleUserRound, ClipboardList, CloudCog, Coins, FileCode2, FileSearch2, FlaskConical, Globe2, HardDrive, Languages, LayoutDashboard, Map, Menu, Network, Radio, Router, ServerCog, Settings2, ShieldAlert, Sparkles, TerminalSquare, Ticket, UsersRound, WalletCards, WandSparkles, X } from "lucide-react";
+import { Activity, Archive, BadgeDollarSign, BookOpen, Building2, Cable, CheckCircle2, ChevronDown, CircleUserRound, ClipboardList, CloudCog, Coins, FileCode2, FileSearch2, FlaskConical, HardDrive, Languages, LayoutDashboard, Map, Menu, Network, Radio, Router, ServerCog, Settings2, ShieldAlert, Sparkles, TerminalSquare, Ticket, UsersRound, WalletCards, WandSparkles, X } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useSession } from "../lib/session";
+import { filterNavigation } from "../lib/navigation.mjs";
 import { ThemeToggle } from "./ThemeProvider";
 
-const navigation: Array<{ to: string; label: string; icon: LucideIcon; ownerOnly?: boolean; agentOnly?: boolean; platformOnly?: boolean }> = [
+export type NavigationItem = { to: string; label: string; icon: LucideIcon; ownerOnly?: boolean; agentOnly?: boolean; platformOnly?: boolean };
+
+export const navigation: NavigationItem[] = [
   { to: "/app", label: "Home", icon: LayoutDashboard },
   { to: "/app/easy", label: "Easy mode", icon: Activity },
   { to: "/app/routers", label: "Routers", icon: Router },
   { to: "/app/vouchers", label: "Vouchers", icon: Ticket },
   { to: "/app/voucher-layouts", label: "Print layouts", icon: ClipboardList },
-  { to: "/app/portal", label: "Guest Wi-Fi page", icon: Globe2 },
+  { to: "/app/portal", label: "Guest login", icon: Radio },
   { to: "/app/orders", label: "Payments", icon: WalletCards },
   { to: "/app/revenue", label: "Revenue", icon: BadgeDollarSign },
   { to: "/app/reseller-operation", label: "Resellers", icon: UsersRound },
@@ -63,13 +66,7 @@ function AppShell() {
   const location = useLocation();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
-  const visibleNavigation = navigation.filter((item) => {
-    if (item.platformOnly) return session.me?.role === "platform" && session.me.platform_owner;
-    if (item.agentOnly) return session.me?.role === "agent";
-    if (session.me?.role !== "sme") return false;
-    if (item.ownerOnly) return !session.me.staff_profile;
-    return true;
-  });
+  const visibleNavigation = filterNavigation(navigation, session.me);
   const current = visibleNavigation.find((item) => item.to === location.pathname) ?? visibleNavigation.find((item) => location.pathname.startsWith(item.to + "/"));
   return <div className="app-shell">
     <aside className={`sidebar ${open ? "open" : ""}`}>
