@@ -21,6 +21,8 @@ OPEN_STATUSES=('pending','needs_evidence')
 RESTRICTED_MESSAGE='Your MikroMagic subscription has expired. Renew it on the Subscription page to restore your workspace.'
 def renewal_allowed(path):
  return path in ('/v1/me','/v1/auth/logout','/v1/auth/password','/v1/subscription') or path.startswith(('/v1/subscription/','/v1/account/'))
+def staff_restricted_allowed(path):
+ return path in ('/v1/me','/v1/auth/logout')
 
 class PaymentSettingsIn(Strict):
  expected_revision:int=Field(ge=0)

@@ -17,7 +17,7 @@ from .models import StaffGrant
 from .staff import staff_allowed,LEGACY_STAFF_CLOSED
 from .models import TenantSubscription
 from .subscriptions import is_restricted
-from .subscription_renewal import renewal_allowed,RESTRICTED_MESSAGE
+from .subscription_renewal import renewal_allowed,RESTRICTED_MESSAGE,staff_restricted_allowed
 from .agents import agent_allowed
 from .auth_metadata import client_labels,approximate_source
 HASHER=PasswordHasher();DUMMY=HASHER.hash(secrets.token_urlsafe(24));auth=HTTPBearer(auto_error=False)
@@ -138,8 +138,10 @@ def make_app(url=None,initialize=False):
   if grant:
    check(u.role=='sme' and grant.tenant_id==u.tenant_id,'Staff authority is invalid')
    check(staff_allowed(grant.profile,request.method,request.url.path),LEGACY_STAFF_CLOSED)
-  u.subscription_restricted=u.role=='sme' and is_restricted(s.get(TenantSubscription,u.tenant_id),now)
-  if u.subscription_restricted:check(renewal_allowed(request.url.path),RESTRICTED_MESSAGE)
+  sub=s.get(TenantSubscription,u.tenant_id) if u.role=='sme' and u.tenant_id else None
+  restricted=is_restricted(sub,now)
+  u.subscription_restricted=bool((u.role=='sme' or u.staff_profile) and restricted)
+  if u.subscription_restricted:check((staff_restricted_allowed if grant else renewal_allowed)(request.url.path),RESTRICTED_MESSAGE)
   if u.role=='agent':check(agent_allowed(request.url.path),'Agent accounts can only use the Agent workspace')
   return u
  def log(s,u,action,target):s.add(Audit(actor_id=u.id,tenant_id=u.tenant_id,action=action,target=target,created=int(time.time())))

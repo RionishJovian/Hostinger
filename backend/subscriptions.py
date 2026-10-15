@@ -5,7 +5,7 @@ expiry date is the first day without paid access: the owner is warned for the se
 and, from that date, can sign in only to renew.
 """
 import time,calendar
-from datetime import datetime,date,time as day_time
+from datetime import datetime,date,time as day_time,timedelta
 from zoneinfo import ZoneInfo
 from typing import Literal
 from fastapi import Depends,HTTPException
@@ -39,10 +39,10 @@ def midnight(d):return int(datetime.combine(d,day_time.min,ZoneInfo(SUBSCRIPTION
 def add_months(d,months):
  y,m=divmod(d.month-1+months,12);y+=d.year;m+=1
  return date(y,m,min(d.day,calendar.monthrange(y,m)[1]))
-def is_restricted(row,now):return bool(row) and local_date(now)>=local_date(row.period_end)
+def is_restricted(row,now):return not row or row.state in ('past_due','suspended','cancelled') or local_date(now)>=local_date(row.period_end)
 def renewal_term(row,months,now):
  """Early renewal extends the current expiry; renewal after expiry starts on the approval date."""
- if row and not is_restricted(row,now):start=local_date(row.period_end);period_start=row.period_start
+ if row and local_date(now)<local_date(row.period_end):start=local_date(row.period_end);period_start=row.period_start
  else:start=local_date(now);period_start=midnight(start)
  return midnight(start),midnight(add_months(start,months)),period_start
 def term_status(row,now):
@@ -50,6 +50,10 @@ def term_status(row,now):
  expiry=local_date(row.period_end);days=(expiry-local_date(now)).days
  return {'expires_on':expiry.isoformat(),'days_left':max(days,0),'warning':0<days<=WARNING_DAYS,'restricted':days<=0}
 def plan_json(p):return {'id':p.id,**p.settings,'created':p.created,'pricing_source':'platform_entered'}
+def create_trial(s,tenant_id,now):
+ p=s.scalar(select(SubscriptionPlan).order_by(SubscriptionPlan.created.desc(),SubscriptionPlan.id).limit(1))
+ if not p:raise HTTPException(409,'Create a subscription plan before onboarding a business')
+ start=midnight(local_date(now));return TenantSubscription(tenant_id=tenant_id,revision=1,plan_id=p.id,plan_snapshot=plan_json(p),state='trial',period_start=start,period_end=midnight(local_date(now)+timedelta(days=14)),reason='Initial 14-day trial',updated=now)
 def subscription_json(row):
  if not row:return {'revision':0,'state':'unassigned','enforcement':'not_connected'}|term_status(None,0)
  data={k:getattr(row,k) for k in ['tenant_id','revision','plan_id','plan_snapshot','state','period_start','period_end','updated','reason']}

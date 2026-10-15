@@ -7,6 +7,7 @@ from sqlalchemy.exc import IntegrityError
 from argon2.exceptions import VerificationError,VerifyMismatchError
 from .models import Tenant,User,SessionToken,LoginAttempt,PortalSettings,BusinessProvisioning,ReviewCredential,PasswordResetRecord,StaffGrant
 from .schemas import Strict,PortalConfig
+from .subscriptions import create_trial
 class BusinessIn(Strict):
  name:str=Field(min_length=1,max_length=160)
  owner_username:str=Field(min_length=3,max_length=160,pattern=r'^[a-z0-9][a-z0-9_.@+-]{2,159}$')
@@ -37,7 +38,7 @@ def provision_business(s,u,b,hasher,log,check,attribute=None):
  check(not s.scalar(select(User.id).where(User.username==b.owner_username)),'Username is already in use',409)
  try:
   raw=secrets.token_urlsafe(18);now=int(time.time());t=Tenant(name=b.name);s.add(t);s.flush();a=User(username=b.owner_username,role='sme',tenant_id=t.id,password_hash=hasher.hash(raw),active=True,must_change_password=True,temporary_password_expires=now+86400);s.add(a);s.flush()
-  cfg=PortalConfig(business_name=b.name[:120],direct_purchase=False,voucher_login=False).model_dump();s.add(PortalSettings(tenant_id=t.id,revision=1,draft=cfg,published=None,published_revision=None,updated=now))
+  cfg=PortalConfig(business_name=b.name[:120],direct_purchase=False,voucher_login=False).model_dump();s.add(PortalSettings(tenant_id=t.id,revision=1,draft=cfg,published=None,published_revision=None,updated=now));s.add(create_trial(s,t.id,now))
   s.add(BusinessProvisioning(tenant_id=t.id,owner_id=a.id,created_by=u.id,request_key=b.request_key,request_hash=fingerprint,created=now));log(s,u,'business_created',t.id);log(s,u,'business_owner_created',a.id)
   if attribute:attribute(s,t,now)
   s.commit()

@@ -8,7 +8,8 @@ from sqlalchemy import select
 from sqlalchemy.schema import CreateTable
 from sqlalchemy.dialects.postgresql import dialect
 from backend.app import make_app,HASHER,resolve_client_ip,trusted_proxy_networks,IP_FAILURE_LIMIT
-from backend.models import Tenant,User,SessionToken,Entitlement,Outbox,Order,Base,PortalSettings,Audit
+from backend.models import Tenant,User,SessionToken,Entitlement,Outbox,Order,Base,PortalSettings,Audit,SubscriptionPlan,TenantSubscription
+from backend.subscriptions import local_date,midnight,add_months
 class AccountPaymentTests(unittest.TestCase):
  def setUp(self):
   self.tmp=tempfile.TemporaryDirectory();self.app=make_app('sqlite:///'+self.tmp.name+'/accounts.db',initialize=True);self.client=TestClient(self.app);self.users={}
@@ -16,6 +17,16 @@ class AccountPaymentTests(unittest.TestCase):
    a=Tenant(name='Cafe');b=Tenant(name='Other');s.add_all([a,b]);s.flush()
    for username,role,tenant in [('owner','sme',a.id),('guest','guest',a.id),('other','sme',b.id),('guest2','guest',a.id),('platform','platform',None)]:
     u=User(username=username,role=role,tenant_id=tenant,password_hash=HASHER.hash('test-password-only'));s.add(u);s.flush();self.users[username]=u.id
+   plan=SubscriptionPlan(settings={'name':'Test Plan','monthly_price':10000,'currency':'MMK','site_limit':10,'router_limit':10,'notes':''},created=int(time.time()))
+   s.add(plan);s.flush()
+   now=int(time.time())
+   today=local_date(now)
+   start=midnight(today)
+   end=midnight(add_months(today,1))
+   sub=TenantSubscription(tenant_id=a.id,revision=1,plan_id=plan.id,plan_snapshot={},state='active',period_start=start,period_end=end,updated=now,reason='Test subscription')
+   s.add(sub)
+   sub2=TenantSubscription(tenant_id=b.id,revision=1,plan_id=plan.id,plan_snapshot={},state='active',period_start=start,period_end=end,updated=now,reason='Test subscription')
+   s.add(sub2)
    cfg={'business_name':'Test Cafe','welcome':'Test only','language':'en','terms':'','contact':'','direct_purchase':True,'voucher_login':False,'payment_destination':'Test counter','payment_instructions':'Test payment only','payment_methods':['Cash'],'hostname':'','guest_interface':'','guest_subnet':'','tls_required':True,'isolate_guests':True,'allowed_hosts':[]}
    s.add(PortalSettings(tenant_id=a.id,revision=1,draft=cfg,published=cfg,published_revision=1,updated=int(time.time())))
    s.commit()

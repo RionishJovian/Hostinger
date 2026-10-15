@@ -8,7 +8,8 @@ class BillingTests(unittest.TestCase):
  login=test_backend.AccountPaymentTests.login
  def invoice(self):
   platform=self.login('platform');owner=self.login('owner');tenant=self.client.get('/v1/me',headers=owner).json()['tenant_id'];plan=self.client.post('/v1/platform/subscription-plans',headers=platform,json={'name':'Billing test','monthly_price':10000,'currency':'MMK','site_limit':2,'router_limit':3}).json()
-  body={'tenant_id':tenant,'plan_id':plan['id'],'subscription_revision':0,'period_start':100,'period_end':200,'destination':'Test platform counter','instructions':'Test manual payment only','request_key':'invoice-test-key-001'}
+  with self.app.state.factory() as s:start=s.get(TenantSubscription,tenant).period_end
+  body={'tenant_id':tenant,'plan_id':plan['id'],'subscription_revision':1,'period_start':start,'period_end':start+100,'destination':'Test platform counter','instructions':'Test manual payment only','request_key':'invoice-test-key-001'}
   r=self.client.post('/v1/platform/subscription-invoices',headers=platform,json=body);self.assertEqual(r.status_code,201);return r.json(),body,platform,owner
  def submission(self,revision=1,**extra):return {'expected_revision':revision,'method':'Cash','reference':'billing-test-ref','evidence':'Test receipt evidence','request_key':'billing-payment-key-001'}|extra
  def test_approval_is_atomic_and_retries_have_single_history_effects(self):
@@ -30,6 +31,6 @@ class BillingTests(unittest.TestCase):
   events=self.client.get('/v1/subscription/invoices/'+id+'/history',headers=o).json();self.assertEqual(len(events),5)
  def test_subscription_change_blocks_approval_without_partial_payment(self):
   v,body,p,o=self.invoice();id=v['id'];self.client.post('/v1/subscription/invoices/'+id+'/payment',headers=o,json=self.submission())
-  changed=self.client.post('/v1/platform/businesses/'+v['tenant_id']+'/subscription',headers=p,json={'expected_revision':0,'plan_id':v['plan_id'],'state':'active','period_start':50,'period_end':100,'reason':'Other operator action (test)'});self.assertEqual(changed.status_code,200)
+  changed=self.client.post('/v1/platform/businesses/'+v['tenant_id']+'/subscription',headers=p,json={'expected_revision':1,'plan_id':v['plan_id'],'state':'active','period_start':50,'period_end':100,'reason':'Other operator action (test)'});self.assertEqual(changed.status_code,200)
   r=self.client.post('/v1/platform/subscription-invoices/'+id+'/decision',headers=p,json={'expected_revision':2,'decision':'approved','reason':'Test','confirmed_received':True});self.assertEqual(r.status_code,409)
-  with self.app.state.factory() as s:self.assertEqual(s.get(SubscriptionInvoice,id).status,'pending');self.assertEqual(s.get(TenantSubscription,v['tenant_id']).revision,1);self.assertEqual(s.scalar(select(func.count()).select_from(BillingEvent)),2)
+  with self.app.state.factory() as s:self.assertEqual(s.get(SubscriptionInvoice,id).status,'pending');self.assertEqual(s.get(TenantSubscription,v['tenant_id']).revision,2);self.assertEqual(s.scalar(select(func.count()).select_from(BillingEvent)),2)

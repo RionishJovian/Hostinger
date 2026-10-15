@@ -1,7 +1,8 @@
 import unittest,time
 from sqlalchemy import select
 import test_backend as fixture
-from backend.models import User,Tenant,BusinessProvisioning,PortalSettings,ReviewCredential,PasswordResetRecord
+from backend.models import User,Tenant,BusinessProvisioning,PortalSettings,ReviewCredential,PasswordResetRecord,TenantSubscription
+from backend.subscriptions import local_date
 from backend.app import HASHER
 class OnboardingTests(unittest.TestCase):
  setUp=fixture.AccountPaymentTests.setUp
@@ -21,6 +22,10 @@ class OnboardingTests(unittest.TestCase):
   portal=self.client.get('/v1/portal',headers=new).json();self.assertIsNone(portal['published']);self.assertFalse(portal['draft']['direct_purchase']);self.assertFalse(portal['draft']['voucher_login'])
   with self.app.state.factory() as s:
    a=s.get(User,d['owner']['id']);self.assertTrue(HASHER.verify(a.password_hash,'my-new-owner-password'));self.assertNotEqual(a.password_hash,d['temporary_password']);self.assertEqual(len(list(s.scalars(select(BusinessProvisioning)))),1)
+ def test_fresh_business_has_fourteen_day_trial(self):
+  p=self.login('platform');before=int(time.time());d=self.create(p).json()
+  with self.app.state.factory() as s:
+   row=s.get(TenantSubscription,d['id']);self.assertIsNotNone(row);self.assertEqual(row.state,'trial');self.assertEqual((local_date(row.period_end)-local_date(row.period_start)).days,14);self.assertGreaterEqual(row.updated,before)
  def test_platform_permissions_duplicate_username_and_no_orphan_business(self):
   p=self.login('platform')
   for name in ['owner','guest']:
