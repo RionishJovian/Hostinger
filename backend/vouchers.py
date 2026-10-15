@@ -42,6 +42,9 @@ def register_vouchers(app,current,db,owner,log):
   v=Voucher(site_id=b.site_id,tenant_id=u.tenant_id,package_id=p.id,policy=p.policy.copy(),code_hash=code_hash,code_sealed=seal(u.tenant_id,code),code_hint=hint,code_format='custom' if custom else 'prefixed' if prefix else 'standard',code_prefix=prefix,issued_by=u.id,request_key=b.request_key,created=now,expires=now+b.expires_days*86400);s.add(v)
   try:s.flush();log(s,u,'voucher_issued',v.id);s.commit()
   except IntegrityError:s.rollback();raise HTTPException(409,'Issuance raced with another request; retry the same request key')
+  try:
+   if hasattr(app.state,'hotspot_sync_voucher'):app.state.hotspot_sync_voucher(s,v)
+  except Exception:pass
   return voucher_json(v)|{'code':display(code,prefix),'replayed':False}
  @app.post('/v1/vouchers/redeem')
  def redeem(b:VoucherRedeem,u=Depends(current),s=Depends(db)):

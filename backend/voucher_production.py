@@ -162,6 +162,10 @@ def register_voucher_production(app,current,db,owner,log):
    for v,_ in items:log(s,u,'voucher_job_issued',v.id)
    log(s,u,'voucher_job_generated',job.id);s.commit()
   except IntegrityError:s.rollback();raise HTTPException(409,'Serial numbers or codes were taken at the same time; press Generate again')
+  for v,_ in items:
+   try:
+    if hasattr(app.state,'hotspot_sync_voucher'):app.state.hotspot_sync_voucher(s,v)
+   except Exception:pass
   return {'replayed':False,'job':job_json(s,job,[v for v,_ in items]),'items':[voucher_json(v)|{'code':code} for v,code in items]}
 
  def sheet_states(job,numbers):
@@ -206,6 +210,10 @@ def register_voucher_production(app,current,db,owner,log):
   for vid in ids:log(s,u,'voucher_disabled',vid)
   sheets[str(sheet)]|={'state':'lost','lost_reason':b.reason,'disabled':len(ids)}
   settle(job,sheets);log(s,u,'voucher_job_sheet_lost',job.id);s.commit();s.refresh(job)
+  for vid in ids:
+   try:
+    if hasattr(app.state,'hotspot_sync_voucher'):app.state.hotspot_sync_voucher(s,s.get(Voucher,vid))
+   except Exception:pass
   return job_json(s,job)|{'disabled':len(ids),'recommendation':'Generate replacement vouchers in a new job rather than reprinting the same codes.'}
 
  @app.post('/v1/voucher-jobs/{id}/distribute')

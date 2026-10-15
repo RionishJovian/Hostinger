@@ -27,6 +27,14 @@ class VoucherTests(unittest.TestCase):
   self.assertEqual(self.client.get('/v1/revenue',headers=self.owner).json()['net_collections'],0)
   self.assertEqual(self.client.post('/v1/vouchers',headers=self.guest,json=self.body).status_code,403)
   self.assertEqual(self.client.post('/v1/vouchers',headers=self.owner,json={**self.body,'expires_days':2}).status_code,409)
+ def test_issue_persists_when_sync_hook_is_missing_or_fails(self):
+  h=self.login('owner');p=self.package(h);body={'package_id':p,'expires_days':30,'request_key':'issue-without-sync-hook'}
+  delattr(self.app.state,'hotspot_sync_voucher')
+  first=self.client.post('/v1/vouchers',headers=h,json=body);self.assertEqual(first.status_code,201,first.text)
+  def fail(s,v):raise RuntimeError('sync unavailable')
+  self.app.state.hotspot_sync_voucher=fail
+  second=self.client.post('/v1/vouchers',headers=h,json=body|{'request_key':'issue-with-failing-sync'});self.assertEqual(second.status_code,201,second.text)
+  with self.app.state.factory() as s:self.assertEqual(len(list(s.scalars(select(Voucher).where(Voucher.id.in_([first.json()['id'],second.json()['id']]))))),2)
  def test_redeem_once_replay_and_grant_source(self):
   v=self.setup_voucher();first=self.redeem(v['code'].lower().replace('-',' '));self.assertEqual(first.status_code,200);self.assertEqual(first.json()['fulfillment'],'pending_adapter')
   replay=self.redeem(v['code']);self.assertTrue(replay.json()['replayed']);self.assertEqual(replay.json()['id'],first.json()['id']);self.assertEqual(self.redeem(v['code'],self.second).status_code,400)

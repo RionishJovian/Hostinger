@@ -35,4 +35,8 @@ def register_voucher_batch(app,current,db,owner,log):
    for v,_ in items:log(s,u,'voucher_batch_issued',v.id)
    s.commit()
   except IntegrityError:s.rollback();raise HTTPException(409,'Batch issuance raced; retry the same request key')
+  for v,_ in items:
+   try:
+    if hasattr(app.state,'hotspot_sync_voucher'):app.state.hotspot_sync_voucher(s,v)
+   except Exception:pass
   return {'replayed':False,'items':[voucher_json(v)|{'code':code} for v,code in items]}

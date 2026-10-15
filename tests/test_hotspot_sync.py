@@ -64,6 +64,18 @@ class HotspotSyncTests(unittest.TestCase):
   self.app.state.hotspot_background_sync=lambda factory,routers:self.triggered.extend(routers);self.triggered=[]
   _,owner,hub,site,_=self.setup_hub();return owner,hub,site
 
+ def test_issue_batch_generate_and_lost_auto_trigger_connected_router(self):
+  owner,hub,site=self.fixture();router=self.managed(owner,hub,site);package=self.package(owner)
+  issued=self.issue(owner,package,site,'auto-single');self.assertEqual(self.triggered,[router])
+  replay=self.issue(owner,package,site,'auto-single');self.assertTrue(replay['replayed']);self.assertEqual(self.triggered,[router])
+  batch={'site_id':site,'package_id':package,'count':2,'expires_days':7,'request_key':'auto-batch-00001'}
+  created=self.client.post('/v1/vouchers/batch',headers=owner,json=batch);self.assertEqual(created.status_code,201,created.text);self.assertEqual(self.triggered,[router]*3)
+  self.assertTrue(self.client.post('/v1/vouchers/batch',headers=owner,json=batch).json()['replayed']);self.assertEqual(self.triggered,[router]*3)
+  drafted=self.client.post('/v1/voucher-jobs',headers=owner,json={'site_id':site,'package_id':package,'quantity':2,'layout':'a4_premium'});self.assertEqual(drafted.status_code,201,drafted.text)
+  generated=self.client.post(f"/v1/voucher-jobs/{drafted.json()['id']}/generate",headers=owner,json={'confirm':True});self.assertEqual(generated.status_code,200,generated.text);self.assertEqual(self.triggered,[router]*5)
+  replayed=self.client.post(f"/v1/voucher-jobs/{drafted.json()['id']}/generate",headers=owner,json={'confirm':True});self.assertTrue(replayed.json()['replayed']);self.assertEqual(self.triggered,[router]*5)
+  lost=self.client.post(f"/v1/voucher-jobs/{drafted.json()['id']}/sheets/1/lost",headers=owner,json={'reason':'Missing envelope'});self.assertEqual(lost.status_code,200,lost.text);self.assertEqual(lost.json()['disabled'],2);self.assertEqual(self.triggered,[router]*7)
+
  def test_codes_are_sealed_per_business_and_never_returned(self):
   owner,hub,site=self.fixture();package=self.package(owner);issued=self.issue(owner,package,site,'seal-one')
   self.assertNotIn('code_sealed',issued)
@@ -98,6 +110,7 @@ class HotspotSyncTests(unittest.TestCase):
   fake.active.append({'.id':'*S1','user':first['code']})
   fake.cookies.append({'.id':'*C1','user':first['code'],'mac-address':'AA:BB:CC:DD:EE:FF'})
   fake.cookies.append({'.id':'*C2','user':second['code'],'mac-address':'11:22:33:44:55:66'})
+  self.triggered.clear()
   self.assertEqual(self.client.post(f"/v1/vouchers/{first['id']}/disable",headers=owner,json={'reason':'Lost'}).status_code,200);self.assertEqual(self.triggered,[router])
   self.client.post(f"/v1/vouchers/{second['id']}/delete",headers=owner)
   self.client.post(f"/v1/vouchers/{third['id']}/revoke",headers=owner,json={'reason':'Fraud'})
