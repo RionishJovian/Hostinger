@@ -16,7 +16,7 @@ for folder, suffixes in (
     ("backend", {".py"}),
     ("src", {".js", ".jsx", ".mjs", ".css"}),
     ("public", {".png", ".svg", ".webp", ".jpg", ".jpeg", ".ico"}),
-    ("owner-web", {".ts", ".tsx", ".css", ".json", ".html"}),
+    ("owner-web", {".ts", ".tsx", ".mts", ".mjs", ".css", ".json", ".html"}),
 ):
     files.extend(
         path for path in (root / folder).rglob("*")
