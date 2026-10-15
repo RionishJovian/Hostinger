@@ -1,31 +1,19 @@
-import { Eye, Save, Send } from "lucide-react";
-import { useEffect, useState } from "react";
-import { LoadState, PageIntro, useEndpoint } from "../components/AsyncPanel";
-import { post } from "../lib/api";
+import { Radio, ShieldCheck, Ticket } from "lucide-react";
+import { LoadState, PageIntro, displayValue, useEndpoint } from "../components/AsyncPanel";
 
-type PortalSettings = { business_name: string; welcome: string; language: string; terms: string; contact: string; direct_purchase: boolean; voucher_login: boolean; payment_destination: string | null; payment_instructions: string | null; payment_methods: string[] };
-type PortalState = { revision: number; draft: PortalSettings; published: PortalSettings | null; published_revision: number | null; router_deployment_status: string };
+type PortalState = { published_revision?: number | null; router_deployment_status?: string; published?: { language?: string; voucher_login?: boolean } | null };
 
 export function PortalPage() {
   const state = useEndpoint<PortalState>("/v1/portal");
-  const [draft, setDraft] = useState<PortalSettings | null>(null);
-  const [busy, setBusy] = useState(false);
-  const [notice, setNotice] = useState("");
-  useEffect(() => { if (state.data) setDraft(state.data.draft); }, [state.data]);
-  const update = (field: keyof PortalSettings, value: string | boolean) => setDraft((current) => current ? { ...current, [field]: value } : current);
-  async function act(kind: "draft" | "publish") {
-    if (!state.data || !draft) return;
-    setBusy(true); setNotice("");
-    try {
-      const next = kind === "draft" ? await post<PortalState>("/v1/portal/draft", { expected_revision: state.data.revision, settings: draft }) : await post<PortalState>("/v1/portal/publish", { expected_revision: state.data.revision });
-      setDraft(next.draft); setNotice(kind === "draft" ? "Guest Wi-Fi page saved in MikroMagic." : "Guest Wi-Fi page published in MikroMagic."); await state.refresh();
-    } catch (error) { setNotice(error instanceof Error ? error.message : "The page was not saved."); }
-    finally { setBusy(false); }
-  }
-  return <><PageIntro kicker="Guest Wi-Fi" title="Guest Wi-Fi page" description="Keep the welcome page simple: one voucher-code box, your shop name and clear help for guests." />
-    {notice && <div className="notice" role="status">{notice}</div>}
+  return <>
+    <PageIntro kicker="Guest access" title="Guest login" description="See the status of MikroMagic's one-box voucher login. Page editing is not available in the owner app." />
+    <div className="read-only-note">View only — router installation or replacement must use a reviewed Safe Change with backup and rollback checks.</div>
     <LoadState loading={state.loading} error={state.error} unavailable={state.unavailable}>
-      {draft && <div className="portal-layout"><section className="panel form-panel"><h2>Page content</h2><label>Shop name<input value={draft.business_name} onChange={(event) => update("business_name", event.target.value)} /></label><label>Welcome message<textarea value={draft.welcome} onChange={(event) => update("welcome", event.target.value)} /></label><label>Language<select value={draft.language} onChange={(event) => update("language", event.target.value)}><option value="my">မြန်မာ</option><option value="en">English</option></select></label><label>Terms<textarea value={draft.terms} onChange={(event) => update("terms", event.target.value)} /></label><label>Guest help contact<input value={draft.contact} onChange={(event) => update("contact", event.target.value)} /></label><label className="check-row"><input type="checkbox" checked={draft.voucher_login} onChange={(event) => update("voucher_login", event.target.checked)} /> Show voucher-code login</label><div className="button-row"><button className="secondary" disabled={busy} onClick={() => void act("draft")}><Save size={16} /> Save page</button><button className="primary" disabled={busy} onClick={() => void act("publish")}><Send size={16} /> Publish</button></div></section><section className="panel preview-panel"><p className="kicker"><Eye size={15} /> Live preview</p><div className="phone"><div className="phone-screen"><span className="wifi-logo">M</span><h2>{draft.business_name || "Your shop"}</h2><p>{draft.welcome || "Welcome to our guest Wi-Fi"}</p><label>Voucher code<input readOnly placeholder="Enter voucher code" /></label><button>Connect</button><small>{draft.contact}</small></div></div><p className="muted">Publishing saves this page in MikroMagic. Router installation remains a separate reviewed Safe Change.</p></section></div>}
+      <section className="restored-sections">
+        <article className="panel restored-section"><div className="restored-section-heading"><span className="card-icon"><Ticket /></span><div><h2>One voucher-code box</h2><p>Guest codes work in any letter case and ignore spaces and dashes.</p></div></div><dl><div><dt>Published revision</dt><dd>{displayValue(state.data?.published_revision)}</dd></div><div><dt>Language</dt><dd>{displayValue(state.data?.published?.language)}</dd></div></dl></article>
+        <article className="panel restored-section"><div className="restored-section-heading"><span className="card-icon"><Radio /></span><div><h2>Router status</h2><p>Cloud content and router-installed files are separate states.</p></div></div><dl><div><dt>Deployment</dt><dd>{displayValue(state.data?.router_deployment_status)}</dd></div></dl></article>
+        <article className="panel restored-section"><div className="restored-section-heading"><span className="card-icon"><ShieldCheck /></span><div><h2>First Customer Test</h2><p>A real phone, voucher login and Internet session are required before Site Ready.</p></div></div><div className="inline-empty"><strong>Coming soon</strong><span>Real phone acceptance is not available from this screen.</span></div></article>
+      </section>
     </LoadState>
   </>;
 }

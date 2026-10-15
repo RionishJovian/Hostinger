@@ -206,6 +206,22 @@ label input, label textarea, label select { display: block; margin-top: .35rem; 
 .empty-mark { width: 44px; height: 44px; display: grid; place-items: center; border-radius: 50%; background: var(--soft); color: var(--primary); font-size: 1.5rem; margin-bottom: .8rem; }
 .empty-state h2 { font-size: 1rem; margin-bottom: .3rem; }
 .empty-state p { max-width: 420px; color: var(--muted); font-size: .82rem; margin: 0; }
+.restored-sections { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 1rem; }
+.restored-section { margin: 0; min-width: 0; }
+.restored-section:first-child { grid-column: 1 / -1; }
+.restored-section-heading { display: flex; align-items: flex-start; gap: .9rem; margin-bottom: 1rem; }
+.restored-section-heading h2 { margin: 0 0 .25rem; font-size: 1.05rem; }
+.restored-section-heading p { margin: 0; color: var(--muted); font-size: .8rem; }
+.restored-records { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: .75rem; }
+.restored-record { min-width: 0; border: 1px solid var(--border); border-radius: 15px; background: var(--surface); padding: .9rem; }
+.restored-record > strong { display: block; margin-bottom: .7rem; overflow-wrap: anywhere; }
+.restored-record dl { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: .55rem; }
+.inline-empty { display: flex; flex-direction: column; gap: .15rem; border: 1px dashed var(--border); border-radius: 14px; padding: 1rem; color: var(--muted); font-size: .78rem; }
+.inline-empty strong { color: var(--text); }
+.section-summary { border-top: 1px solid var(--border); padding-top: .8rem; color: var(--muted); font-size: .78rem; }
+.tab-list { display: flex; gap: .45rem; margin: -1rem 0 1.25rem; overflow-x: auto; }
+.tab-list a { flex: 0 0 auto; border: 1px solid var(--border); border-radius: 999px; padding: .5rem .85rem; color: var(--muted); font-size: .75rem; font-weight: 700; }
+.tab-list a.active { border-color: var(--primary); color: var(--text); background: var(--soft); }
 .skeleton-stack { display: grid; gap: .8rem; }
 .skeleton-stack span { height: 88px; border-radius: 18px; background: linear-gradient(90deg,var(--surface),var(--soft),var(--surface)); background-size: 200% 100%; animation: shimmer 1.5s infinite; }
 @keyframes shimmer { to { background-position: -200% 0; } }
@@ -250,7 +266,9 @@ label input, label textarea, label select { display: block; margin-top: .35rem; 
   .account-button span, .account-button > svg:last-child { display: none; }
   .page-intro { display: block; }
   .page-intro > .secondary { margin-top: 1rem; }
-  .metrics, .data-grid, .router-grid, .manual-grid, .profile-grid, .portal-layout, .easy-hero { grid-template-columns: 1fr; }
+  .metrics, .data-grid, .router-grid, .manual-grid, .profile-grid, .portal-layout, .easy-hero, .restored-sections, .restored-records { grid-template-columns: 1fr; }
+  .restored-section:first-child { grid-column: auto; }
+  .restored-record dl { grid-template-columns: 1fr; }
   .feature-panel { grid-template-columns: 1fr; }
   .network-art { padding: 2rem 0 0; }
   .network-art span { width: 54px; height: 54px; border-radius: 17px; }

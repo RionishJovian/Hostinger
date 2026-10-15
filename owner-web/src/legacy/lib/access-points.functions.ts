@@ -1,0 +1,22 @@
+// @ts-nocheck
+// Engine data layer for the copied Lovable screen: calls go to /v1/owner/* or report coming soon.
+import { engineFn } from "@/engine";
+export const listApControllers = engineFn("listApControllers");
+export const saveApController = engineFn("saveApController");
+export const deleteApController = engineFn("deleteApController");
+export const testApController = engineFn("testApController");
+export const listAps = engineFn("listAps");
+export const listApClients = engineFn("listApClients");
+export const listApSsids = engineFn("listApSsids");
+export const listApRadios = engineFn("listApRadios");
+export const listApAlarms = engineFn("listApAlarms");
+export const listApTraffic = engineFn("listApTraffic");
+export const saveApSsid = engineFn("saveApSsid");
+export const setApSsidEnabled = engineFn("setApSsidEnabled");
+export const setApSsidPassword = engineFn("setApSsidPassword");
+export const setApSsidVlan = engineFn("setApSsidVlan");
+export const setApRadio = engineFn("setApRadio");
+export const rebootAp = engineFn("rebootAp");
+export const apClientAction = engineFn("apClientAction");
+export const saveApMeta = engineFn("saveApMeta");
+export const listApMeta = engineFn("listApMeta");

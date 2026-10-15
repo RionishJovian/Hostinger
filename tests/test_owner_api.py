@@ -1,7 +1,9 @@
 import time
 import unittest
 
-from backend.models import FinancialEvent, MagicHub, RouterDevice, RouterPlan, Site, SiteIncident, User
+from sqlalchemy import select
+
+from backend.models import Audit, FinancialEvent, MagicHub, RouterDevice, RouterPlan, Site, SiteIncident, User
 import test_backend
 from backend.owner_api import redact_sensitive_keys
 
@@ -52,6 +54,34 @@ class OwnerOverviewTests(unittest.TestCase):
         other = self.client.get('/v1/owner/overview', headers=self.login('other')).json()
         self.assertEqual([shop['name'] for shop in other['shops']], ['Other shop'])
         self.assertEqual([router['name'] for router in other['routers']], ['Other router'])
+
+    def test_restored_endpoints_scope_roles_audit_and_coming_soon(self):
+        headers = self.login('owner')
+        site_id, router_id = self.add_overview_data()
+        fleet = self.client.get('/v1/owner/fleet', headers=headers)
+        self.assertEqual(fleet.status_code, 200, fleet.text)
+        self.assertEqual([row['id'] for row in fleet.json()], [router_id])
+        topology = self.client.get('/v1/owner/topology', headers=headers)
+        self.assertEqual(topology.status_code, 200, topology.text)
+        self.assertEqual([row['id'] for row in topology.json()['sites']], [site_id])
+        self.assertNotIn('Other shop', topology.text)
+        self.assertNotIn('Other router', topology.text)
+        self.assertEqual(self.client.get('/v1/owner/tenants', headers=headers).status_code, 403)
+        self.assertEqual(self.client.get('/v1/owner/test-lab', headers=headers).status_code, 403)
+        self.assertEqual(self.client.post('/v1/owner/services/upgrade', headers=headers, json={'tenant_id': 'x', 'plan': 'monthly'}).status_code, 403)
+        response = self.client.post('/v1/owner/terminal', headers=headers, json={'router_id': router_id, 'command': '/system reboot'})
+        self.assertEqual(response.status_code, 422, response.text)
+        with self.app.state.factory() as s:
+            row = s.scalar(select(Audit).where(Audit.action == 'owner_terminal_blocked'))
+            self.assertIsNotNone(row)
+            self.assertEqual(row.target, router_id)
+        response = self.client.post('/v1/owner/terminal', headers=headers, json={'router_id': router_id, 'command': '/system resource print'})
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertEqual(response.json()['status'], 'coming_soon')
+        for path in ('/v1/owner/connectors', '/v1/owner/syslog'):
+            response = self.client.get(path, headers=headers)
+            self.assertEqual(response.status_code, 200, response.text)
+            self.assertEqual(response.json()['status'], 'coming_soon')
 
 
 class OwnerOverviewRedactionTests(unittest.TestCase):

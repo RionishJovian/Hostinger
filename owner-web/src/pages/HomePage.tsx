@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { ArrowRight, CircleCheck, Router, Ticket, UsersRound, Wifi } from "lucide-react";
+import { ArrowRight, CircleCheck, Router, ShieldCheck, Ticket, UsersRound, Wifi } from "lucide-react";
 import { LoadState, PageIntro, displayValue, useEndpoint } from "../components/AsyncPanel";
 
 type Overview = Record<string, unknown>;
@@ -18,7 +18,7 @@ export function HomePage() {
         <Metric icon={CircleCheck} label="Open incidents" value={metric(["open_incidents", "openIncidents"])} />
       </section>
       <section className="feature-panel"><div><p className="kicker">Magic Hub</p><h2>Your router, safely within reach</h2><p>Connect once, then monitor the hotspot and review protected changes from MikroMagic.</p><Link to="/app/routers" className="primary">Open routers <ArrowRight size={17} /></Link></div><div className="network-art" aria-hidden><span><Wifi /></span><i /><span><Router /></span><i /><span className="hub-node">M</span></div></section>
-      <section><div className="section-heading"><div><p className="kicker">Quick actions</p><h2>Run your business</h2></div></div><div className="action-grid"><Action to="/app/easy/vouchers" icon={Ticket} title="Create vouchers" body="Prepare access codes for guests" /><Action to="/app/live" icon={UsersRound} title="See live guests" body="Check current hotspot sessions" /><Action to="/app/portal" icon={Wifi} title="Guest Wi-Fi page" body="Manage the page guests see" /><Action to="/app/routers" icon={Router} title="Router health" body="See connection and health status" /></div></section>
+      <section><div className="section-heading"><div><p className="kicker">Quick actions</p><h2>Run your business</h2></div></div><div className="action-grid"><Action to="/app/easy/vouchers" icon={Ticket} title="Create vouchers" body="Prepare access codes for guests" /><Action to="/app/live" icon={UsersRound} title="See live guests" body="Check current hotspot sessions" /><Action to="/app/audit" icon={ShieldCheck} title="Review activity" body="See protected business and router actions" /><Action to="/app/routers" icon={Router} title="Router health" body="See connection and health status" /></div></section>
     </LoadState>
   </>;
 }

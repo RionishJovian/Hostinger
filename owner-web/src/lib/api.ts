@@ -7,6 +7,7 @@ export type Me = {
   tenant_id: string | null;
   must_change_password: boolean;
   staff_profile: string | null;
+  platform_owner: boolean;
   subscription_restricted: boolean;
 };
 
