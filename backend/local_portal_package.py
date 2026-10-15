@@ -15,59 +15,63 @@ FILES = ("login.html", "alogin.html", "flogin.html", "status.html", "logout.html
 MAX_ARCHIVE_BYTES = 128_000
 MAX_FILE_BYTES = 32_000
 
-# Lantern Leaf guest UI — ink/amber/emerald, system fonts only, no CDN/remote assets.
+# Lantern Leaf guest UI — Midnight Studio graphite/emerald/silver, system fonts only, no CDN/remote assets.
 # Compatible with RouterOS HotSpot servlet HTML size and offline CHAP login.
 _CSS_BASE = (
     '*{box-sizing:border-box}html{color-scheme:dark}'
-    'body{margin:0;min-height:100vh;font:16px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,'
-    '"Noto Sans Myanmar","Myanmar Text","Padauk",sans-serif;color:#F3ECDD;'
-    'background:#0A1210;background-image:'
-    'radial-gradient(ellipse 90% 55% at 92% 0%,rgba(242,179,90,.42),transparent 58%),'
-    'radial-gradient(ellipse 70% 45% at 8% 18%,rgba(140,74,28,.28),transparent 55%),'
-    'radial-gradient(ellipse 85% 50% at 20% 100%,rgba(18,73,58,.55),transparent 60%),'
-    'linear-gradient(180deg,#0A1210 0%,#0E1D18 100%)}'
-    '.wrap{min-height:100vh;display:flex;flex-direction:column;justify-content:center;padding:1rem 1rem 0;'
+    'body{margin:0;min-height:100vh;font:16px/1.6 system-ui,-apple-system,"Segoe UI",Roboto,'
+    '"Noto Sans Myanmar","Myanmar Text","Padauk",sans-serif;color:#E6E9ED;'
+    'background:#0B1014 linear-gradient(180deg,#0B1014 0%,#121A1F 100%)}'
+    '.wrap{min-height:100vh;display:flex;flex-direction:column;justify-content:center;padding:16px 16px 0;'
     'max-width:26rem;margin:0 auto}'
-    '.top{display:flex;align-items:center;justify-content:space-between;gap:.75rem;margin:0 0 1rem}'
-    '.seal{width:3rem;height:3rem;border-radius:50%;display:flex;align-items:center;justify-content:center;'
-    'font-weight:700;font-size:1.25rem;color:#FBF4E4;background:rgba(217,138,50,.18);'
-    'border:2px solid #D98A32;box-shadow:inset 0 0 0 1px rgba(242,179,90,.45)}'
-    '.brand{font-size:1.7rem;font-weight:700;line-height:1.3;margin:0 0 .4rem;letter-spacing:0}'
-    '.lead{margin:0 0 1.25rem;color:#CFC6B3;font-size:.95rem;line-height:1.65}'
-    '.sheet{margin-top:1.25rem;background:rgba(14,29,24,.92);border:1px solid rgba(243,236,221,.12);'
-    'border-radius:1.35rem;margin-bottom:calc(1rem + env(safe-area-inset-bottom,0px));padding:1.25rem 1.1rem;'
+    '.top{display:flex;align-items:center;justify-content:space-between;gap:16px;margin:0 0 16px}'
+    '.seal{width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;'
+    'font-weight:700;font-size:1.25rem;color:#E6E9ED;background:rgba(22,30,36,.78);'
+    'border:1px solid rgba(200,205,212,.72);box-shadow:inset 0 0 0 3px #121A1F,0 0 0 1px rgba(200,205,212,.18)}'
+    '.brand{font-size:1.7rem;font-weight:700;line-height:1.3;margin:0 0 8px;letter-spacing:0}'
+    '.lead{margin:0 0 16px;color:#A8B0B8;font-size:.95rem;line-height:1.6}'
+    '.page-title{margin:0 0 16px;color:#E6E9ED;font-size:1.15rem;line-height:1.6}'
+    '.sheet{margin-top:16px;background:rgba(22,30,36,.78);border:1px solid rgba(200,205,212,.14);'
+    'border-radius:20px;margin-bottom:calc(16px + env(safe-area-inset-bottom,0px));padding:20px 16px;'
     'box-shadow:0 12px 40px rgba(0,0,0,.35)}'
-    'label{display:block;font-weight:600;margin:0 0 .35rem;color:#F3ECDD;font-size:.9rem}'
+    'label{display:block;font-weight:600;margin:0 0 8px;color:#E6E9ED;font-size:.9rem}'
     'input,button.primary,button.secondary{display:block;width:100%;font:inherit;'
-    'padding:.9rem .85rem;margin:0 0 .75rem;min-height:52px;border-radius:.75rem}'
-    'input{background:rgba(243,236,221,.06);color:#F3ECDD;border:1.5px solid rgba(243,236,221,.22)}'
-    'input::placeholder{color:#9A9384}'
-    'button.primary{background:linear-gradient(180deg,#1F7F5C,#145C45);color:#FBF4E4;border:0;font-weight:700}'
+    'padding:12px 16px;margin:0 0 16px;min-height:52px;border-radius:12px}'
+    'input{background:rgba(230,233,237,.06);color:#E6E9ED;border:1.5px solid rgba(200,205,212,.22)}'
+    'input::placeholder{color:#7A838C}'
+    'button.primary{background:linear-gradient(180deg,#1F8F68,#147A56);color:#E6E9ED;border:0;font-weight:700}'
     'button.primary:disabled{opacity:.65}'
     '#voucher{text-transform:uppercase;letter-spacing:.14em;text-align:center;font-size:1.25rem;font-weight:700}'
     '#voucher::placeholder{text-transform:none;letter-spacing:normal;font-weight:400;font-size:1rem}'
-    '.hint{margin:-.35rem 0 .9rem;color:#9A9384;font-size:.8rem;line-height:1.55}'
-    '.divider{display:flex;align-items:center;gap:.6rem;margin:1rem 0 .85rem;color:#CFC6B3;font-size:.85rem}'
-    '.divider:before,.divider:after{content:"";flex:1;height:1px;background:rgba(243,236,221,.14)}'
-    '.pay{margin:0 0 .85rem;padding:.9rem;border-radius:.85rem;background:rgba(217,138,50,.1);'
-    'border:1px solid rgba(242,179,90,.45)}'
-    '.pay h2{margin:0 0 .45rem;font-size:.95rem;color:#F2C27B;font-weight:700}'
-    '.pay .dest{margin:0 0 .4rem;font-size:1.05rem;font-weight:700;color:#F3ECDD;white-space:pre-wrap}'
-    '.pay .instr{margin:0 0 .45rem;color:#CFC6B3;font-size:.88rem;line-height:1.55;white-space:pre-wrap}'
-    '.pay .methods{margin:0;color:#9A9384;font-size:.78rem}'
-    '.fair{margin:.85rem 0 0;color:#9A9384;font-size:.75rem;line-height:1.5}'
-    'a{color:#5FD3A2}.err{color:#E9856B;margin:0 0 .85rem}.ok{color:#5FD3A2;margin:0 0 .85rem}'
-    '.mm{margin:.9rem 0 0;text-align:center;font-size:.72rem;color:#9A9384;letter-spacing:.08em}'
+    '.hint{margin:-8px 0 16px;color:#7A838C;font-size:.8rem;line-height:1.6}'
+    '.divider{display:flex;align-items:center;gap:8px;margin:16px 0;color:#A8B0B8;font-size:.85rem}'
+    '.divider:before,.divider:after{content:"";flex:1;height:1px;background:rgba(200,205,212,.14)}'
+    '.pay{margin:0 0 16px;padding:16px;border-radius:12px;background:rgba(230,233,237,.04);'
+    'border:1px solid rgba(200,205,212,.14)}'
+    '.pay h2{margin:0 0 8px;font-size:.95rem;color:#E6E9ED;font-weight:700}'
+    '.pay .dest{margin:0 0 8px;font-size:1.05rem;font-weight:700;color:#E6E9ED;white-space:pre-wrap}'
+    '.pay .instr{margin:0 0 8px;color:#A8B0B8;font-size:.88rem;line-height:1.6;white-space:pre-wrap}'
+    '.pay .methods{margin:0;color:#7A838C;font-size:.78rem}'
+    '.fair{margin:16px 0 0;color:#7A838C;font-size:.75rem;line-height:1.6}'
+    'a{color:#5FD3A2}.secondary{display:flex;width:100%;min-height:44px;align-items:center;justify-content:center;'
+    'padding:8px 16px;border:1px solid rgba(200,205,212,.22);border-radius:12px;color:#E6E9ED;'
+    'background:rgba(230,233,237,.04);font-weight:700;text-align:center;text-decoration:none}'
+    '.err{color:#E9856B;margin:0 0 16px}.ok{color:#5FD3A2;margin:0 0 16px}'
+    '.status-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}.stat{padding:16px;border-radius:12px;'
+    'background:rgba(230,233,237,.04);border:1px solid rgba(200,205,212,.14)}'
+    '.stat-label{display:block;color:#7A838C;font-size:.8rem}.stat-value{display:block;margin-top:8px;color:#E6E9ED;font-weight:700}'
+    '.status-logout{margin-top:24px}.status-logout .primary{min-height:52px;margin-bottom:0}'
+    '.mm{margin:16px 0 0;text-align:center;font-size:.72rem;color:#7A838C;letter-spacing:.08em}'
     '.mm:before{content:"";display:inline-block;width:.35rem;height:.35rem;border-radius:50%;'
     'background:#176B50;margin-right:.4rem;vertical-align:middle}'
 )
 _CSS_BOTH = (
     _CSS_BASE
-    + '.langs{display:flex;gap:0;margin:0;border:1px solid rgba(243,236,221,.18);border-radius:.7rem;'
-    + 'overflow:hidden;background:rgba(12,26,21,.72)}'
+    + '.langs{display:flex;gap:0;margin:0;border:1px solid rgba(200,205,212,.18);border-radius:12px;'
+    + 'overflow:hidden;background:rgba(22,30,36,.78)}'
     + '.langs button{flex:1;min-width:4.2rem;padding:.45rem .65rem;font:inherit;border:0;'
-    + 'background:transparent;color:#9A9384;min-height:44px}'
-    + '.langs button[aria-pressed="true"]{background:rgba(243,236,221,.14);color:#F3ECDD;font-weight:700}'
+    + 'background:transparent;color:#7A838C;min-height:44px}'
+    + '.langs button[aria-pressed="true"]{background:rgba(200,205,212,.14);color:#E6E9ED;font-weight:700}'
     + '.my{display:none}html[lang="my"] .my{display:inline}html[lang="my"] .en{display:none}'
     + 'html[lang="en"] .en{display:inline}html[lang="en"] .my{display:none}'
     + 'html[lang="my"] .my-block{display:block}html[lang="my"] .en-block{display:none}'
@@ -174,7 +178,7 @@ _MD5_JS = (
 )
 
 
-def _page(title_my: str, title_en: str, content: str, cfg: PortalConfig) -> str:
+def _page(title_my: str, title_en: str, content: str, cfg: PortalConfig, *, login: bool = False, show_welcome: bool = True) -> str:
     # Owner-controlled text is escaped. Pages use only RouterOS-local template
     # variables and inline CSS/JS; no cloud origin, CDN, or PAP fallback.
     mode = _language_mode(cfg)
@@ -182,24 +186,24 @@ def _page(title_my: str, title_en: str, content: str, cfg: PortalConfig) -> str:
     welcome_raw = (cfg.welcome or '').strip()
     # Schema default is English; use Lantern Leaf bilingual job line until the owner customizes it.
     if not welcome_raw or welcome_raw == 'Welcome. Choose internet or media access.':
-        welcome = _default_welcome(mode)
+        welcome_html = _default_welcome(mode)
     else:
-        welcome = _local_text(welcome_raw)
+        welcome_html = _local_text(welcome_raw)
     seal = _seal_letter(cfg.business_name)
     if mode == 'en':
         lang, title = 'en', title_en
         lang_bar, lang_js, css = '', '', _CSS_BASE
-        headings = f'<h1 class="lead" style="font-weight:700;color:#F3ECDD;margin:0 0 .35rem">{html.escape(title_en)}</h1>'
+        headings = f'<h1 class="page-title">{html.escape(title_en)}</h1>'
     elif mode == 'my':
         lang, title = 'my', title_my
         lang_bar, lang_js, css = '', '', _CSS_BASE
-        headings = f'<h1 class="lead" style="font-weight:700;color:#F3ECDD;margin:0 0 .35rem">{html.escape(title_my)}</h1>'
+        headings = f'<h1 class="page-title">{html.escape(title_my)}</h1>'
     else:
         lang, title = 'my', title_my
         lang_bar, lang_js, css = _LANG_BAR, _LANG_JS, _CSS_BOTH
         headings = (
-            f'<h1 class="my-block lead" style="font-weight:700;color:#F3ECDD;margin:0 0 .35rem">{html.escape(title_my)}</h1>'
-            f'<h1 class="en-block lead" style="font-weight:700;color:#F3ECDD;margin:0 0 .35rem">{html.escape(title_en)}</h1>'
+            f'<h1 class="my-block page-title">{html.escape(title_my)}</h1>'
+            f'<h1 class="en-block page-title">{html.escape(title_en)}</h1>'
         )
     top = f'<div class="top"><div class="seal" aria-hidden="true">{seal}</div>{lang_bar}</div>' if lang_bar else f'<div class="top"><div class="seal" aria-hidden="true">{seal}</div></div>'
     return (
@@ -209,8 +213,8 @@ def _page(title_my: str, title_en: str, content: str, cfg: PortalConfig) -> str:
         f'<title>{html.escape(title)} · {brand}</title>'
         f'<style>{css}</style></head><body><div class="wrap">'
         f'{top}<p class="brand">{brand}</p>'
-        + headings
-        + f'<p class="lead">{welcome}</p>'
+        + ('' if login else headings)
+        + (f'<p class="lead">{welcome_html}</p>' if show_welcome else '')
         + f'<div class="sheet">{content}{_fair_use(cfg, mode)}'
         + lang_js
         + '<p class="mm">MikroMagic</p></div></div></body></html>'
@@ -310,50 +314,52 @@ def build_local_hotspot_package(settings: PortalConfig | dict, *, tenant_id: str
     # Map common RouterOS HotSpot English $(error) strings to the configured guest language(s).
     flogin = (
         '<p class="err" id="msg" data-raw="$(error)"></p>'
-        f'<a href="$(link-login-only)">{_phrase("ထပ်ကြိုးစားရန်", "Try again", mode)}</a>'
+        f'<a class="secondary" href="$(link-login-only)">{_phrase("ထပ်ကြိုးစားရန်", "Try again", mode)}</a>'
         + _flogin_error_script(mode)
     )
 
     pages = {
-        "login.html": _page("Wi-Fi ဝင်ရန်", "Wi-Fi login", login, cfg),
+        "login.html": _page("Wi-Fi ဝင်ရန်", "Wi-Fi login", login, cfg, login=True),
         "alogin.html": _page(
             "ချိတ်ဆက်ပြီးပါပြီ", "Connected",
             f'<p class="ok">{_phrase("အင်တာနက် သုံးနိုင်ပါပြီ။", "You are connected.", mode)}</p>'
-            f'<a href="$(link-status)">{_phrase("အခြေအနေ ကြည့်ရန်", "Session status", mode)}</a>',
+            f'<a class="secondary" href="$(link-status)">{_phrase("အခြေအနေ ကြည့်ရန်", "Session status", mode)}</a>',
             cfg,
         ),
-        "flogin.html": _page("ချိတ်ဆက် မရပါ", "Could not connect", flogin, cfg),
+        "flogin.html": _page("ချိတ်ဆက် မရပါ", "Could not connect", flogin, cfg, show_welcome=False),
         "status.html": _page(
             "Session အခြေအနေ", "Session status",
-            f'<p>{_phrase("ကျန်အချိန်", "Time left", mode)}: $(session-time-left)</p>'
-            f'<p>{_phrase("ကျန်ဒေတာ", "Data left", mode)}: $(remain-bytes-total)</p>'
-            f'<form action="$(link-logout)" method="post"><button class="primary" type="submit">'
+            f'<div class="status-grid"><div class="stat"><span class="stat-label">{_phrase("ကျန်အချိန်", "Time left", mode)}</span>'
+            f'<span class="stat-value">$(session-time-left)</span></div>'
+            f'<div class="stat"><span class="stat-label">{_phrase("ကျန်ဒေတာ", "Data left", mode)}</span>'
+            f'<span class="stat-value">$(remain-bytes-total)</span></div></div>'
+            f'<form class="status-logout" action="$(link-logout)" method="post"><button class="primary" type="submit">'
             f'{_phrase("ထွက်ရန်", "Sign out", mode)}</button></form>',
-            cfg,
+            cfg, show_welcome=False,
         ),
         "logout.html": _page(
             "ထွက်ပြီးပါပြီ", "Signed out",
             f'<p>{_phrase("Session ပြီးဆုံးပါပြီ။", "Your HotSpot session has ended.", mode)}</p>'
-            f'<a href="$(link-login-only)">{_phrase("ပြန်ဝင်ရန်", "Return to login", mode)}</a>',
-            cfg,
+            f'<a class="secondary" href="$(link-login-only)">{_phrase("ပြန်ဝင်ရန်", "Return to login", mode)}</a>',
+            cfg, show_welcome=False,
         ),
         "fstatus.html": _page(
             "Session မရှိပါ", "No session",
             f'<p class="err">{_phrase("လက်ရှိ HotSpot session မရှိပါ။", "No active HotSpot session.", mode)}</p>'
-            f'<a href="$(link-login-only)">{_phrase("ပြန်ဝင်ရန်", "Return to login", mode)}</a>',
-            cfg,
+            f'<a class="secondary" href="$(link-login-only)">{_phrase("ပြန်ဝင်ရန်", "Return to login", mode)}</a>',
+            cfg, show_welcome=False,
         ),
         "flogout.html": _page(
             "ထွက်ပြီးသား", "Already signed out",
             f'<p>{_phrase("Session မရှိတော့ပါ။", "There is no active HotSpot session.", mode)}</p>'
-            f'<a href="$(link-login-only)">{_phrase("ပြန်ဝင်ရန်", "Return to login", mode)}</a>',
-            cfg,
+            f'<a class="secondary" href="$(link-login-only)">{_phrase("ပြန်ဝင်ရန်", "Return to login", mode)}</a>',
+            cfg, show_welcome=False,
         ),
         "error.html": _page(
             "ဆက်မလုပ်နိုင်ပါ", "Unable to continue",
             f'<p class="err">{_phrase("Router က ဤတောင်းဆိုမှုကို ဆက်မလုပ်နိုင်ပါ။", "The router could not continue this request.", mode)}</p>'
-            f'<a href="$(link-login-only)">{_phrase("ပြန်ဝင်ရန်", "Return to login", mode)}</a>',
-            cfg,
+            f'<a class="secondary" href="$(link-login-only)">{_phrase("ပြန်ဝင်ရန်", "Return to login", mode)}</a>',
+            cfg, show_welcome=False,
         ),
         "redirect.html": _page(
             "ဆက်သွားရန်", "Continue",

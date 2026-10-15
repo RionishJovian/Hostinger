@@ -95,6 +95,47 @@ class LocalPortalPackageTests(unittest.TestCase):
             self.assertNotIn('ကုဒ် မှားနေပါသည်', flogin)
             self.assertIn('el.textContent=msg', flogin)
 
+    def test_midnight_studio_layout_and_page_hierarchy(self):
+        package = build_local_hotspot_package(self.settings, tenant_id='tenant_01', site_id='site_01', revision=7)
+        with zipfile.ZipFile(io.BytesIO(package)) as archive:
+            pages = {name: archive.read(name).decode() for name in (
+                'login.html', 'alogin.html', 'flogin.html', 'status.html',
+                'logout.html', 'fstatus.html', 'flogout.html', 'error.html',
+            )}
+        login = pages['login.html']
+        self.assertIn('linear-gradient(180deg,#0B1014 0%,#121A1F 100%)', login)
+        self.assertIn('background:rgba(22,30,36,.78);border:1px solid rgba(200,205,212,.14);border-radius:20px', login)
+        self.assertIn('color:#E6E9ED', login)
+        self.assertIn('color:#A8B0B8', login)
+        self.assertIn('color:#7A838C', login)
+        self.assertIn('linear-gradient(180deg,#1F8F68,#147A56)', login)
+        self.assertIn('.seal{width:48px;height:48px', login)
+        self.assertIn('border:1px solid rgba(200,205,212,.72)', login)
+        self.assertIn('font:16px/1.6', login)
+        self.assertIn('padding:20px 16px', login)
+        self.assertNotRegex(login, r'#D98A32|rgba\(242,179,90,|#F2C27B')
+        self.assertNotIn('<h1', login)
+        self.assertLess(login.index('class="seal"'), login.index('class="langs"'))
+        self.assertLess(login.index('class="langs"'), login.index('class="brand"'))
+        self.assertLess(login.index('class="brand"'), login.index('class="lead"'))
+        self.assertLess(login.index('class="lead"'), login.index('class="sheet"'))
+        self.assertIn('class="secondary" href="$(link-status)"', pages['alogin.html'])
+        self.assertIn('class="secondary" href="$(link-login-only)"', pages['flogin.html'])
+        for name in ('logout.html', 'fstatus.html', 'flogout.html', 'error.html'):
+            self.assertIn('class="secondary" href="$(link-login-only)"', pages[name])
+        for name in ('flogin.html', 'status.html', 'logout.html', 'fstatus.html', 'flogout.html', 'error.html'):
+            self.assertNotIn('class="lead"', pages[name])
+        status = pages['status.html']
+        self.assertEqual(status.count('class="stat"'), 2)
+        self.assertIn('<span class="stat-label"><span class="my">ကျန်အချိန်</span><span class="en">Time left</span></span>', status)
+        self.assertIn('<span class="stat-value">$(session-time-left)</span>', status)
+        self.assertIn('<span class="stat-label"><span class="my">ကျန်ဒေတာ</span><span class="en">Data left</span></span>', status)
+        self.assertIn('<span class="stat-value">$(remain-bytes-total)</span>', status)
+        self.assertIn('class="status-logout"', status)
+        self.assertIn('.status-logout{margin-top:24px}', status)
+        self.assertIn('.status-logout .primary{min-height:52px', status)
+        self.assertIn('.secondary{display:flex;width:100%;min-height:44px', login)
+
     def test_rejects_invalid_scope(self):
         with self.assertRaises(ValueError):
             build_local_hotspot_package(self.settings, tenant_id='tenant', site_id='../other', revision=1)
