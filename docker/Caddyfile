@@ -6,6 +6,13 @@
 		reverse_proxy api:8788
 	}
 
+	@owner path /owner /owner/*
+	handle @owner {
+		root * /srv
+		try_files {path} /owner/index.html
+		file_server
+	}
+
 	handle {
 		root * /srv
 		try_files {path} /index.html
