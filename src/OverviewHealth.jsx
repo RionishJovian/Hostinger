@@ -14,10 +14,9 @@ function useOverviewText(){
  return t;
 }
 
-function routerConnectionTone(routers) {
-  if (routers.length === 0) return 'offline';
-  const allFresh = routers.every(router => router.fresh === true);
-  return allFresh ? 'connected' : 'unable';
+function routerConnectionTone(routers){
+ if(routers.length===0)return 'offline';
+ return routers.every(router=>router.fresh===true)?'connected':'unable';
 }
 
 export default function OverviewHealth({sites=[],routers=[],pendingPayments,navigate}){

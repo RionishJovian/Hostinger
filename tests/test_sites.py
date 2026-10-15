@@ -90,18 +90,27 @@ class RouterDisplayTests(unittest.TestCase):
         for k,v in extra.items():setattr(d,k,v)
       return d
     # no plan -> fresh False
-    self.assertFalse(router_display(make_device()).get('fresh'))
+    self.assertFalse(router_display(make_device(),now=now).get('fresh'))
     # no handshake -> stale False
     plan_no_handshake=types.SimpleNamespace(lifecycle_state='connected',handshake_verified_at=None,management_read_verified_at=now-20,hub_id='hub1')
-    self.assertFalse(router_display(make_device(),plan_no_handshake).get('fresh'))
+    self.assertFalse(router_display(make_device(),plan_no_handshake,now).get('fresh'))
     # connected + both reads exactly 180s old -> fresh True
     plan_180=types.SimpleNamespace(lifecycle_state='connected',handshake_verified_at=now-180,management_read_verified_at=now-180,hub_id='hub1')
     self.assertTrue(router_display(make_device(),plan_180,now).get('fresh'))
     # connected + read 181s old -> fresh False
     plan_181=types.SimpleNamespace(lifecycle_state='connected',handshake_verified_at=now-181,management_read_verified_at=now-181,hub_id='hub1')
     self.assertFalse(router_display(make_device(),plan_181,now).get('fresh'))
+    # handshake 180s old with management read 181s old should be fresh=False
+    plan_handshake_180_mgmt_181=types.SimpleNamespace(lifecycle_state='connected',handshake_verified_at=now-180,management_read_verified_at=now-181,hub_id='hub1')
+    self.assertFalse(router_display(make_device(),plan_handshake_180_mgmt_181,now).get('fresh'))
+    # handshake 181s old with management read 180s old should be fresh=False
+    plan_handshake_181_mgmt_180=types.SimpleNamespace(lifecycle_state='connected',handshake_verified_at=now-181,management_read_verified_at=now-180,hub_id='hub1')
+    self.assertFalse(router_display(make_device(),plan_handshake_181_mgmt_180,now).get('fresh'))
     # connection_verified on the device never decides freshness
-    self.assertFalse(router_display(make_device({'connection_verified':True}),plan_180).get('fresh'))
+    self.assertTrue(router_display(make_device({'connection_verified':True}),plan_180,now).get('fresh'))
     # connection_verified=True but stale handshake -> fresh False
     stale_device=make_device({'connection_verified':True});stale_plan=types.SimpleNamespace(lifecycle_state='connected',handshake_verified_at=now-181,management_read_verified_at=now-181,hub_id='hub1')
-    self.assertFalse(router_display(stale_device,stale_plan).get('fresh'))
+    self.assertFalse(router_display(stale_device,stale_plan,now).get('fresh'))
+    # connection_verified=True on a stale plan should be False
+    stale_plan_verified=types.SimpleNamespace(lifecycle_state='connected',handshake_verified_at=now-181,management_read_verified_at=now-181,hub_id='hub1')
+    self.assertFalse(router_display(make_device({'connection_verified':True}),stale_plan_verified,now).get('fresh'))
