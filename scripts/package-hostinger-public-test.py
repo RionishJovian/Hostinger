@@ -11,14 +11,18 @@ files = [root / name for name in (
     "package-lock.json", "index.html", "vite.config.mjs", "docker/Caddyfile",
     "docker/api-entrypoint.sh",
 )]
+_FORBIDDEN_PARTS = {"secrets", "routeros-secrets", "node_modules", "dist", ".venv", ".runtime"}
 for folder, suffixes in (
     ("backend", {".py"}),
     ("src", {".js", ".jsx", ".mjs", ".css"}),
     ("public", {".png", ".svg", ".webp", ".jpg", ".jpeg", ".ico"}),
+    ("owner-web", {".ts", ".tsx", ".css", ".json", ".html"}),
 ):
     files.extend(
         path for path in (root / folder).rglob("*")
-        if path.is_file() and path.suffix.lower() in suffixes
+        if path.is_file()
+        and path.suffix.lower() in suffixes
+        and not any(part in _FORBIDDEN_PARTS for part in path.parts)
     )
 files = sorted(set(files))
 for path in files:
