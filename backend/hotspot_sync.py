@@ -10,6 +10,7 @@ enforced on the router yet: activation is only known after session reads.
 import hashlib,json,threading,time
 from fastapi import Depends,HTTPException
 from sqlalchemy import or_,select
+from .hub_orchestrator import connection_is_fresh
 from .models import HotspotVoucherSync,MagicConnectEnrollment,RouterDevice,RouterPlan,Voucher
 from .routeros_adapter import RouterOSClient,RouterOSError,load_routeros_safe_change_credential
 from .voucher_vault import unseal
@@ -127,7 +128,7 @@ def managed_router(s,router_id,tenant_id=None):
  if not router or (tenant_id and router.tenant_id!=tenant_id):return None,None
  plan=s.scalar(select(RouterPlan).where(RouterPlan.router_id==router.id,RouterPlan.tenant_id==router.tenant_id))
  enrollment=s.get(MagicConnectEnrollment,plan.id) if plan else None
- if not (enrollment and enrollment.management_identities_at and plan.management_read_verified_at and plan.lifecycle_state not in LOCKED_STATES):return router,None
+ if not (enrollment and enrollment.management_identities_at and plan.management_read_verified_at and plan.lifecycle_state not in LOCKED_STATES and connection_is_fresh(plan)):return router,None
  return router,plan
 
 def scope(s,router):

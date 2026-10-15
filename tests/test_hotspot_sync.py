@@ -1,8 +1,9 @@
 import os,time,unittest
-from unittest.mock import patch
+from unittest.mock import Mock,patch
 from cryptography.fernet import Fernet
+from sqlalchemy import select
 import test_hubs
-from backend.hotspot_sync import EXPIRY_CHECK,SCHEDULER,USER_COMMENT,internet_limits,profile_for,reconcile,user_limits
+from backend.hotspot_sync import EXPIRY_CHECK,SCHEDULER,USER_COMMENT,HotspotSyncError,internet_limits,profile_for,reconcile,user_limits
 from backend.models import HotspotVoucherSync,MagicConnectEnrollment,RouterPlan,Voucher
 from backend.routeros_adapter import RouterOSCredential,RouterOSError
 from backend.voucher_vault import unseal
@@ -124,6 +125,19 @@ class HotspotSyncTests(unittest.TestCase):
   self.assertEqual(fake.writes[-1][0],'PUT')
   self.client.post(f"/v1/vouchers/{first['id']}/enable",headers=owner);self.sync(router,fake)
   self.assertEqual(fake.user(first['code'])['disabled'],'false')
+
+ def test_stale_handshake_skips_before_routeros_contact_and_fresh_syncs(self):
+  owner,hub,site=self.fixture();router=self.managed(owner,hub,site);package=self.package(owner);self.issue(owner,package,site,'freshness-a');fake=FakeHotspot();factory=Mock(wraps=fake.client)
+  with self.app.state.factory() as s:
+   plan=s.scalar(select(RouterPlan).where(RouterPlan.router_id==router));plan.handshake_verified_at=int(time.time())-181;s.commit()
+  with self.app.state.factory() as s:
+   with self.assertRaises(HotspotSyncError) as raised:reconcile(s,router,factory)
+  self.assertEqual(raised.exception.code,'router_not_managed');factory.assert_not_called();self.assertEqual(fake.writes,[])
+  with self.app.state.factory() as s:
+   plan=s.scalar(select(RouterPlan).where(RouterPlan.router_id==router));now=int(time.time());plan.handshake_verified_at=now;plan.management_read_verified_at=now;s.commit()
+  with patch('backend.hotspot_sync.load_routeros_safe_change_credential',return_value=RouterOSCredential('https://10.90.1.2','mm-safechange-x','x')):
+   with self.app.state.factory() as s:result=reconcile(s,router,factory)
+  self.assertEqual(result['applied'],1);self.assertEqual(factory.call_count,1);self.assertTrue(fake.writes)
 
  def test_conflicts_old_vouchers_media_and_outages_are_reported_not_forced(self):
   owner,hub,site=self.fixture();router=self.managed(owner,hub,site);package=self.package(owner);fake=FakeHotspot()
