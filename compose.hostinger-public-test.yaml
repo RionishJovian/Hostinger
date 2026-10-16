@@ -1,0 +1,198 @@
+name: mikromagic-build21-public-test
+
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: build21_public_test
+      POSTGRES_USER: build21_public_test
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+    secrets: [postgres_password]
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks: [private]
+    cpus: 1.0
+    mem_limit: 1g
+    logging:
+      options: {max-size: "10m", max-file: "3"}
+
+  migrate:
+    profiles: [operations]
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    environment: &api_env
+      POSTGRES_DB: build21_public_test
+      POSTGRES_USER: build21_public_test
+      POSTGRES_HOST: db
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+      MIKROMAGIC_BACKUP_KEY_FILE: /run/secrets/backup_key
+      MIKROMAGIC_BACKUP_DIR: /var/lib/mikromagic/backups
+      MIKROMAGIC_ENVIRONMENT: hostinger-public-test
+      MIKROMAGIC_MAGIC_CONNECT_TEST_MODE: "false"
+      MIKROMAGIC_ROUTEROS_ALLOW_HTTP: "false"
+      # Written only by the API when MikroMagic creates its own router logins.
+      MIKROMAGIC_ROUTEROS_MONITORING_SECRETS_DIR: /var/lib/mikromagic/routeros/monitoring
+      MIKROMAGIC_ROUTEROS_SAFE_CHANGE_SECRETS_DIR: /var/lib/mikromagic/routeros/safe-change
+      MIKROMAGIC_ROUTEROS_ENROLL_SECRETS_DIR: /var/lib/mikromagic/routeros/enroll
+      MIKROMAGIC_HUB_MODE: dedicated-agent
+      MIKROMAGIC_HUB_DEDICATED_INTERFACE: mm-prod-hub
+      MIKROMAGIC_HUB_AGENT_URL: http://magic-hub:8790
+      MIKROMAGIC_HUB_AGENT_TOKEN_FILE: /run/secrets/hub_agent_token
+      # Router management HTTPS goes through the Hub's CONNECT relay over the tunnel.
+      MIKROMAGIC_HUB_RELAY_URL: http://magic-hub:8791
+      MIKROMAGIC_HUB_PEER_READS_ENABLED: "true"
+      MIKROMAGIC_HUB_PEER_WRITES_ENABLED: "true"
+      MIKROMAGIC_MAGIC_CONNECT_ENABLED: "true"
+      # Hardware window only: technician-guided router setup (owner 2026-10-13).
+      # Remove and redeploy with ALLOW_INFRA_CHANGE=1 when the window closes.
+      MIKROMAGIC_MAGIC_CONNECT_ROUTER_SETUP: "true"
+      # The API sees requests only from the fixed web reverse-proxy address.
+      MIKROMAGIC_TRUSTED_PROXY_CIDRS: "${MIKROMAGIC_WEB_PROXY_IP:-172.31.21.10}/32"
+    secrets: &api_secrets
+      - {source: postgres_password_api, target: postgres_password}
+      - backup_key
+      - hub_agent_token
+    command: ["python", "-m", "alembic", "upgrade", "head"]
+    depends_on:
+      db: {condition: service_healthy}
+    networks: [private]
+    restart: "no"
+    cpus: 1.0
+    mem_limit: 1g
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    restart: unless-stopped
+    environment:
+      <<: *api_env
+      MIKROMAGIC_API_WORKERS: "2"
+    depends_on:
+      db: {condition: service_healthy}
+      magic-hub: {condition: service_healthy}
+    secrets: *api_secrets
+    volumes:
+      - encrypted_backups:/var/lib/mikromagic/backups
+      - routeros_credentials:/var/lib/mikromagic/routeros
+    networks:
+      private: {}
+      frontend:
+        ipv4_address: "${MIKROMAGIC_API_IP:-172.31.21.11}"
+    cpus: 1.0
+    mem_limit: 1g
+    logging:
+      options: {max-size: "10m", max-file: "3"}
+
+  # Reviewed infra addition (2026-10-13): Durable Safe Change recovery poller.
+  # Same image/env/volumes/secrets as api; private network only; no published ports;
+  # no Hub/Caddy/firewall changes. Disables the API image HEALTHCHECK (that probes
+  # /v1/ready on :8788) because this process is not an HTTP server.
+  safe-change-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    restart: unless-stopped
+    environment:
+      <<: *api_env
+      MIKROMAGIC_SAFE_CHANGE_POLL_SECONDS: "10"
+    command: ["python", "-m", "backend.safe_change_worker"]
+    depends_on:
+      db: {condition: service_healthy}
+      magic-hub: {condition: service_healthy}
+    secrets: *api_secrets
+    volumes:
+      - encrypted_backups:/var/lib/mikromagic/backups
+      - routeros_credentials:/var/lib/mikromagic/routeros
+    networks: [private]
+    cpus: 0.25
+    mem_limit: 256m
+    healthcheck:
+      disable: true
+    logging:
+      options: {max-size: "10m", max-file: "3"}
+
+  magic-hub:
+    build:
+      context: .
+      dockerfile: Dockerfile.hub
+    restart: unless-stopped
+    read_only: true
+    cap_add: [NET_ADMIN]
+    security_opt: [no-new-privileges:true]
+    devices: [/dev/net/tun:/dev/net/tun]
+    environment:
+      MIKROMAGIC_HUB_INTERFACE: mm-prod-hub
+      MIKROMAGIC_HUB_ADDRESS: "${MIKROMAGIC_HUB_ADDRESS:-10.90.1.1/24}"
+      MIKROMAGIC_HUB_PORT: "${MIKROMAGIC_HUB_PORT:-51820}"
+      MIKROMAGIC_HUB_PRIVATE_KEY_FILE: /run/secrets/hub_private_key
+      MIKROMAGIC_HUB_AGENT_TOKEN_FILE: /run/secrets/hub_agent_token
+      MIKROMAGIC_HUB_STATE_FILE: /var/lib/mikromagic-hub/peers.json
+      MIKROMAGIC_HUB_RELAY_PORT: "8791"
+    secrets: [hub_private_key, hub_agent_token]
+    volumes: [hub_state:/var/lib/mikromagic-hub]
+    tmpfs: ["/tmp:rw,noexec,nosuid,nodev,size=16m"]
+    ports:
+      - "${MIKROMAGIC_HUB_BIND_IP:?set MIKROMAGIC_HUB_BIND_IP to the verified VPS public IPv4}:${MIKROMAGIC_HUB_PORT:-51820}:${MIKROMAGIC_HUB_PORT:-51820}/udp"
+    # Docker publishes no ports for a container attached only to internal networks.
+    networks: [private, hub_uplink]
+    cpus: 0.25
+    mem_limit: 128m
+    logging:
+      options: {max-size: "10m", max-file: "3"}
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+    restart: unless-stopped
+    environment:
+      MIKROMAGIC_SITE_ADDRESS: :80
+    depends_on:
+      api: {condition: service_healthy}
+    networks:
+      frontend:
+        ipv4_address: "${MIKROMAGIC_WEB_PROXY_IP:-172.31.21.10}"
+      ingress:
+        aliases: [mikromagic-build21-public-test-web]
+    cpus: 0.25
+    mem_limit: 256m
+    logging:
+      options: {max-size: "10m", max-file: "3"}
+
+networks:
+  private:
+    internal: true
+  frontend:
+    ipam:
+      config:
+        - subnet: "${MIKROMAGIC_FRONTEND_SUBNET:-172.31.21.0/24}"
+  hub_uplink: {}
+  ingress:
+    external: true
+    name: "${MIKROMAGIC_INGRESS_NETWORK:?set MIKROMAGIC_INGRESS_NETWORK to the verified existing Caddy network}"
+
+volumes:
+  postgres_data:
+  encrypted_backups:
+  hub_state:
+  routeros_credentials:
+
+secrets:
+  postgres_password:
+    file: ./secrets/postgres_password.txt
+  postgres_password_api:
+    file: ./secrets/postgres_password_api.txt
+  backup_key:
+    file: ./secrets/backup_key.txt
+  hub_private_key:
+    file: ./secrets/hub_private_key.txt
+  hub_agent_token:
+    file: ./secrets/hub_agent_token.txt

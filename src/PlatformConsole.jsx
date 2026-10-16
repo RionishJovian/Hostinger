@@ -1,0 +1,14 @@
+import React,{useEffect,useState} from 'react';
+const date=value=>value?new Date(value*1000).toLocaleString():'Not recorded';
+const who=row=><>{row.account}<br/><small>{row.role}{row.business?' · '+row.business:''}</small></>;
+const device=row=>row.device?<>{row.device}<br/><small>{row.browser}</small></>:'Not recorded';
+export default function PlatformConsole({api}){
+ const [sessions,setSessions]=useState([]),[events,setEvents]=useState([]),[busy,setBusy]=useState(false),[notice,setNotice]=useState('');
+ async function fetchAll(){const [active,activity]=await Promise.all([api.request('platform/console/sessions'),api.request('platform/console/sign-ins')]);return [active,activity.events]}
+ async function refresh(){setBusy(true);try{const [active,activity]=await fetchAll();setSessions(active);setEvents(activity);setNotice('')}catch(e){setNotice(e.message)}finally{setBusy(false)}}
+ useEffect(()=>{let live=true;fetchAll().then(([active,activity])=>{if(live){setSessions(active);setEvents(activity)}}).catch(e=>{if(live)setNotice(e.message)});return ()=>{live=false}},[api]);
+ return <>
+  <section className="panel"><h2>Active sessions · all accounts</h2><p>Every unexpired sign-in session on the platform. Device and browser labels are reported by the sign-in client; network addresses are approximate and masked. Session tokens are never shown.</p><button className="button secondary" disabled={busy} onClick={refresh}>Refresh console</button>{notice&&<p role="status">{notice}</p>}<div className="tablewrap"><table><thead><tr><th>Account</th><th>Device / browser</th><th>Login time</th><th>Last active</th><th>Approximate source</th><th>Expires</th></tr></thead><tbody>{sessions.map((row,i)=><tr key={i}><td>{who(row)}{row.current&&<><br/><span className="pill">This session</span></>}</td><td>{device(row)}</td><td>{date(row.login_at)}</td><td>{date(row.last_active)}</td><td>{row.approximate_source}</td><td>{date(row.expires)}</td></tr>)}{!sessions.length&&<tr><td colSpan={6}>No active sessions.</td></tr>}</tbody></table></div></section>
+  <section className="panel"><h2>Sign-in activity · past 7 days</h2><p>Sign-ins, sign-outs and failed attempts across all accounts. Device details exist only where login history was recorded; passwords and tokens are never stored.</p><div className="tablewrap"><table><thead><tr><th>Time</th><th>Account</th><th>Event</th><th>Device / browser</th><th>Approximate source</th></tr></thead><tbody>{events.map((row,i)=><tr key={i}><td>{date(row.time)}</td><td>{who(row)}</td><td>{row.outcome==='failure'?<strong>{row.event}</strong>:row.event}</td><td>{device(row)}</td><td>{row.approximate_source||'Not recorded'}</td></tr>)}{!events.length&&<tr><td colSpan={5}>No sign-in activity in the past 7 days.</td></tr>}</tbody></table></div></section>
+ </>;
+}

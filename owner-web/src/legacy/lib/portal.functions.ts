@@ -1,0 +1,33 @@
+// @ts-nocheck
+// Engine data layer for the copied Lovable screen: calls go to /v1/owner/* or report coming soon.
+import { engineFn } from "@/engine";
+export type PushPlansScope = any;
+export type PushedVoucherProfile = any;
+export type PlanPushPlanResult = any;
+export type IssuePlanVouchersInput = any;
+export const getPortalSettings = engineFn("getPortalSettings");
+export const savePortalSettings = engineFn("savePortalSettings");
+export const uploadPortalAsset = engineFn("uploadPortalAsset");
+export const getSignedAssetUrl = engineFn("getSignedAssetUrl");
+export const buildPortalZip = engineFn("buildPortalZip");
+export const listPlans = engineFn("listPlans");
+export const getTicketActivationPref = engineFn("getTicketActivationPref");
+export const saveTicketActivationPref = engineFn("saveTicketActivationPref");
+export const savePlan = engineFn("savePlan");
+export const deletePlan = engineFn("deletePlan");
+export const listDeployableRouters = engineFn("listDeployableRouters");
+export const listPortalDeploys = engineFn("listPortalDeploys");
+export const getPortalDeployProbe = engineFn("getPortalDeployProbe");
+export const scanPortalOnDevice = engineFn("scanPortalOnDevice");
+export const publishPortalToRouter = engineFn("publishPortalToRouter");
+export const rollbackPortalDeploy = engineFn("rollbackPortalDeploy");
+export const pushPlansToRouter = engineFn("pushPlansToRouter");
+export const issuePlanVouchers = engineFn("issuePlanVouchers");
+export const listVoucherCodes = engineFn("listVoucherCodes");
+export const scanLegacyRouterVouchers = engineFn("scanLegacyRouterVouchers");
+export const importLegacyRouterVouchers = engineFn("importLegacyRouterVouchers");
+export const reconcileVoucherLedger = engineFn("reconcileVoucherLedger");
+export const renderBundleForOwner = engineFn("renderBundleForOwner");
+export const plansForScope = engineFn("plansForScope");
+export const ensurePlanProfileOnRouter = engineFn("ensurePlanProfileOnRouter");
+export const issuePlanVouchersForUser = engineFn("issuePlanVouchersForUser");

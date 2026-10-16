@@ -1,0 +1,1047 @@
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+from sqlalchemy import String, Integer, BigInteger, ForeignKey, JSON, UniqueConstraint, Boolean, CheckConstraint, LargeBinary, Index, Float, Text, text
+import uuid
+class Base(DeclarativeBase):pass
+def uid():return str(uuid.uuid4())
+class Tenant(Base):
+ __tablename__='tenants'
+ id:Mapped[str]=mapped_column(String(36),primary_key=True,default=uid)
+ name:Mapped[str]=mapped_column(String(160))
+class User(Base):
+ __tablename__='users'
+ id:Mapped[str]=mapped_column(String(36),primary_key=True,default=uid)
+ username:Mapped[str]=mapped_column(String(160),unique=True)
+ password_hash:Mapped[str]=mapped_column(String(255))
+ role:Mapped[str]=mapped_column(String(20))
+ tenant_id:Mapped[str|None]=mapped_column(ForeignKey('tenants.id'))
+ active:Mapped[bool]=mapped_column(Boolean,default=True)
+ must_change_password:Mapped[bool]=mapped_column(Boolean,default=False,server_default='0')
+ temporary_password_expires:Mapped[int|None]=mapped_column(BigInteger,nullable=True)
+ # Set only by trusted server-side provisioning; honored only for the platform role.
+ platform_owner:Mapped[bool]=mapped_column(Boolean,default=False,server_default='0',nullable=False)
+ # SME owner access set by the platform owner; `active` stays False whenever this is not 'active'.
+ access_state:Mapped[str]=mapped_column(String(20),default='active',server_default='active')
+ access_reason:Mapped[str|None]=mapped_column(String(1000),nullable=True)
+ access_revision:Mapped[int]=mapped_column(Integer,default=0,server_default='0')
+ __table_args__=(CheckConstraint("role in ('platform','sme','guest','agent')",name='users_role_check'),CheckConstraint("role in ('platform','agent') OR tenant_id IS NOT NULL",name='users_check'))
+class SessionToken(Base):
+ __tablename__='sessions'
+ token_hash:Mapped[str]=mapped_column(String(64),primary_key=True)
+ user_id:Mapped[str]=mapped_column(ForeignKey('users.id'))
+ expires:Mapped[int]=mapped_column(BigInteger)
+ must_change_password:Mapped[bool]=mapped_column(Boolean,default=False,server_default='0',nullable=False)
+ login_at:Mapped[int|None]=mapped_column(BigInteger,nullable=True)
+ last_active:Mapped[int|None]=mapped_column(BigInteger,nullable=True)
+ device:Mapped[str|None]=mapped_column(String(40),nullable=True)
+ browser:Mapped[str|None]=mapped_column(String(40),nullable=True)
+ source:Mapped[str|None]=mapped_column(String(64),nullable=True)
+class LoginHistory(Base):
+ __tablename__='login_history'
+ id:Mapped[str]=mapped_column(String(36),primary_key=True,default=uid)
+ user_id:Mapped[str]=mapped_column(ForeignKey('users.id'),index=True)
+ tenant_id:Mapped[str|None]=mapped_column(ForeignKey('tenants.id'),nullable=True)
+ outcome:Mapped[str]=mapped_column(String(12))
+ created:Mapped[int]=mapped_column(BigInteger)
+ device:Mapped[str]=mapped_column(String(40))
+ browser:Mapped[str]=mapped_column(String(40))
+ source:Mapped[str]=mapped_column(String(64))
+ __table_args__=(CheckConstraint("outcome in ('success','failure')"),)
+class LoginAttempt(Base):
+ __tablename__='login_attempts'
+ key:Mapped[str]=mapped_column(String(64),primary_key=True)
+ failures:Mapped[int]=mapped_column(Integer,default=0)
+ window_start:Mapped[int]=mapped_column(BigInteger)
+ locked_until:Mapped[int|None]=mapped_column(BigInteger,nullable=True)
+ scope:Mapped[str]=mapped_column(String(16),default='other',server_default='other',nullable=False)
+class Package(Base):
+ __tablename__='packages'
+ id:Mapped[str]=mapped_column(String(36),primary_key=True,default=uid)
+ tenant_id:Mapped[str]=mapped_column(ForeignKey('tenants.id'),index=True)
+ policy:Mapped[dict]=mapped_column(JSON)
+ active:Mapped[bool]=mapped_column(Boolean,default=True)
+class Order(Base):
+ __tablename__='orders'
+ event_revision:Mapped[int]=mapped_column(Integer,default=0,server_default='0')
+ receipt_revision:Mapped[int]=mapped_column(Integer,default=0,server_default='0')
+ id:Mapped[str]=mapped_column(String(36),primary_key=True,default=uid)
+ tenant_id:Mapped[str]=mapped_column(ForeignKey('tenants.id'),index=True)
+ site_id:Mapped[str|None]=mapped_column(ForeignKey('sites.id'),nullable=True)
+ guest_id:Mapped[str]=mapped_column(ForeignKey('users.id'))
+ package_id:Mapped[str]=mapped_column(ForeignKey('packages.id'))
+ snapshot:Mapped[dict]=mapped_column(JSON)
+ payment_context:Mapped[dict|None]=mapped_column(JSON,nullable=True)
+ amount:Mapped[int]=mapped_column(BigInteger)
+ currency:Mapped[str]=mapped_column(String(3),default='MMK')
+ method:Mapped[str]=mapped_column(String(80))
+ reference:Mapped[str]=mapped_column(String(160))
+ evidence:Mapped[str]=mapped_column(String(4000))
+ status:Mapped[str]=mapped_column(String(24),default='pending')
+ fulfillment:Mapped[str]=mapped_column(String(24),default='pending')
+ reviewer_id:Mapped[str|None]=mapped_column(ForeignKey('users.id'))
+ reason:Mapped[str|None]=mapped_column(String(1000))
+ created:Mapped[int]=mapped_column(BigInteger)
+ request_key:Mapped[str]=mapped_column(String(80))
+ __table_args__=(UniqueConstraint('guest_id','request_key'),CheckConstraint('amount > 0'))
+class Entitlement(Base):
+ __tablename__='entitlements'
+ id:Mapped[str]=mapped_column(String(36),primary_key=True,default=uid)
+ order_id:Mapped[str|None]=mapped_column(ForeignKey('orders.id'),unique=True,nullable=True)
+ voucher_id:Mapped[str|None]=mapped_column(ForeignKey('vouchers.id'),unique=True,nullable=True)
+ tenant_id:Mapped[str]=mapped_column(ForeignKey('tenants.id'),index=True)
+ site_id:Mapped[str|None]=mapped_column(ForeignKey('sites.id'),nullable=True)
+ guest_id:Mapped[str]=mapped_column(ForeignKey('users.id'))
+ policy:Mapped[dict]=mapped_column(JSON)
+ activated:Mapped[int|None]=mapped_column(BigInteger)
+ used_bytes:Mapped[int]=mapped_column(BigInteger,default=0)
+ connected_seconds:Mapped[int]=mapped_column(BigInteger,default=0)
+ revoked:Mapped[bool]=mapped_column(Boolean,default=False)
+ __table_args__=(CheckConstraint('(order_id IS NOT NULL AND voucher_id IS NULL) OR (order_id IS NULL AND voucher_id IS NOT NULL)',name='ck_entitlement_source'),)
+class Audit(Base):
+ __tablename__='audit_events'
+ id:Mapped[str]=mapped_column(String(36),primary_key=True,default=uid)
+ tenant_id:Mapped[str|None]=mapped_column(ForeignKey('tenants.id'),index=True)
+ actor_id:Mapped[str]=mapped_column(ForeignKey('users.id'))
+ action:Mapped[str]=mapped_column(String(100))
+ target:Mapped[str]=mapped_column(String(160))
+ created:Mapped[int]=mapped_column(BigInteger)
+class Outbox(Base):
+ __tablename__='outbox_events'
+ id:Mapped[str]=mapped_column(String(36),primary_key=True,default=uid)
+ tenant_id:Mapped[str]=mapped_column(ForeignKey('tenants.id'),index=True)
+ order_id:Mapped[str]=mapped_column(ForeignKey('orders.id'))
+ event:Mapped[str]=mapped_column(String(50))
+ delivered:Mapped[bool]=mapped_column(Boolean,default=False)
+ revision:Mapped[int|None]=mapped_column(Integer,nullable=True)
+ created:Mapped[int|None]=mapped_column(BigInteger,nullable=True)
+ payload:Mapped[dict|None]=mapped_column(JSON,nullable=True)
+ __table_args__=(UniqueConstraint('order_id','revision',name='uq_outbox_order_revision'),)
+
+class PortalSettings(Base):
+ __tablename__='portal_settings'
+ tenant_id:Mapped[str]=mapped_column(ForeignKey('tenants.id'),primary_key=True)
+ revision:Mapped[int]=mapped_column(Integer,default=1)
+ draft:Mapped[dict]=mapped_column(JSON)
+ published:Mapped[dict|None]=mapped_column(JSON,nullable=True)
+ published_revision:Mapped[int|None]=mapped_column(Integer)
+ updated:Mapped[int]=mapped_column(BigInteger)
+
+class Voucher(Base):
+ __tablename__='vouchers'
+ id:Mapped[str]=mapped_column(String(36),primary_key=True,default=uid)
+ tenant_id:Mapped[str]=mapped_column(ForeignKey('tenants.id'),index=True)
+ site_id:Mapped[str|None]=mapped_column(ForeignKey('sites.id'),nullable=True)
+ package_id:Mapped[str]=mapped_column(ForeignKey('packages.id'))
+ policy:Mapped[dict]=mapped_column(JSON)
+ code_hash:Mapped[str]=mapped_column(String(64),unique=True)
+ code_hint:Mapped[str]=mapped_column(String(4))
+ code_format:Mapped[str]=mapped_column(String(16),default='legacy',server_default='legacy')
+ code_prefix:Mapped[str|None]=mapped_column(String(8),nullable=True)
+ issued_by:Mapped[str]=mapped_column(ForeignKey('users.id'))
+ request_key:Mapped[str]=mapped_column(String(80))
+ created:Mapped[int]=mapped_column(BigInteger)
+ expires:Mapped[int]=mapped_column(BigInteger)
+ redeemed_by:Mapped[str|None]=mapped_column(ForeignKey('users.id'))
+ redeemed_at:Mapped[int|None]=mapped_column(BigInteger)
+ revoked:Mapped[bool]=mapped_column(Boolean,default=False)
+ reason:Mapped[str|None]=mapped_column(String(1000))
+ disabled_at:Mapped[int|None]=mapped_column(BigInteger,nullable=True)
+ disabled_reason:Mapped[str|None]=mapped_column(String(1000),nullable=True)
+ deleted_at:Mapped[int|None]=mapped_column(BigInteger,nullable=True)
+ router_sync:Mapped[str|None]=mapped_column(String(20),nullable=True)
+ code_sealed:Mapped[str|None]=mapped_column(Text,nullable=True)
+ serial_no:Mapped[int|None]=mapped_column(Integer,nullable=True)
+ production_job_id:Mapped[str|None]=mapped_column(ForeignKey('voucher_production_jobs.id',name='fk_vouchers_production_job'),nullable=True,index=True)
+ sheet_no:Mapped[int|None]=mapped_column(Integer,nullable=True)
+ dealer_id:Mapped[str|None]=mapped_column(ForeignKey('dealers.id',name='fk_vouchers_dealer'),nullable=True,index=True)
+ dealer_price:Mapped[int|None]=mapped_column(BigInteger,nullable=True)
+ # Router-only HotSpot first login (no app entitlement): activation and monotonic usage.
+ activated:Mapped[int|None]=mapped_column(BigInteger,nullable=True)
+ used_bytes:Mapped[int]=mapped_column(BigInteger,default=0,server_default='0')
+ connected_seconds:Mapped[int]=mapped_column(BigInteger,default=0,server_default='0')
+ __table_args__=(UniqueConstraint('issued_by','request_key'),Index('uq_vouchers_tenant_serial','tenant_id','serial_no',unique=True),CheckConstraint('expires > created'))
+
+class Dealer(Base):
+ __tablename__='dealers'
+ id:Mapped[str]=mapped_column(String(36),primary_key=True,default=uid)
+ tenant_id:Mapped[str]=mapped_column(ForeignKey('tenants.id'),index=True)
+ name:Mapped[str]=mapped_column(String(120))
+ location:Mapped[str|None]=mapped_column(String(160),nullable=True)
+ phone:Mapped[str|None]=mapped_column(String(40),nullable=True)
+ short_code:Mapped[str|None]=mapped_column(String(6),nullable=True)
+ settlement:Mapped[str]=mapped_column(String(10))
+ credit_limit:Mapped[int|None]=mapped_column(BigInteger,nullable=True)
+ created_by:Mapped[str]=mapped_column(ForeignKey('users.id'))
+ created:Mapped[int]=mapped_column(BigInteger)
+ archived_at:Mapped[int|None]=mapped_column(BigInteger,nullable=True)
+ __table_args__=(CheckConstraint("settlement in ('prepaid','credit')",name='ck_dealers_settlement'),CheckConstraint('credit_limit IS NULL OR credit_limit >= 0',name='ck_dealers_credit_limit'))
+
+class DealerMovement(Base):
+ """Append-only physical stock history; rows are never edited."""
+ __tablename__='dealer_movements'
+ id:Mapped[str]=mapped_column(String(36),primary_key=True,default=uid)
+ tenant_id:Mapped[str]=mapped_column(ForeignKey('tenants.id'),index=True)
+ dealer_id:Mapped[str]=mapped_column(ForeignKey('dealers.id'),index=True)
+ kind:Mapped[str]=mapped_column(String(16))
+ voucher_ids:Mapped[list]=mapped_column(JSON)
+ count:Mapped[int]=mapped_column(Integer)
+ unit_price:Mapped[int|None]=mapped_column(BigInteger,nullable=True)
+ production_job_id:Mapped[str|None]=mapped_column(ForeignKey('voucher_production_jobs.id'),nullable=True)
+ counterpart_dealer_id:Mapped[str|None]=mapped_column(ForeignKey('dealers.id'),nullable=True)
+ reason:Mapped[str|None]=mapped_column(String(24),nullable=True)
+ note:Mapped[str|None]=mapped_column(String(500),nullable=True)
+ details:Mapped[dict]=mapped_column(JSON,default=dict)
+ seq:Mapped[int]=mapped_column(Integer)
+ request_key:Mapped[str]=mapped_column(String(80))
+ actor_id:Mapped[str]=mapped_column(ForeignKey('users.id'))
+ created:Mapped[int]=mapped_column(BigInteger)
+ __table_args__=(UniqueConstraint('tenant_id','request_key',name='uq_dealer_movements_request'),UniqueConstraint('dealer_id','seq',name='uq_dealer_movements_seq'),CheckConstraint("kind in ('assign','return','reassign_out','reassign_in','stock_check')",name='ck_dealer_movements_kind'),CheckConstraint("reason IS NULL OR reason in ('lost','damaged','counting_difference','other')",name='ck_dealer_movements_reason'))
+
+class DealerLedgerEntry(Base):
+ """Append-only dealer settlement ledger. Positive delta increases what the dealer owes."""
+ __tablename__='dealer_ledger'
+ id:Mapped[str]=mapped_column(String(36),primary_key=True,default=uid)
+ tenant_id:Mapped[str]=mapped_column(ForeignKey('tenants.id'),index=True)
+ dealer_id:Mapped[str]=mapped_column(ForeignKey('dealers.id'),index=True)
+ kind:Mapped[str]=mapped_column(String(16))
+ delta:Mapped[int]=mapped_column(BigInteger)
+ method:Mapped[str|None]=mapped_column(String(20),nullable=True)
+ reference:Mapped[str|None]=mapped_column(String(160),nullable=True)
+ note:Mapped[str|None]=mapped_column(String(500),nullable=True)
+ movement_id:Mapped[str|None]=mapped_column(ForeignKey('dealer_movements.id'),nullable=True)
+ reverses_id:Mapped[str|None]=mapped_column(ForeignKey('dealer_ledger.id'),nullable=True,unique=True)
+ seq:Mapped[int]=mapped_column(Integer)
+ request_key:Mapped[str]=mapped_column(String(80))
+ actor_id:Mapped[str]=mapped_column(ForeignKey('users.id'))
+ created:Mapped[int]=mapped_column(BigInteger)
+ __table_args__=(UniqueConstraint('tenant_id','request_key',name='uq_dealer_ledger_request'),UniqueConstraint('dealer_id','seq',name='uq_dealer_ledger_seq'),CheckConstraint('delta <> 0',name='ck_dealer_ledger_delta'),CheckConstraint("kind in ('charge','payment','return_credit','adjustment','reversal')",name='ck_dealer_ledger_kind'))
+
+class VoucherProductionJob(Base):
+ __tablename__='voucher_production_jobs'
+ id:Mapped[str]=mapped_column(String(36),primary_key=True,default=uid)
+ tenant_id:Mapped[str]=mapped_column(ForeignKey('tenants.id'),index=True)
+ number:Mapped[int]=mapped_column(Integer)
+ name:Mapped[str|None]=mapped_column(String(80),nullable=True)
+ site_id:Mapped[str|None]=mapped_column(ForeignKey('sites.id'),nullable=True)
+ package_id:Mapped[str]=mapped_column(ForeignKey('packages.id'))
+ quantity:Mapped[int]=mapped_column(Integer)
+ settings:Mapped[dict]=mapped_column(JSON)
+ status:Mapped[str]=mapped_column(String(16),default='draft')
+ sheets:Mapped[dict]=mapped_column(JSON,default=dict)
+ serial_start:Mapped[int|None]=mapped_column(Integer,nullable=True)
+ serial_end:Mapped[int|None]=mapped_column(Integer,nullable=True)
+ created_by:Mapped[str]=mapped_column(ForeignKey('users.id'))
+ created:Mapped[int]=mapped_column(BigInteger)
+ generated_at:Mapped[int|None]=mapped_column(BigInteger,nullable=True)
+ calibrated_at:Mapped[int|None]=mapped_column(BigInteger,nullable=True)
+ verified_at:Mapped[int|None]=mapped_column(BigInteger,nullable=True)
+ distributed_at:Mapped[int|None]=mapped_column(BigInteger,nullable=True)
+ distributed_note:Mapped[str|None]=mapped_column(String(200),nullable=True)
+ cancelled_at:Mapped[int|None]=mapped_column(BigInteger,nullable=True)
+ __table_args__=(UniqueConstraint('tenant_id','number',name='uq_voucher_jobs_tenant_number'),CheckConstraint("status in ('draft','generated','verified','distributed','cancelled')",name='ck_voucher_jobs_status'),CheckConstraint('quantity > 0',name='ck_voucher_jobs_quantity'))
+
+class VoucherTemplate(Base):
+ __tablename__='voucher_templates'
+ id:Mapped[str]=mapped_column(String(36),primary_key=True,default=uid)
+ tenant_id:Mapped[str]=mapped_column(ForeignKey('tenants.id'),index=True)
+ name:Mapped[str]=mapped_column(String(80))
+ settings:Mapped[dict]=mapped_column(JSON)
+ created_by:Mapped[str]=mapped_column(ForeignKey('users.id'))
+ created:Mapped[int]=mapped_column(BigInteger)
+ archived_at:Mapped[int|None]=mapped_column(BigInteger,nullable=True)
+
+class VoucherSale(Base):
+ __tablename__='voucher_sales'
+ id:Mapped[str]=mapped_column(String(36),primary_key=True,default=uid)
+ voucher_id:Mapped[str]=mapped_column(ForeignKey('vouchers.id'))
+ tenant_id:Mapped[str]=mapped_column(ForeignKey('tenants.id'),index=True)
+ snapshot:Mapped[dict]=mapped_column(JSON)
+ amount:Mapped[int]=mapped_column(BigInteger)
+ currency:Mapped[str]=mapped_column(String(3),default='MMK')
+ method:Mapped[str]=mapped_column(String(80))
+ reference:Mapped[str]=mapped_column(String(160))
+ evidence:Mapped[str]=mapped_column(String(4000))
+ recorded_by:Mapped[str]=mapped_column(ForeignKey('users.id'))
+ created:Mapped[int]=mapped_column(BigInteger)
+ refunded_at:Mapped[int|None]=mapped_column(BigInteger)
+ refunded_by:Mapped[str|None]=mapped_column(ForeignKey('users.id'))
+ refund_reason:Mapped[str|None]=mapped_column(String(1000))
+ refund_reference:Mapped[str|None]=mapped_column(String(160))
+ cancelled_at:Mapped[int|None]=mapped_column(BigInteger)
+ cancelled_by:Mapped[str|None]=mapped_column(ForeignKey('users.id'))
+ cancel_reason:Mapped[str|None]=mapped_column(String(500))
+ # A cancelled sale stays as history; only one sale per voucher may be active.
+ __table_args__=(CheckConstraint('amount > 0'),Index('uq_voucher_sales_active_voucher','voucher_id',unique=True,sqlite_where=text('cancelled_at IS NULL'),postgresql_where=text('cancelled_at IS NULL')))
+class OfflineVoucherEvent(Base):
+ __tablename__='offline_voucher_events'
+ id:Mapped[str]=mapped_column(String(36),primary_key=True,default=uid)
+ tenant_id:Mapped[str]=mapped_column(ForeignKey('tenants.id'),index=True)
+ site_id:Mapped[str]=mapped_column(ForeignKey('sites.id'))
+ event_key:Mapped[str]=mapped_column(String(120))
+ voucher_id:Mapped[str|None]=mapped_column(ForeignKey('vouchers.id'),nullable=True)
+ code_hash:Mapped[str]=mapped_column(String(64))
+ event_type:Mapped[str]=mapped_column(String(20),default='redemption')
+ local_time:Mapped[int]=mapped_column(BigInteger)
+ device_id:Mapped[str]=mapped_column(String(120))
+ status:Mapped[str]=mapped_column(String(24),default='pending_review')
+ reason:Mapped[str|None]=mapped_column(String(1000),nullable=True)
+ created:Mapped[int]=mapped_column(BigInteger)
+ __table_args__=(UniqueConstraint('tenant_id','event_key'),CheckConstraint("event_type in ('redemption','usage')"),CheckConstraint("status in ('pending_review','accepted','conflict')"))
+class SiteIncident(Base):
+ __tablename__='site_incidents'
+ id:Mapped[str]=mapped_column(String(36),primary_key=True,default=uid)
+ tenant_id:Mapped[str]=mapped_column(ForeignKey('tenants.id'),index=True)
+ site_id:Mapped[str]=mapped_column(ForeignKey('sites.id'))
+ scope:Mapped[str]=mapped_column(String(24))
+ status:Mapped[str]=mapped_column(String(16),default='open')
+ started:Mapped[int]=mapped_column(BigInteger)
+ ended:Mapped[int|None]=mapped_column(BigInteger,nullable=True)
+ detection_source:Mapped[str]=mapped_column(String(80))
+ symptoms:Mapped[str]=mapped_column(String(2000))
+ suspected_root_cause:Mapped[str|None]=mapped_column(String(1000),nullable=True)
+ confirmed_root_cause:Mapped[str|None]=mapped_column(String(1000),nullable=True)
+ remediation:Mapped[str|None]=mapped_column(String(2000),nullable=True)
+ notes:Mapped[str]=mapped_column(String(2000),default='')
+ created_by:Mapped[str]=mapped_column(ForeignKey('users.id'))
+ created:Mapped[int]=mapped_column(BigInteger)
+ expected_reason:Mapped[str|None]=mapped_column(String(24),nullable=True)
+ __table_args__=(CheckConstraint("scope in ('control_plane','gateway','wan','switch','access_point','dns_portal','dependency')"),CheckConstraint("status in ('open','resolved','unknown')"),)
+class BackupArtifact(Base):
+ __tablename__='backup_artifacts'
+ id:Mapped[str]=mapped_column(String(36),primary_key=True,default=uid)
+ tenant_id:Mapped[str]=mapped_column(ForeignKey('tenants.id'),index=True)
+ site_id:Mapped[str|None]=mapped_column(ForeignKey('sites.id'),nullable=True)
+ router_id:Mapped[str|None]=mapped_column(ForeignKey('router_devices.id'),nullable=True,index=True)
+ kind:Mapped[str]=mapped_column(String(24))
+ version:Mapped[str]=mapped_column(String(80))
+ checksum:Mapped[str]=mapped_column(String(128))
+ encrypted:Mapped[bool]=mapped_column(Boolean,default=True)
+ status:Mapped[str]=mapped_column(String(16),default='created')
+ restore_verified:Mapped[bool]=mapped_column(Boolean,default=False)
+ integrity_verified:Mapped[bool]=mapped_column(Boolean,default=False)
+ storage_ref:Mapped[str]=mapped_column(String(400))
+ created:Mapped[int]=mapped_column(BigInteger)
+ retention_until:Mapped[int|None]=mapped_column(BigInteger,nullable=True)
+ __table_args__=(CheckConstraint("kind in ('control_plane','router_export','device_config')"),CheckConstraint("status in ('created','healthy','failed','expired')"),)
+class FirmwarePlan(Base):
+ __tablename__='firmware_plans'
+ id:Mapped[str]=mapped_column(String(36),primary_key=True,default=uid)
+ tenant_id:Mapped[str]=mapped_column(ForeignKey('tenants.id'),index=True)
+ site_id:Mapped[str]=mapped_column(ForeignKey('sites.id'))
+ device_id:Mapped[str]=mapped_column(String(36))
+ current_version:Mapped[str]=mapped_column(String(80))
+ target_version:Mapped[str]=mapped_column(String(80))
+ minimum_safe_version:Mapped[str]=mapped_column(String(80))
+ window_start:Mapped[int]=mapped_column(BigInteger)
+ window_end:Mapped[int]=mapped_column(BigInteger)
+ status:Mapped[str]=mapped_column(String(20),default='scheduled')
+ attempts:Mapped[int]=mapped_column(Integer,default=0)
+ rollback_version:Mapped[str|None]=mapped_column(String(80),nullable=True)
+ notes:Mapped[str]=mapped_column(String(1000),default='')
+ created_by:Mapped[str]=mapped_column(ForeignKey('users.id'))
+ created:Mapped[int]=mapped_column(BigInteger)
+ __table_args__=(CheckConstraint("status in ('scheduled','running','succeeded','partial','rolled_back','manual_recovery')"),CheckConstraint('window_end >= window_start'),CheckConstraint('attempts >= 0'))
+
+class Site(Base):
+ __tablename__='sites'
+ id:Mapped[str]=mapped_column(String(36),primary_key=True,default=uid)
+ tenant_id:Mapped[str]=mapped_column(ForeignKey('tenants.id'),index=True)
+ name:Mapped[str]=mapped_column(String(120))
+ timezone:Mapped[str]=mapped_column(String(80),default='Asia/Yangon')
+ created:Mapped[int]=mapped_column(BigInteger)
+ printed_ssid:Mapped[str|None]=mapped_column(String(32),nullable=True)
+ business_hours:Mapped[dict|None]=mapped_column(JSON,nullable=True)
+ network_hours_mode:Mapped[str]=mapped_column(String(10),default='always',server_default='always')
+ network_hours:Mapped[dict|None]=mapped_column(JSON,nullable=True)
+ __table_args__=(UniqueConstraint('tenant_id','name'),)
+class SiteMaintenance(Base):
+ __tablename__='site_maintenance'
+ id:Mapped[str]=mapped_column(String(36),primary_key=True,default=uid)
+ tenant_id:Mapped[str]=mapped_column(ForeignKey('tenants.id'),index=True)
+ site_id:Mapped[str]=mapped_column(ForeignKey('sites.id'),index=True)
+ reason:Mapped[str]=mapped_column(String(300),default='',server_default='')
+ started:Mapped[int]=mapped_column(BigInteger)
+ planned_end:Mapped[int]=mapped_column(BigInteger)
+ ended:Mapped[int|None]=mapped_column(BigInteger,nullable=True)
+ extensions:Mapped[int]=mapped_column(Integer,default=0,server_default='0')
+ post_check:Mapped[dict|None]=mapped_column(JSON,nullable=True)
+ created_by:Mapped[str]=mapped_column(ForeignKey('users.id'))
+ ended_by:Mapped[str|None]=mapped_column(ForeignKey('users.id'),nullable=True)
+ __table_args__=(CheckConstraint('planned_end > started',name='ck_site_maintenance_window'),CheckConstraint('ended IS NULL OR ended >= started',name='ck_site_maintenance_ended'),CheckConstraint('extensions >= 0',name='ck_site_maintenance_extensions'))
+class SupportReport(Base):
+ __tablename__='support_reports'
+ id:Mapped[str]=mapped_column(String(36),primary_key=True,default=uid)
+ tenant_id:Mapped[str]=mapped_column(ForeignKey('tenants.id'),index=True)
+ site_id:Mapped[str]=mapped_column(ForeignKey('sites.id'),index=True)
+ created:Mapped[int]=mapped_column(BigInteger)
+ created_by:Mapped[str]=mapped_column(ForeignKey('users.id'))
+ report:Mapped[dict]=mapped_column(JSON)
+ shared_at:Mapped[int|None]=mapped_column(BigInteger,nullable=True)
+ shared_by:Mapped[str|None]=mapped_column(ForeignKey('users.id'),nullable=True)
+class OwnerAccessEvent(Base):
+ __tablename__='owner_access_events'
+ id:Mapped[str]=mapped_column(String(36),primary_key=True,default=uid)
+ user_id:Mapped[str]=mapped_column(ForeignKey('users.id'),index=True)
+ actor_id:Mapped[str]=mapped_column(ForeignKey('users.id'))
+ revision:Mapped[int]=mapped_column(Integer)
+ previous_state:Mapped[str]=mapped_column(String(20))
+ state:Mapped[str]=mapped_column(String(20))
+ reason:Mapped[str]=mapped_column(String(1000))
+ sessions_ended:Mapped[int]=mapped_column(Integer)
+ created:Mapped[int]=mapped_column(BigInteger)
+ __table_args__=(CheckConstraint("state in ('active','suspended','disabled')",name='ck_owner_access_events_state'),UniqueConstraint('user_id','revision',name='uq_owner_access_events_revision'))
+class AgentProfile(Base):
+ __tablename__='agent_profiles'
+ user_id:Mapped[str]=mapped_column(ForeignKey('users.id'),primary_key=True)
+ full_name:Mapped[str]=mapped_column(String(160))
+ phone:Mapped[str]=mapped_column(String(40))
+ note:Mapped[str|None]=mapped_column(String(1000),nullable=True)
+ # Applications from before owner decisions Q31–Q32 have no location.
+ region:Mapped[str|None]=mapped_column(String(80),nullable=True)
+ city:Mapped[str|None]=mapped_column(String(80),nullable=True)
+ township:Mapped[str|None]=mapped_column(String(80),nullable=True)
+ latitude:Mapped[float|None]=mapped_column(Float,nullable=True)
+ longitude:Mapped[float|None]=mapped_column(Float,nullable=True)
+ status:Mapped[str]=mapped_column(String(20))
+ reason:Mapped[str|None]=mapped_column(String(1000),nullable=True)
+ revision:Mapped[int]=mapped_column(Integer)
+ # Bumped inside every withdrawal request so concurrent requests serialize on this row.
+ ledger_revision:Mapped[int]=mapped_column(Integer,default=0,server_default='0')
+ applied:Mapped[int]=mapped_column(BigInteger)
+ decided:Mapped[int|None]=mapped_column(BigInteger,nullable=True)
+ decided_by:Mapped[str|None]=mapped_column(ForeignKey('users.id'),nullable=True)
+ __table_args__=(CheckConstraint("status in ('pending','approved','rejected','suspended')",name='ck_agent_profiles_status'),)
+class AgentReferral(Base):
+ __tablename__='agent_referrals'
+ tenant_id:Mapped[str]=mapped_column(ForeignKey('tenants.id'),primary_key=True)
+ agent_id:Mapped[str]=mapped_column(ForeignKey('users.id'),index=True)
+ created:Mapped[int]=mapped_column(BigInteger)
+class AgentCommission(Base):
+ __tablename__='agent_commissions'
+ id:Mapped[str]=mapped_column(String(36),primary_key=True,default=uid)
+ agent_id:Mapped[str]=mapped_column(ForeignKey('users.id'),index=True)
+ tenant_id:Mapped[str]=mapped_column(ForeignKey('tenants.id'))
+ invoice_id:Mapped[str]=mapped_column(ForeignKey('subscription_invoices.id'),unique=True)
+ months:Mapped[int]=mapped_column(Integer)
+ rate_percent:Mapped[int]=mapped_column(Integer)
+ base_amount:Mapped[int]=mapped_column(BigInteger)
+ amount:Mapped[int]=mapped_column(BigInteger)
+ currency:Mapped[str]=mapped_column(String(3))
+ state:Mapped[str]=mapped_column(String(20))
+ created:Mapped[int]=mapped_column(BigInteger)
+ reversed_at:Mapped[int|None]=mapped_column(BigInteger,nullable=True)
+ reversal_reason:Mapped[str|None]=mapped_column(String(1000),nullable=True)
+ __table_args__=(CheckConstraint("state in ('earned','reversed')",name='ck_agent_commissions_state'),CheckConstraint('amount >= 0',name='ck_agent_commissions_amount'))
+class AgentWallet(Base):
+ __tablename__='agent_wallets'
+ agent_id:Mapped[str]=mapped_column(ForeignKey('users.id'),primary_key=True)
+ method:Mapped[str]=mapped_column(String(20),primary_key=True)
+ account_name:Mapped[str]=mapped_column(String(160))
+ account_number:Mapped[str]=mapped_column(String(40))
+ updated:Mapped[int]=mapped_column(BigInteger)
+ __table_args__=(CheckConstraint("method in ('kbzpay','wavepay')",name='ck_agent_wallets_method'),)
+class AgentWithdrawal(Base):
+ __tablename__='agent_withdrawals'
+ id:Mapped[str]=mapped_column(String(36),primary_key=True,default=uid)
+ agent_id:Mapped[str]=mapped_column(ForeignKey('users.id'),index=True)
+ amount:Mapped[int]=mapped_column(BigInteger)
+ currency:Mapped[str]=mapped_column(String(3))
+ method:Mapped[str]=mapped_column(String(20))
+ wallet:Mapped[dict]=mapped_column(JSON)
+ status:Mapped[str]=mapped_column(String(20))
+ revision:Mapped[int]=mapped_column(Integer)
+ reason:Mapped[str|None]=mapped_column(String(1000),nullable=True)
+ payout_reference:Mapped[str|None]=mapped_column(String(160),nullable=True)
+ request_key:Mapped[str]=mapped_column(String(80))
+ requested:Mapped[int]=mapped_column(BigInteger)
+ decided:Mapped[int|None]=mapped_column(BigInteger,nullable=True)
+ decided_by:Mapped[str|None]=mapped_column(ForeignKey('users.id'),nullable=True)
+ paid_at:Mapped[int|None]=mapped_column(BigInteger,nullable=True)
+ __table_args__=(UniqueConstraint('agent_id','request_key',name='uq_agent_withdrawals_request'),CheckConstraint('amount > 0',name='ck_agent_withdrawals_amount'),CheckConstraint("method in ('kbzpay','wavepay')",name='ck_agent_withdrawals_method'),CheckConstraint("status in ('requested','approved','rejected','paid','cancelled')",name='ck_agent_withdrawals_status'))
+class PlatformSetting(Base):
+ __tablename__='platform_settings'
+ key:Mapped[str]=mapped_column(String(80),primary_key=True)
+ value:Mapped[dict]=mapped_column(JSON)
+ revision:Mapped[int]=mapped_column(Integer)
+ updated:Mapped[int]=mapped_column(BigInteger)
+ updated_by:Mapped[str]=mapped_column(ForeignKey('users.id'))
+class RouterDevice(Base):
+ __tablename__='router_devices'
+ id:Mapped[str]=mapped_column(String(36),primary_key=True,default=uid)
+ tenant_id:Mapped[str]=mapped_column(ForeignKey('tenants.id'),index=True)
+ site_id:Mapped[str]=mapped_column(ForeignKey('sites.id'))
+ name:Mapped[str]=mapped_column(String(120))
+ model:Mapped[str|None]=mapped_column(String(120),nullable=True)
+ reported_routeros:Mapped[str|None]=mapped_column(String(40),nullable=True)
+ architecture:Mapped[str|None]=mapped_column(String(40),nullable=True)
+ reported_serial:Mapped[str|None]=mapped_column(String(80),nullable=True)
+ registered_by:Mapped[str]=mapped_column(ForeignKey('users.id'))
+ created:Mapped[int]=mapped_column(BigInteger)
+ __table_args__=(UniqueConstraint('site_id','name'),)
+class ManagedDevice(Base):
+ __tablename__='managed_devices'
+ id:Mapped[str]=mapped_column(String(36),primary_key=True,default=uid)
+ tenant_id:Mapped[str]=mapped_column(ForeignKey('tenants.id'),index=True)
+ site_id:Mapped[str]=mapped_column(ForeignKey('sites.id'))
+ kind:Mapped[str]=mapped_column(String(20))
+ name:Mapped[str]=mapped_column(String(120))
+ vendor:Mapped[str]=mapped_column(String(120))
+ model:Mapped[str]=mapped_column(String(120))
+ serial_or_mac:Mapped[str|None]=mapped_column(String(120),nullable=True)
+ location:Mapped[str]=mapped_column(String(160),default='')
+ firmware:Mapped[str]=mapped_column(String(80),default='')
+ image_asset:Mapped[str|None]=mapped_column(String(400),nullable=True)
+ created:Mapped[int]=mapped_column(BigInteger)
+ last_seen:Mapped[int|None]=mapped_column(BigInteger,nullable=True)
+ __table_args__=(UniqueConstraint('site_id','name'),CheckConstraint("kind in ('switch','access_point')"),)
+class SitePortal(Base):
+ __tablename__='site_portals'
+ site_id:Mapped[str]=mapped_column(ForeignKey('sites.id'),primary_key=True)
+ revision:Mapped[int]=mapped_column(Integer)
+ draft:Mapped[dict]=mapped_column(JSON)
+ published:Mapped[dict|None]=mapped_column(JSON,nullable=True)
+ published_revision:Mapped[int|None]=mapped_column(Integer)
+ updated:Mapped[int]=mapped_column(BigInteger)
+
+class LocalPortalPackage(Base):
+ __tablename__='local_portal_packages'
+ id:Mapped[str]=mapped_column(String(36),primary_key=True,default=uid)
+ tenant_id:Mapped[str]=mapped_column(ForeignKey('tenants.id'),index=True)
+ site_id:Mapped[str|None]=mapped_column(ForeignKey('sites.id'),nullable=True)
+ scope_key:Mapped[str]=mapped_column(String(120),index=True)
+ published_revision:Mapped[int]=mapped_column(Integer)
+ package_sha256:Mapped[str]=mapped_column(String(64))
+ package_bytes:Mapped[bytes]=mapped_column(LargeBinary)
+ created:Mapped[int]=mapped_column(BigInteger)
+ __table_args__=(UniqueConstraint('scope_key','published_revision'),CheckConstraint('published_revision > 0'))
+
+class HotspotPortalPlan(Base):
+ __tablename__='hotspot_portal_plans'
+ id:Mapped[str]=mapped_column(String(36),primary_key=True,default=uid)
+ tenant_id:Mapped[str]=mapped_column(ForeignKey('tenants.id'),index=True)
+ site_id:Mapped[str]=mapped_column(ForeignKey('sites.id'),index=True)
+ router_id:Mapped[str]=mapped_column(ForeignKey('router_devices.id'),index=True)
+ evidence_id:Mapped[str]=mapped_column(ForeignKey('router_evidence.id'))
+ portal_package_id:Mapped[str]=mapped_column(ForeignKey('local_portal_packages.id'))
+ selected_server_id:Mapped[str]=mapped_column(String(80))
+ selected_server_name:Mapped[str]=mapped_column(String(120))
+ selected_profile_name:Mapped[str]=mapped_column(String(120))
+ status:Mapped[str]=mapped_column(String(20),default='prepared')
+ revision:Mapped[int]=mapped_column(Integer,default=1)
+ before:Mapped[dict]=mapped_column(JSON)
+ desired:Mapped[dict]=mapped_column(JSON)
+ diff:Mapped[dict]=mapped_column(JSON)
+ impact:Mapped[dict]=mapped_column(JSON)
+ rollback:Mapped[dict]=mapped_column(JSON)
+ created_by:Mapped[str]=mapped_column(ForeignKey('users.id'))
+ created:Mapped[int]=mapped_column(BigInteger)
+ reviewed_at:Mapped[int|None]=mapped_column(BigInteger,nullable=True)
+ __table_args__=(UniqueConstraint('router_id','portal_package_id','selected_server_id'),CheckConstraint("status in ('prepared','reviewed')"),CheckConstraint('revision > 0'))
+
+class MagicHub(Base):
+ __tablename__='magic_hubs'
+ id:Mapped[str]=mapped_column(String(36),primary_key=True,default=uid)
+ name:Mapped[str]=mapped_column(String(120),unique=True)
+ endpoint:Mapped[str]=mapped_column(String(253))
+ port:Mapped[int]=mapped_column(Integer)
+ pool:Mapped[str]=mapped_column(String(18),unique=True)
+ public_key:Mapped[str]=mapped_column(String(44),unique=True)
+ interface_name:Mapped[str|None]=mapped_column(String(15),nullable=True)
+ next_host:Mapped[int]=mapped_column(Integer,default=2)
+ created:Mapped[int]=mapped_column(BigInteger)
+ __table_args__=(UniqueConstraint('endpoint','port'),CheckConstraint('port >= 1 AND port <= 65535'),CheckConstraint('next_host >= 2 AND next_host <= 255'))
+class HubAssignment(Base):
+ __tablename__='hub_assignments'
+ hub_id:Mapped[str]=mapped_column(ForeignKey('magic_hubs.id'),primary_key=True)
+ tenant_id:Mapped[str]=mapped_column(ForeignKey('tenants.id'),primary_key=True)
+ created:Mapped[int]=mapped_column(BigInteger)
+class RouterPlan(Base):
+ __tablename__='router_plans'
+ id:Mapped[str]=mapped_column(String(36),primary_key=True,default=uid)
+ tenant_id:Mapped[str]=mapped_column(ForeignKey('tenants.id'),index=True)
+ router_id:Mapped[str]=mapped_column(ForeignKey('router_devices.id'),unique=True)
+ hub_id:Mapped[str]=mapped_column(ForeignKey('magic_hubs.id'))
+ router_public_key:Mapped[str]=mapped_column(String(44),unique=True)
+ address:Mapped[str]=mapped_column(String(15))
+ snapshot:Mapped[dict]=mapped_column(JSON)
+ created:Mapped[int]=mapped_column(BigInteger)
+ reviewed_at:Mapped[int|None]=mapped_column(BigInteger,nullable=True)
+ lifecycle_state:Mapped[str]=mapped_column(String(32),default='awaiting_review',server_default='awaiting_review')
+ peer_operation_key:Mapped[str|None]=mapped_column(String(80),nullable=True,unique=True)
+ last_failure_code:Mapped[str|None]=mapped_column(String(48),nullable=True)
+ handshake_verified_at:Mapped[int|None]=mapped_column(BigInteger,nullable=True)
+ management_read_verified_at:Mapped[int|None]=mapped_column(BigInteger,nullable=True)
+ management_lock_reason:Mapped[str|None]=mapped_column(String(500),nullable=True)
+ management_locked_at:Mapped[int|None]=mapped_column(BigInteger,nullable=True)
+ __table_args__=(UniqueConstraint('hub_id','address'),)
+
+class MagicConnectAttempt(Base):
+ __tablename__='magic_connect_attempts'
+ id:Mapped[str]=mapped_column(String(36),primary_key=True,default=uid)
+ tenant_id:Mapped[str]=mapped_column(ForeignKey('tenants.id'),index=True)
+ site_id:Mapped[str]=mapped_column(ForeignKey('sites.id'),index=True)
+ owner_id:Mapped[str]=mapped_column(ForeignKey('users.id'))
+ router_name:Mapped[str]=mapped_column(String(120))
+ code_hash:Mapped[str]=mapped_column(String(64),unique=True)
+ comparison_code:Mapped[str]=mapped_column(String(6))
+ status:Mapped[str]=mapped_column(String(24),default='pending')
+ technician_session_hash:Mapped[str|None]=mapped_column(String(64),nullable=True,unique=True)
+ technician_session_expires:Mapped[int|None]=mapped_column(BigInteger,nullable=True)
+ created:Mapped[int]=mapped_column(BigInteger)
+ expires:Mapped[int]=mapped_column(BigInteger)
+ claimed_at:Mapped[int|None]=mapped_column(BigInteger,nullable=True)
+ approved_at:Mapped[int|None]=mapped_column(BigInteger,nullable=True)
+ denied_at:Mapped[int|None]=mapped_column(BigInteger,nullable=True)
+ cancelled_at:Mapped[int|None]=mapped_column(BigInteger,nullable=True)
+ enrollment_state:Mapped[str]=mapped_column(String(32),default='pairing_pending',server_default='pairing_pending')
+ failure_code:Mapped[str|None]=mapped_column(String(48),nullable=True)
+ state_changed_at:Mapped[int|None]=mapped_column(BigInteger,nullable=True)
+ router_id:Mapped[str|None]=mapped_column(ForeignKey('router_devices.id'),nullable=True)
+ router_public_key:Mapped[str|None]=mapped_column(String(44),nullable=True,unique=True)
+ router_key_submitted_at:Mapped[int|None]=mapped_column(BigInteger,nullable=True)
+ __table_args__=(CheckConstraint("status in ('pending','claimed','approved','denied','cancelled','expired')"),CheckConstraint("enrollment_state in ('pairing_pending','pairing_approved','awaiting_bootstrap','awaiting_handshake','verifying_management','connected','failed_recovery_required','management_lock_pending','management_locked','revoked')"),CheckConstraint('expires > created'))
+
+class MagicConnectClaimRate(Base):
+ __tablename__='magic_connect_claim_rates'
+ source_digest:Mapped[str]=mapped_column(String(64),primary_key=True)
+ window_started:Mapped[int]=mapped_column(BigInteger)
+ attempts:Mapped[int]=mapped_column(Integer)
+ __table_args__=(CheckConstraint('attempts >= 1'),)
+
+class MagicConnectEnrollment(Base):
+ __tablename__='magic_connect_enrollments'
+ plan_id:Mapped[str]=mapped_column(ForeignKey('router_plans.id'),primary_key=True)
+ attempt_id:Mapped[str]=mapped_column(ForeignKey('magic_connect_attempts.id'),unique=True)
+ tenant_id:Mapped[str]=mapped_column(ForeignKey('tenants.id'),index=True)
+ site_id:Mapped[str]=mapped_column(ForeignKey('sites.id'))
+ owner_id:Mapped[str]=mapped_column(ForeignKey('users.id'))
+ expected_identity_digest:Mapped[str|None]=mapped_column(String(64),nullable=True)
+ created:Mapped[int]=mapped_column(BigInteger)
+ consumed_at:Mapped[int|None]=mapped_column(BigInteger,nullable=True)
+ peer_provisioned_at:Mapped[int|None]=mapped_column(BigInteger,nullable=True)
+ expected_serial_digest:Mapped[str|None]=mapped_column(String(64),nullable=True)
+ management_identities_at:Mapped[int|None]=mapped_column(BigInteger,nullable=True)
+
+class MagicConnectEvent(Base):
+ __tablename__='magic_connect_events'
+ id:Mapped[str]=mapped_column(String(36),primary_key=True,default=uid)
+ tenant_id:Mapped[str]=mapped_column(ForeignKey('tenants.id'),index=True)
+ attempt_id:Mapped[str]=mapped_column(ForeignKey('magic_connect_attempts.id'),index=True)
+ actor_kind:Mapped[str]=mapped_column(String(16))
+ actor_id:Mapped[str|None]=mapped_column(ForeignKey('users.id'),nullable=True)
+ event:Mapped[str]=mapped_column(String(40))
+ created:Mapped[int]=mapped_column(BigInteger)
+ __table_args__=(CheckConstraint("actor_kind in ('owner','technician','system')"),)
+
+class MagicHubConnectToken(Base):
+ """One-paste Magic Hub enrollment token (owner click = approval). Not Connected evidence."""
+ __tablename__='magic_hub_connect_tokens'
+ id:Mapped[str]=mapped_column(String(36),primary_key=True,default=uid)
+ tenant_id:Mapped[str]=mapped_column(ForeignKey('tenants.id'),index=True)
+ router_id:Mapped[str]=mapped_column(ForeignKey('router_devices.id'),index=True)
+ owner_id:Mapped[str]=mapped_column(ForeignKey('users.id'))
+ attempt_id:Mapped[str]=mapped_column(ForeignKey('magic_connect_attempts.id'),index=True)
+ token_hash:Mapped[str]=mapped_column(String(64),unique=True)
+ status:Mapped[str]=mapped_column(String(32),default='waiting',server_default='waiting')
+ failure_code:Mapped[str|None]=mapped_column(String(60),nullable=True)
+ failure_message:Mapped[str|None]=mapped_column(String(500),nullable=True)
+ detection_facts:Mapped[dict|None]=mapped_column(JSON,nullable=True)
+ model_mismatch:Mapped[bool]=mapped_column(Boolean,default=False,server_default='0')
+ version_mismatch:Mapped[bool]=mapped_column(Boolean,default=False,server_default='0')
+ created:Mapped[int]=mapped_column(BigInteger)
+ expires:Mapped[int]=mapped_column(BigInteger)
+ consumed_at:Mapped[int|None]=mapped_column(BigInteger,nullable=True)
+ peer_provisioned_at:Mapped[int|None]=mapped_column(BigInteger,nullable=True)
+ management_applied_at:Mapped[int|None]=mapped_column(BigInteger,nullable=True)
+ connected_at:Mapped[int|None]=mapped_column(BigInteger,nullable=True)
+ __table_args__=(
+  CheckConstraint("status in ('waiting','reported','peer_added','awaiting_handshake','management_applied','finishing','connected','failed','expired','revoked')",name='ck_magic_hub_connect_tokens_status'),
+  CheckConstraint('expires > created',name='ck_magic_hub_connect_tokens_expires'),
+ )
+
+class RouterPlanRetirement(Base):
+ """Archive when a plan is revoked so a reset router can re-run one-paste connect."""
+ __tablename__='router_plan_retirements'
+ id:Mapped[str]=mapped_column(String(36),primary_key=True,default=uid)
+ tenant_id:Mapped[str]=mapped_column(ForeignKey('tenants.id'),index=True)
+ router_id:Mapped[str]=mapped_column(ForeignKey('router_devices.id'),index=True)
+ plan_id:Mapped[str]=mapped_column(String(36))
+ hub_id:Mapped[str]=mapped_column(String(36))
+ router_public_key:Mapped[str]=mapped_column(String(44))
+ address:Mapped[str]=mapped_column(String(15))
+ snapshot:Mapped[dict]=mapped_column(JSON)
+ lifecycle_state:Mapped[str]=mapped_column(String(32))
+ lock_reason:Mapped[str|None]=mapped_column(String(500),nullable=True)
+ attempt_id:Mapped[str|None]=mapped_column(String(36),nullable=True)
+ retired_by:Mapped[str]=mapped_column(ForeignKey('users.id'))
+ retired_at:Mapped[int]=mapped_column(BigInteger)
+ reason:Mapped[str]=mapped_column(String(500))
+
+class RouterEvidence(Base):
+ __tablename__='router_evidence'
+ id:Mapped[str]=mapped_column(String(36),primary_key=True,default=uid)
+ tenant_id:Mapped[str]=mapped_column(ForeignKey('tenants.id'),index=True)
+ router_id:Mapped[str]=mapped_column(ForeignKey('router_devices.id'),index=True)
+ kind:Mapped[str]=mapped_column(String(30))
+ observed_at:Mapped[int]=mapped_column(BigInteger)
+ source:Mapped[str]=mapped_column(String(50))
+ payload:Mapped[dict]=mapped_column(JSON)
+ created_by:Mapped[str]=mapped_column(ForeignKey('users.id'))
+ created:Mapped[int]=mapped_column(BigInteger)
+ __table_args__=(CheckConstraint("kind in ('preflight','wireguard_router_peer')"),)
+
+class HotspotVoucherSync(Base):
+ """What MikroMagic last applied for one voucher on one router's HotSpot."""
+ __tablename__='hotspot_voucher_sync'
+ voucher_id:Mapped[str]=mapped_column(ForeignKey('vouchers.id'),primary_key=True)
+ router_id:Mapped[str]=mapped_column(ForeignKey('router_devices.id'),primary_key=True,index=True)
+ tenant_id:Mapped[str]=mapped_column(ForeignKey('tenants.id'),index=True)
+ applied:Mapped[str|None]=mapped_column(String(10),nullable=True)
+ applied_fingerprint:Mapped[str|None]=mapped_column(String(64),nullable=True)
+ applied_at:Mapped[int|None]=mapped_column(BigInteger,nullable=True)
+ attempts:Mapped[int]=mapped_column(Integer,default=0)
+ last_error:Mapped[str|None]=mapped_column(String(60),nullable=True)
+ last_attempt_at:Mapped[int|None]=mapped_column(BigInteger,nullable=True)
+ __table_args__=(CheckConstraint("applied is null or applied in ('present','disabled','absent')",name='ck_hotspot_voucher_sync_applied'),)
+
+class HotspotSessionObservation(Base):
+ """Last HotSpot active-session / accounting read for one managed router."""
+ __tablename__='hotspot_session_observations'
+ router_id:Mapped[str]=mapped_column(ForeignKey('router_devices.id'),primary_key=True)
+ tenant_id:Mapped[str]=mapped_column(ForeignKey('tenants.id'),index=True)
+ site_id:Mapped[str]=mapped_column(ForeignKey('sites.id'),index=True)
+ observed_at:Mapped[int]=mapped_column(BigInteger)
+ status:Mapped[str]=mapped_column(String(24))
+ active_count:Mapped[int]=mapped_column(Integer,default=0)
+ guests:Mapped[list]=mapped_column(JSON)
+ activations_applied:Mapped[int]=mapped_column(Integer,default=0)
+ usage_updated:Mapped[int]=mapped_column(Integer,default=0)
+ last_error:Mapped[str|None]=mapped_column(String(60),nullable=True)
+ updated:Mapped[int]=mapped_column(BigInteger)
+ __table_args__=(CheckConstraint("status in ('verified','unable_to_verify')",name='ck_hotspot_session_obs_status'),CheckConstraint('active_count >= 0',name='ck_hotspot_session_obs_count'))
+
+class RouterHealthObservation(Base):
+ """Last monitoring-credential health read for one managed router."""
+ __tablename__='router_health_observations'
+ router_id:Mapped[str]=mapped_column(ForeignKey('router_devices.id'),primary_key=True)
+ tenant_id:Mapped[str]=mapped_column(ForeignKey('tenants.id'),index=True)
+ site_id:Mapped[str]=mapped_column(ForeignKey('sites.id'),index=True)
+ observed_at:Mapped[int]=mapped_column(BigInteger)
+ status:Mapped[str]=mapped_column(String(24))
+ metrics:Mapped[dict]=mapped_column(JSON)
+ last_error:Mapped[str|None]=mapped_column(String(60),nullable=True)
+ updated:Mapped[int]=mapped_column(BigInteger)
+ __table_args__=(CheckConstraint("status in ('verified','unable_to_verify')",name='ck_router_health_obs_status'),)
+
+class RouterWanObservation(Base):
+ """Last monitoring-credential WAN / PPPoE read for one managed router."""
+ __tablename__='router_wan_observations'
+ router_id:Mapped[str]=mapped_column(ForeignKey('router_devices.id'),primary_key=True)
+ tenant_id:Mapped[str]=mapped_column(ForeignKey('tenants.id'),index=True)
+ site_id:Mapped[str]=mapped_column(ForeignKey('sites.id'),index=True)
+ observed_at:Mapped[int]=mapped_column(BigInteger)
+ status:Mapped[str]=mapped_column(String(24))
+ metrics:Mapped[dict]=mapped_column(JSON)
+ last_error:Mapped[str|None]=mapped_column(String(60),nullable=True)
+ updated:Mapped[int]=mapped_column(BigInteger)
+ __table_args__=(CheckConstraint("status in ('verified','unable_to_verify')",name='ck_router_wan_obs_status'),)
+
+class RouterChange(Base):
+ __tablename__='router_changes'
+ id:Mapped[str]=mapped_column(String(36),primary_key=True,default=uid)
+ tenant_id:Mapped[str]=mapped_column(ForeignKey('tenants.id'),index=True)
+ router_id:Mapped[str]=mapped_column(ForeignKey('router_devices.id'),index=True)
+ operation:Mapped[str]=mapped_column(String(40))
+ resource_id:Mapped[str]=mapped_column(String(80))
+ risk:Mapped[str]=mapped_column(String(10))
+ status:Mapped[str]=mapped_column(String(24),default='previewed')
+ revision:Mapped[int]=mapped_column(Integer,default=1)
+ before:Mapped[dict]=mapped_column(JSON)
+ desired:Mapped[dict]=mapped_column(JSON)
+ actual:Mapped[dict|None]=mapped_column(JSON,nullable=True)
+ expected:Mapped[dict|None]=mapped_column(JSON,nullable=True)
+ diff:Mapped[dict]=mapped_column(JSON)
+ before_fingerprint:Mapped[str]=mapped_column(String(64))
+ backup_id:Mapped[str|None]=mapped_column(ForeignKey('backup_artifacts.id'),nullable=True)
+ safety_backup_verified:Mapped[bool]=mapped_column(Boolean,default=False)
+ confirmed_at:Mapped[int|None]=mapped_column(BigInteger,nullable=True)
+ gateway_deadline:Mapped[int|None]=mapped_column(BigInteger,nullable=True)
+ last_probe_at:Mapped[int|None]=mapped_column(BigInteger,nullable=True)
+ recovery_evidence:Mapped[dict|None]=mapped_column(JSON,nullable=True)
+ conflict_detected_at:Mapped[int|None]=mapped_column(BigInteger,nullable=True)
+ conflict_history_until:Mapped[int|None]=mapped_column(BigInteger,nullable=True)
+ resolution_choice:Mapped[str|None]=mapped_column(String(24),nullable=True)
+ rollback_attempted:Mapped[bool]=mapped_column(Boolean,default=False)
+ created_by:Mapped[str]=mapped_column(ForeignKey('users.id'))
+ created:Mapped[int]=mapped_column(BigInteger)
+ updated:Mapped[int]=mapped_column(BigInteger)
+ error_code:Mapped[str|None]=mapped_column(String(60),nullable=True)
+ __table_args__=(CheckConstraint("operation in ('wireguard_peer_keepalive','hotspot_portal_publish','guest_wifi_settings','guest_network_addressing','guest_vlan_external_ap')"),CheckConstraint("risk in ('low','medium','high')"),CheckConstraint("status in ('previewed','applying','verifying','applied','conflict','rolling_back','rolled_back','failed','recovery_required')"),CheckConstraint('revision > 0'))
+
+class FinancialEvent(Base):
+ __tablename__='financial_events'
+ id:Mapped[str]=mapped_column(String(80),primary_key=True,default=uid)
+ tenant_id:Mapped[str]=mapped_column(ForeignKey('tenants.id'),index=True)
+ site_id:Mapped[str|None]=mapped_column(ForeignKey('sites.id'),nullable=True)
+ source:Mapped[str]=mapped_column(String(20))
+ source_id:Mapped[str]=mapped_column(String(36))
+ kind:Mapped[str]=mapped_column(String(16))
+ amount:Mapped[int]=mapped_column(BigInteger)
+ currency:Mapped[str]=mapped_column(String(3))
+ service:Mapped[str]=mapped_column(String(20))
+ package_name:Mapped[str]=mapped_column(String(120))
+ method:Mapped[str]=mapped_column(String(80))
+ reference:Mapped[str]=mapped_column(String(160))
+ actor_id:Mapped[str|None]=mapped_column(ForeignKey('users.id'),nullable=True)
+ occurred_at:Mapped[int]=mapped_column(BigInteger,index=True)
+ timestamp_basis:Mapped[str]=mapped_column(String(32))
+ __table_args__=(UniqueConstraint('source','source_id','kind'),CheckConstraint('amount > 0'),CheckConstraint("kind IN ('collection','refund')"),CheckConstraint("source IN ('guest_order','voucher_sale')"))
+
+class RevenueReconciliation(Base):
+ __tablename__='revenue_reconciliations'
+ id:Mapped[str]=mapped_column(String(36),primary_key=True,default=uid)
+ tenant_id:Mapped[str]=mapped_column(ForeignKey('tenants.id'),index=True)
+ site_id:Mapped[str|None]=mapped_column(ForeignKey('sites.id'),nullable=True)
+ start_date:Mapped[str|None]=mapped_column(String(10),nullable=True)
+ end_date:Mapped[str|None]=mapped_column(String(10),nullable=True)
+ timezone:Mapped[str]=mapped_column(String(80))
+ expected_collections:Mapped[int]=mapped_column(BigInteger)
+ expected_refunds:Mapped[int]=mapped_column(BigInteger)
+ actual_collections:Mapped[int]=mapped_column(BigInteger)
+ actual_refunds:Mapped[int]=mapped_column(BigInteger)
+ variance:Mapped[int]=mapped_column(BigInteger)
+ notes:Mapped[str]=mapped_column(String(1000))
+ request_key:Mapped[str]=mapped_column(String(80))
+ request_hash:Mapped[str]=mapped_column(String(64))
+ actor_id:Mapped[str]=mapped_column(ForeignKey('users.id'))
+ created:Mapped[int]=mapped_column(BigInteger)
+ __table_args__=(UniqueConstraint('tenant_id','request_key'),CheckConstraint('expected_collections >= 0 AND expected_refunds >= 0'))
+
+class ThemeSettings(Base):
+ __tablename__='theme_settings'
+ id:Mapped[str]=mapped_column(String(32),primary_key=True)
+ revision:Mapped[int]=mapped_column(Integer)
+ draft:Mapped[dict]=mapped_column(JSON)
+ published:Mapped[dict|None]=mapped_column(JSON,nullable=True)
+ previous:Mapped[dict|None]=mapped_column(JSON,nullable=True)
+ published_revision:Mapped[int|None]=mapped_column(Integer,nullable=True)
+ updated:Mapped[int]=mapped_column(BigInteger)
+
+class MediaTitle(Base):
+ __tablename__='media_titles'
+ id:Mapped[str]=mapped_column(String(36),primary_key=True,default=uid)
+ tenant_id:Mapped[str]=mapped_column(ForeignKey('tenants.id'),index=True)
+ name:Mapped[str]=mapped_column(String(120))
+ description:Mapped[str]=mapped_column(String(4000))
+ genre:Mapped[str]=mapped_column(String(80))
+ runtime_minutes:Mapped[int]=mapped_column(Integer)
+ release_year:Mapped[int|None]=mapped_column(Integer,nullable=True)
+ published:Mapped[bool]=mapped_column(Boolean,default=False)
+ archived:Mapped[bool]=mapped_column(Boolean,default=False)
+ featured:Mapped[bool]=mapped_column(Boolean,default=False,server_default='0')
+ revision:Mapped[int]=mapped_column(Integer,default=1)
+ updated:Mapped[int]=mapped_column(BigInteger)
+ __table_args__=(CheckConstraint('runtime_minutes > 0'),CheckConstraint('revision > 0'))
+
+class MediaSettings(Base):
+ __tablename__='media_settings'
+ tenant_id:Mapped[str]=mapped_column(ForeignKey('tenants.id'),primary_key=True)
+ catalog_preview:Mapped[str]=mapped_column(String(12),default='full')
+ revision:Mapped[int]=mapped_column(Integer,default=1)
+ updated:Mapped[int]=mapped_column(BigInteger)
+ __table_args__=(CheckConstraint("catalog_preview in ('full','featured')",name='ck_media_settings_preview'),)
+
+class KnowledgeCard(Base):
+ __tablename__='knowledge_cards'
+ id:Mapped[str]=mapped_column(String(36),primary_key=True,default=uid)
+ content:Mapped[dict]=mapped_column(JSON)
+ published:Mapped[bool]=mapped_column(Boolean,default=False)
+ archived:Mapped[bool]=mapped_column(Boolean,default=False)
+ revision:Mapped[int]=mapped_column(Integer,default=1)
+ updated:Mapped[int]=mapped_column(BigInteger)
+ __table_args__=(CheckConstraint('revision > 0'),)
+
+class ReceiptImage(Base):
+ __tablename__='receipt_images'
+ id:Mapped[str]=mapped_column(String(36),primary_key=True,default=uid)
+ order_id:Mapped[str]=mapped_column(ForeignKey('orders.id'),index=True)
+ uploaded_by:Mapped[str]=mapped_column(ForeignKey('users.id'))
+ request_key:Mapped[str]=mapped_column(String(80))
+ original_hash:Mapped[str]=mapped_column(String(64))
+ image:Mapped[bytes]=mapped_column(LargeBinary)
+ width:Mapped[int]=mapped_column(Integer)
+ height:Mapped[int]=mapped_column(Integer)
+ created:Mapped[int]=mapped_column(BigInteger)
+ __table_args__=(UniqueConstraint('order_id','request_key'),CheckConstraint('width > 0 AND height > 0'))
+
+class ReviewCredential(Base):
+ __tablename__='review_credentials'
+ id:Mapped[str]=mapped_column(String(36),primary_key=True,default=uid)
+ tenant_id:Mapped[str]=mapped_column(ForeignKey('tenants.id'),index=True)
+ user_id:Mapped[str]=mapped_column(ForeignKey('users.id'))
+ label:Mapped[str]=mapped_column(String(120))
+ provider:Mapped[str]=mapped_column(String(16))
+ reviewer_identity:Mapped[str]=mapped_column(String(160))
+ receive_events:Mapped[bool]=mapped_column(Boolean,default=False,server_default='0')
+ can_decide:Mapped[bool]=mapped_column(Boolean)
+ token_hash:Mapped[str]=mapped_column(String(64),unique=True)
+ created:Mapped[int]=mapped_column(BigInteger)
+ expires:Mapped[int]=mapped_column(BigInteger)
+ revoked_at:Mapped[int|None]=mapped_column(BigInteger,nullable=True)
+ revoke_reason:Mapped[str|None]=mapped_column(String(1000),nullable=True)
+ __table_args__=(CheckConstraint('expires > created'),)
+class ExternalReviewAction(Base):
+ __tablename__='external_review_actions'
+ id:Mapped[str]=mapped_column(String(36),primary_key=True,default=uid)
+ tenant_id:Mapped[str]=mapped_column(ForeignKey('tenants.id'),index=True)
+ credential_id:Mapped[str]=mapped_column(ForeignKey('review_credentials.id'))
+ order_id:Mapped[str]=mapped_column(ForeignKey('orders.id'))
+ request_key:Mapped[str]=mapped_column(String(80))
+ request_hash:Mapped[str]=mapped_column(String(64))
+ reviewer_identity:Mapped[str]=mapped_column(String(160))
+ provider:Mapped[str]=mapped_column(String(16))
+ service_label:Mapped[str]=mapped_column(String(120))
+ decision:Mapped[str]=mapped_column(String(24))
+ reason:Mapped[str]=mapped_column(String(1000))
+ result:Mapped[dict]=mapped_column(JSON)
+ created:Mapped[int]=mapped_column(BigInteger)
+ __table_args__=(UniqueConstraint('credential_id','request_key'),)
+
+class EventDelivery(Base):
+ __tablename__='event_deliveries'
+ id:Mapped[str]=mapped_column(String(36),primary_key=True,default=uid)
+ tenant_id:Mapped[str]=mapped_column(ForeignKey('tenants.id'),index=True)
+ credential_id:Mapped[str]=mapped_column(ForeignKey('review_credentials.id'),index=True)
+ event_id:Mapped[str]=mapped_column(ForeignKey('outbox_events.id'))
+ state:Mapped[str]=mapped_column(String(16),default='pending')
+ attempts:Mapped[int]=mapped_column(Integer,default=0)
+ cycle_attempts:Mapped[int]=mapped_column(Integer,default=0)
+ available_at:Mapped[int]=mapped_column(BigInteger)
+ lease_expires:Mapped[int|None]=mapped_column(BigInteger,nullable=True)
+ lease_hash:Mapped[str|None]=mapped_column(String(64),nullable=True)
+ completion:Mapped[dict|None]=mapped_column(JSON,nullable=True)
+ acknowledged_at:Mapped[int|None]=mapped_column(BigInteger,nullable=True)
+ last_error:Mapped[str|None]=mapped_column(String(1000),nullable=True)
+ __table_args__=(UniqueConstraint('credential_id','event_id'),CheckConstraint("state IN ('pending','leased','acknowledged','failed')"),CheckConstraint('attempts >= 0 AND cycle_attempts >= 0'))
+
+class BusinessProvisioning(Base):
+ __tablename__='business_provisioning'
+ id:Mapped[str]=mapped_column(String(36),primary_key=True,default=uid)
+ tenant_id:Mapped[str]=mapped_column(ForeignKey('tenants.id'),unique=True)
+ owner_id:Mapped[str]=mapped_column(ForeignKey('users.id'),unique=True)
+ created_by:Mapped[str]=mapped_column(ForeignKey('users.id'))
+ request_key:Mapped[str]=mapped_column(String(80))
+ request_hash:Mapped[str]=mapped_column(String(64))
+ created:Mapped[int]=mapped_column(BigInteger)
+ __table_args__=(UniqueConstraint('created_by','request_key'),)
+
+class PasswordResetRecord(Base):
+ __tablename__='password_reset_records'
+ id:Mapped[str]=mapped_column(String(36),primary_key=True,default=uid)
+ user_id:Mapped[str]=mapped_column(ForeignKey('users.id'))
+ actor_id:Mapped[str]=mapped_column(ForeignKey('users.id'))
+ reason:Mapped[str]=mapped_column(String(1000))
+ created:Mapped[int]=mapped_column(BigInteger)
+
+class SitePlanning(Base):
+ __tablename__='site_planning'
+ site_id:Mapped[str]=mapped_column(ForeignKey('sites.id'),primary_key=True)
+ revision:Mapped[int]=mapped_column(Integer)
+ settings:Mapped[dict]=mapped_column(JSON)
+ updated:Mapped[int]=mapped_column(BigInteger)
+
+class SubscriptionPlan(Base):
+ __tablename__='subscription_plans'
+ id:Mapped[str]=mapped_column(String(36),primary_key=True,default=uid)
+ settings:Mapped[dict]=mapped_column(JSON)
+ created:Mapped[int]=mapped_column(BigInteger)
+
+class StaffGrant(Base):
+ __tablename__='staff_grants'
+ user_id:Mapped[str]=mapped_column(ForeignKey('users.id'),primary_key=True)
+ tenant_id:Mapped[str]=mapped_column(ForeignKey('tenants.id'),index=True)
+ profile:Mapped[str]=mapped_column(String(20))
+ revision:Mapped[int]=mapped_column(Integer)
+ last_reason:Mapped[str]=mapped_column(String(1000),default='')
+ created_by:Mapped[str]=mapped_column(ForeignKey('users.id'))
+ request_key:Mapped[str]=mapped_column(String(80))
+ request_hash:Mapped[str]=mapped_column(String(64))
+ created:Mapped[int]=mapped_column(BigInteger)
+ updated:Mapped[int]=mapped_column(BigInteger)
+ __table_args__=(UniqueConstraint('created_by','request_key'),CheckConstraint("profile in ('manager','cashier','technician')"))
+class TenantSubscription(Base):
+ __tablename__='tenant_subscriptions'
+ tenant_id:Mapped[str]=mapped_column(ForeignKey('tenants.id'),primary_key=True)
+ revision:Mapped[int]=mapped_column(Integer)
+ plan_id:Mapped[str]=mapped_column(ForeignKey('subscription_plans.id'))
+ plan_snapshot:Mapped[dict]=mapped_column(JSON)
+ state:Mapped[str]=mapped_column(String(20))
+ period_start:Mapped[int]=mapped_column(BigInteger)
+ period_end:Mapped[int]=mapped_column(BigInteger)
+ reason:Mapped[str]=mapped_column(String(1000))
+ updated:Mapped[int]=mapped_column(BigInteger)
+ payment_source_invoice_id:Mapped[str|None]=mapped_column(String(36),nullable=True)
+ __table_args__=(CheckConstraint("state in ('trial','active','past_due','suspended','cancelled')"),CheckConstraint('period_end > period_start'))
+
+class SubscriptionInvoice(Base):
+ __tablename__='subscription_invoices'
+ id:Mapped[str]=mapped_column(String(36),primary_key=True,default=uid)
+ tenant_id:Mapped[str]=mapped_column(ForeignKey('tenants.id'),index=True)
+ plan_id:Mapped[str]=mapped_column(ForeignKey('subscription_plans.id'))
+ snapshot:Mapped[dict]=mapped_column(JSON)
+ amount:Mapped[int]=mapped_column(BigInteger)
+ currency:Mapped[str]=mapped_column(String(3))
+ period_start:Mapped[int]=mapped_column(BigInteger)
+ period_end:Mapped[int]=mapped_column(BigInteger)
+ subscription_revision:Mapped[int]=mapped_column(Integer)
+ revision:Mapped[int]=mapped_column(Integer,default=1)
+ status:Mapped[str]=mapped_column(String(20),default='unpaid')
+ destination:Mapped[str]=mapped_column(String(500))
+ instructions:Mapped[str]=mapped_column(String(2000))
+ method:Mapped[str|None]=mapped_column(String(80),nullable=True)
+ reference:Mapped[str|None]=mapped_column(String(160),nullable=True)
+ evidence:Mapped[str|None]=mapped_column(String(4000),nullable=True)
+ submission_key:Mapped[str|None]=mapped_column(String(80),nullable=True)
+ submission_hash:Mapped[str|None]=mapped_column(String(64),nullable=True)
+ reviewed_by:Mapped[str|None]=mapped_column(ForeignKey('users.id'),nullable=True)
+ reason:Mapped[str|None]=mapped_column(String(1000),nullable=True)
+ created_by:Mapped[str]=mapped_column(ForeignKey('users.id'))
+ request_key:Mapped[str]=mapped_column(String(80))
+ request_hash:Mapped[str]=mapped_column(String(64))
+ created:Mapped[int]=mapped_column(BigInteger)
+ updated:Mapped[int]=mapped_column(BigInteger)
+ __table_args__=(UniqueConstraint('created_by','request_key'),CheckConstraint('amount > 0'),CheckConstraint('period_end > period_start'),CheckConstraint("status in ('unpaid','pending','needs_evidence','paid','rejected','void','refunded')",name='subscription_invoices_status_check'))
+class BillingEvent(Base):
+ __tablename__='billing_events'
+ id:Mapped[str]=mapped_column(String(36),primary_key=True,default=uid)
+ invoice_id:Mapped[str]=mapped_column(ForeignKey('subscription_invoices.id'),index=True)
+ actor_id:Mapped[str]=mapped_column(ForeignKey('users.id'))
+ event:Mapped[str]=mapped_column(String(40))
+ payload:Mapped[dict]=mapped_column(JSON)
+ created:Mapped[int]=mapped_column(BigInteger)
+
+class AccountMFA(Base):
+ __tablename__='account_mfa'
+ user_id:Mapped[str]=mapped_column(ForeignKey('users.id'),primary_key=True)
+ enabled:Mapped[bool]=mapped_column(Boolean,default=False)
+ encrypted_secret:Mapped[str|None]=mapped_column(String(1000),nullable=True)
+ enrollment_expires:Mapped[int|None]=mapped_column(BigInteger,nullable=True)
+ last_step:Mapped[int]=mapped_column(BigInteger,default=-1)
+ recovery_hashes:Mapped[list]=mapped_column(JSON,default=list)
+ updated:Mapped[int]=mapped_column(BigInteger)
+
+class NotificationPreference(Base):
+ __tablename__='notification_preferences'
+ user_id:Mapped[str]=mapped_column(ForeignKey('users.id'),primary_key=True)
+ tenant_id:Mapped[str]=mapped_column(ForeignKey('tenants.id'),index=True)
+ level:Mapped[str]=mapped_column(String(12),default='all')
+ daily_summary:Mapped[str]=mapped_column(String(12),default='daily')
+ revision:Mapped[int]=mapped_column(Integer,default=1)
+ updated:Mapped[int]=mapped_column(BigInteger)
+ __table_args__=(CheckConstraint("level in ('critical','attention','all')",name='ck_notification_preferences_level'),CheckConstraint("daily_summary in ('daily','important','off')",name='ck_notification_preferences_summary'))
+
+class NotificationRead(Base):
+ __tablename__='notification_reads'
+ user_id:Mapped[str]=mapped_column(ForeignKey('users.id'),primary_key=True)
+ key:Mapped[str]=mapped_column(String(120),primary_key=True)
+ version:Mapped[str]=mapped_column(String(32))
+ read_at:Mapped[int]=mapped_column(BigInteger)

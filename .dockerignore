@@ -1,0 +1,16 @@
+.git
+.venv
+.runtime
+node_modules
+dist
+__pycache__
+*.pyc
+*.sqlite3
+*.zip
+.env
+secrets
+routeros-secrets
+_qa
+tests
+design-comparison.jpg
+design-qa.md
