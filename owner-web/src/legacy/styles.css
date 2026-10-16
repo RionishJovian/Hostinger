@@ -837,6 +837,40 @@ h3:not(.gradient-text) {
   }
 }
 
+/* Midnight Studio release tokens override the copied Lovable palette. */
+.dark .legacy-screen {
+  --background: #12161f;
+  --foreground: #ebe7df;
+  --canvas: #12161f;
+  --surface: rgba(28, 35, 51, .82);
+  --surface-elevated: #1c2333;
+  --surface-tint: rgba(52, 211, 153, .12);
+  --card: #1c2333;
+  --card-foreground: #ebe7df;
+  --primary: #34d399;
+  --primary-foreground: #12161f;
+  --accent: #456658;
+  --accent-foreground: #ebe7df;
+  --muted: rgba(255, 255, 255, .06);
+  --muted-foreground: #aeb4c0;
+  --border: rgba(174, 180, 192, .24);
+  --glass-bg: rgba(28, 35, 51, .82);
+  --glass-bg-strong: #1c2333;
+  --glass-border: rgba(174, 180, 192, .24);
+  --glass-blur: 12px;
+  --glass-saturate: 120%;
+  --font-sans: "Open Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+  --font-display: "Cinzel Decorative", ui-serif, Georgia, serif;
+}
+
+.legacy-screen button,
+.legacy-screen select,
+.legacy-screen input[type="submit"],
+.legacy-screen input[type="button"] { min-height: 44px; }
+
+html[data-lang="my"] .legacy-screen { line-height: 1.6; font-family: "Noto Sans Myanmar", "Open Sans", sans-serif; }
+
 @utility cta-glow {
   position: relative;
   display: inline-flex;

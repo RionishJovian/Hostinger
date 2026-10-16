@@ -21,6 +21,10 @@ The VPS release remains unchanged.
 - Q15: the owner test-lab write endpoint now fails closed with one 409 response, without probing router existence.
 - P1: owner-visible labels for Topology, Scripts and Backups no longer claim platform-admin-only access; existing route gates remain enforced.
 - P7/Q18: Home and Easy mode now use the shared `Not connected yet` state instead of silent dashes or an object rendered as `Available MMK`.
+- Q4 (increment): legacy overview, fleet, router, device, topology and deployment reads now call the existing owner endpoints instead of the empty engine shim; unsupported writes remain fail-closed.
+- Q6/P7 (increment): legacy Deployments and Reseller Operation use the shared unavailable/empty state for failed or unwired reads.
+- Q8 (increment): the shared legacy engine plus overview, fleet, routers, devices, topology and deployments adapters now compile without `@ts-nocheck`.
+- G1/G2/G3/G7 (increment): owner and legacy surfaces now share Midnight graphite/emerald tokens, load the specified Open Sans/JetBrains Mono/Cinzel/Noto Sans Myanmar families, update the theme color, and raise core navigation/button touch targets to 44px.
 
 ## Verification
 
