@@ -32,6 +32,7 @@ The VPS release remains unchanged.
 - Q8 (increment): Easy-mode state helpers and portal adapter types now compile without `@ts-nocheck`.
 - Q8 (increment): nine additional low-risk legacy data adapters now compile without `@ts-nocheck`.
 - P1/Q3 (increment): Topology is now owner-visible read-only, and its legacy reads use `/v1/owner/topology` instead of the empty platform-only shim.
+- Q4 (increment): Sites and managed-device reads now use `/v1/owner/topology`, `/v1/owner/fleet`, and `/v1/owner/devices`; unsupported writes remain fail-closed.
 
 ## Verification
 
