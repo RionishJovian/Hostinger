@@ -26,6 +26,7 @@ import { fmtMagicCoins, magicCoinsForMMK } from "@/lib/magic-coins";
 import { chromeForServiceKey } from "@/lib/gem-offer-chrome.data";
 import { toErrorMessage } from "@/lib/error-message";
 import { TENANT_PRIMARY_ROLE } from "@/lib/app-role";
+import { EmptyState } from "../../../components/AsyncPanel";
 
 export const Route = createFileRoute("/_authenticated/app/services")({
   head: () => ({
@@ -88,6 +89,10 @@ function ServicesPage() {
           refund reverses the points that were awarded.
         </p>
       </header>
+
+      {!services.isLoading && !services.isError && data && data.services.length === 0 && (
+        <EmptyState title="Not available yet" body="Service purchases are not connected to the MikroMagic engine yet." />
+      )}
 
       {status && (
         <section className="glass-panel grid gap-4 rounded-2xl p-4 sm:grid-cols-3">
