@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { createFileRoute, createLazyFileRoute } from "@/shims/file-route";
 import { useQuery } from "@tanstack/react-query";
 import { useEngineFn } from "@/shims/react-start";

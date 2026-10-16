@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { Link } from "@tanstack/react-router";
 import { createFileRoute, createLazyFileRoute } from "@/shims/file-route";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
