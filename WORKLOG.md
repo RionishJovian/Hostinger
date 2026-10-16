@@ -28,6 +28,7 @@ The VPS release remains unchanged.
 - Q8 (increment): deployment and reseller operation screens now compile without `@ts-nocheck`, with explicit dashboard row types.
 - Q6/P7 (increment): Revenue now shows the shared unavailable state when its engine read is unwired and disables CSV/PDF exports when there is no revenue data.
 - Q8 (increment): the monetization adapter no longer needs `@ts-nocheck`.
+- G17/Q23 (increment): profile and Easy sub-pages now receive route-specific top-bar titles; Revenue exports are disabled when there is no data.
 
 ## Verification
 

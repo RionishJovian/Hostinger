@@ -44,6 +44,18 @@ export const navigation: NavigationItem[] = [
   { to: "/app/test-lab", label: "Test lab", icon: FlaskConical, platformOnly: true },
 ];
 
+const routeLabels: Record<string, string> = {
+  "/app/profile": "Profile",
+  "/app/easy/print-slips": "Print slips",
+  "/app/easy/guests": "Guests",
+  "/app/easy/router": "Router",
+  "/app/easy/protect-hotspot": "Protect hotspot",
+  "/app/easy/guest-portal": "Guest portal",
+  "/app/easy/voucher-plans": "Voucher plans",
+  "/app/easy/setup": "Setup",
+  "/app/easy/connect-router": "Connect router",
+};
+
 export function AppGuard() {
   const session = useSession();
   const navigate = useNavigate();
@@ -71,6 +83,7 @@ function AppShell() {
   const [open, setOpen] = useState(false);
   const visibleNavigation = filterNavigation(navigation, session.me);
   const current = visibleNavigation.find((item) => item.to === location.pathname) ?? visibleNavigation.find((item) => location.pathname.startsWith(item.to + "/"));
+  const currentLabel = routeLabels[location.pathname] ?? current?.label ?? "Owner workspace";
   return <div className="app-shell">
     <aside className={`sidebar ${open ? "open" : ""}`}>
       <div className="brand"><span className="brand-gem">M</span><div><strong>MikroMagic</strong><small>Owner workspace</small></div><button className="mobile-close" onClick={() => setOpen(false)} aria-label="Close menu"><X /></button></div>
@@ -79,7 +92,7 @@ function AppShell() {
     </aside>
     {open && <button className="scrim" aria-label="Close menu" onClick={() => setOpen(false)} />}
     <div className="workspace">
-      <header className="topbar"><button className="menu-button" onClick={() => setOpen(true)} aria-label="Open menu"><Menu /></button><div><span className="eyebrow">MikroMagic</span><strong>{current?.label ?? "Owner workspace"}</strong></div><div className="topbar-actions"><ThemeToggle /><button className="account-button" onClick={() => void navigate({ to: "/app/profile" })}><CircleUserRound size={18} /><span>{session.me?.username}</span><ChevronDown size={14} /></button></div></header>
+      <header className="topbar"><button className="menu-button" onClick={() => setOpen(true)} aria-label="Open menu"><Menu /></button><div><span className="eyebrow">MikroMagic</span><strong>{currentLabel}</strong></div><div className="topbar-actions"><ThemeToggle /><button className="account-button" onClick={() => void navigate({ to: "/app/profile" })}><CircleUserRound size={18} /><span>{session.me?.username}</span><ChevronDown size={14} /></button></div></header>
       {session.me?.subscription_restricted && <div className="restriction-banner">Your subscription needs attention. Business records remain protected while workspace access is limited.</div>}
       <main className="page"><Outlet /></main>
       <nav className="bottom-nav">{visibleNavigation.slice(0, 5).map((item) => <Link key={item.to} to={item.to} activeOptions={{ exact: item.to === "/app" }}><item.icon /><span>{item.label}</span></Link>)}<button onClick={() => setOpen(true)}><Settings2 /><span>More</span></button></nav>
