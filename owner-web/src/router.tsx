@@ -73,7 +73,7 @@ const magicDudeRoute = dataRoute("magic-dude", MagicDudePage); // Lovable Magic 
 const agentRoute = dataRoute("agent", legacyScreen(L_agent, "agent"));
 const connectorsRoute = dataRoute("connectors", legacyScreen(L_connectors, "owner"));
 const devicesRoute = dataRoute("devices", legacyScreen(L_devices, "sme"));
-const topologyRoute = dataRoute("topology", legacyScreen(L_topology, "sme"));
+const topologyRoute = dataRoute("topology", legacyScreen(L_topology, "owner"));
 const syslogRoute = dataRoute("syslog", legacyScreen(L_syslog, "sme"));
 const quickSetupRoute = dataRoute("quick-setup", () => <LegacyFrame audience="sme"><QuickSetupSteps /><QuickSetupScreen /></LegacyFrame>);
 const QuickSetupScreen = L_quick_setup.options.component;

@@ -31,6 +31,7 @@ The VPS release remains unchanged.
 - G17/Q23 (increment): profile and Easy sub-pages now receive route-specific top-bar titles; Revenue exports are disabled when there is no data.
 - Q8 (increment): Easy-mode state helpers and portal adapter types now compile without `@ts-nocheck`.
 - Q8 (increment): nine additional low-risk legacy data adapters now compile without `@ts-nocheck`.
+- P1/Q3 (increment): Topology is now owner-visible read-only, and its legacy reads use `/v1/owner/topology` instead of the empty platform-only shim.
 
 ## Verification
 
