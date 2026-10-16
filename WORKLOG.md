@@ -18,12 +18,13 @@ The VPS release remains unchanged.
 - Q11: readiness hub/management flags use the shared freshness result instead of an inline time-window calculation.
 - Q12: overview revenue counts only collections and refunds, matching the revenue module's sign convention.
 - Q13: TOTP replay steps can be consumed through a conditional database update on the account MFA row; repeated or out-of-order steps are rejected.
+- Q15: the owner test-lab write endpoint now fails closed with one 409 response, without probing router existence.
 - P1: owner-visible labels for Topology, Scripts and Backups no longer claim platform-admin-only access; existing route gates remain enforced.
 - P7/Q18: Home and Easy mode now use the shared `Not connected yet` state instead of silent dashes or an object rendered as `Available MMK`.
 
 ## Verification
 
-- Focused Python tests: 10 passed.
+- Focused Python tests: 11 passed.
 - Python compileall: passed.
 - Owner-web build: passed after installing the declared local dependencies.
 - CI/CD: added `scripts/ci-check.sh`, a GitHub Actions check workflow, a manual production gate, and a macOS-dispatch workflow. The deploy job intentionally requires the reviewed Hostinger deployment script; this reconstructed archive does not contain that script or a pushed Git history.

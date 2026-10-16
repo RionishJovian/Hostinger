@@ -54,6 +54,11 @@ def _today_bounds(now):
     return int(start.timestamp()), int((start + timedelta(days=1)).timestamp())
 
 
+def _test_lab_unavailable():
+    """The physical test-lab write path is deliberately disabled in this release."""
+    raise HTTPException(409, 'Test-lab router operations are unavailable in this release')
+
+
 class ExplainLineIn(BaseModel):
     line: str = Field(min_length=1, max_length=4000)
 
@@ -373,10 +378,7 @@ def register_owner_api(app, current, db, owner):
     @app.post('/v1/owner/test-lab')
     def test_lab_router(body: TestLabIn, u=Depends(current), s=Depends(db)):
         _platform_admin(u)
-        router = s.get(RouterDevice, body.router_id)
-        if not router:
-            raise HTTPException(404, 'Router not found')
-        raise HTTPException(409, 'Router is not explicitly marked as a test router')
+        _test_lab_unavailable()
 
     @app.post('/v1/owner/terminal')
     def terminal(body: TerminalCommandIn, u=Depends(current), s=Depends(db)):
