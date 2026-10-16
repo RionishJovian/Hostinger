@@ -36,6 +36,7 @@ The VPS release remains unchanged.
 - Q4/Q6 (increment): Services now reads the owner subscription-plan endpoint and normalizes the response for the legacy Services screen; unsupported purchases remain fail-closed.
 - Q11/R8 (increment): Readiness now consumes `/v1/owner/readiness` and shows fresh Hub/management status per router in the legacy screen.
 - Q6/P7 (increment): Services now shows the shared unavailable state when the normalized plan has no connected service catalog.
+- Q6/P7 (increment): Devices and Sites now fail closed visibly when their engine mutations are unwired; add/edit/delete/assign/PoE controls are disabled while read-only inventory, topology and port reads remain usable.
 
 ## Verification
 

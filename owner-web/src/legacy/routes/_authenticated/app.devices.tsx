@@ -18,6 +18,7 @@ import { useSelectedSite } from "@/hooks/useSelectedSite";
 import { getMe } from "@/lib/auth.functions";
 import { meHasFeature } from "@/lib/operator-features";
 import { DelayedFallback, SkeletonList } from "@/components/ui/skeleton";
+import { EmptyState } from "../../../components/AsyncPanel";
 import {
   ACTION_LABEL,
   CATEGORY_LABEL,
@@ -147,6 +148,13 @@ function DevicesPage() {
         </p>
       </header>
 
+      {save.comingSoon && (
+        <EmptyState
+          title={t.label("Not available yet")}
+          body={t.copy("Device changes are not connected to the MikroMagic engine yet. Read-only inventory and port status remain available.")}
+        />
+      )}
+
       <section className="panel p-5">
         <h2 className="text-lg font-semibold">
           {t.label(editing ? "Edit device" : "Add a device")}
@@ -255,11 +263,11 @@ function DevicesPage() {
         <div className="mt-4 flex flex-wrap gap-2">
           <button
             type="button"
-            disabled={!form.name.trim() || saving.isPending}
+            disabled={save.comingSoon || !form.name.trim() || saving.isPending}
             onClick={() => saving.mutate()}
             className="inline-flex min-h-11 items-center rounded-full bg-primary px-5 text-sm font-semibold text-primary-foreground disabled:opacity-50"
           >
-            {editing ? "Save changes" : "Add device"}
+            {save.comingSoon ? t.label("Not available yet") : editing ? "Save changes" : "Add device"}
           </button>
           {editing && (
             <button
@@ -333,10 +341,11 @@ function DevicesPage() {
                 </button>
                 <button
                   type="button"
+                  disabled={remove.comingSoon || deleting.isPending}
                   onClick={() => deleting.mutate(d.id)}
-                  className="inline-flex min-h-11 items-center rounded-full border border-red-500/40 px-4 text-xs text-red-300"
+                  className="inline-flex min-h-11 items-center rounded-full border border-red-500/40 px-4 text-xs text-red-300 disabled:opacity-40"
                 >
-                  Remove
+                  {remove.comingSoon ? t.label("Not available yet") : "Remove"}
                 </button>
               </div>
             </div>
@@ -452,9 +461,11 @@ function PortPanel({ device, canPoe }: { device: DeviceRow; canPoe: boolean }) {
                   <td className="whitespace-nowrap py-2">
                     <button
                       type="button"
-                      disabled={!guard.allowed || !canPoe}
+                      disabled={cycle.comingSoon || !guard.allowed || !canPoe}
                       title={
-                        !canPoe
+                          cycle.comingSoon
+                          ? "Port power control is not available yet."
+                          : !canPoe
                           ? "Ask the app owner to grant PoE power on Users."
                           : guard.allowed
                             ? "Power-cycle this port"
@@ -491,11 +502,11 @@ function PortPanel({ device, canPoe }: { device: DeviceRow; canPoe: boolean }) {
             />
             <button
               type="button"
-              disabled={typed.trim() !== confirming.name || doCycle.isPending}
+              disabled={cycle.comingSoon || typed.trim() !== confirming.name || doCycle.isPending}
               onClick={() => doCycle.mutate(confirming)}
               className="inline-flex min-h-11 items-center rounded-full bg-red-500/80 px-5 text-sm font-semibold text-white disabled:opacity-40"
             >
-              Power-cycle
+              {cycle.comingSoon ? t.label("Not available yet") : "Power-cycle"}
             </button>
             <button
               type="button"

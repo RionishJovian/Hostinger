@@ -25,6 +25,7 @@ import { toErrorMessage } from "@/lib/error-message";
 import { useT } from "@/lib/i18n";
 import { DelayedFallback, SkeletonList } from "@/components/ui/skeleton";
 import { PlatformActiveSitesPanel } from "@/components/PlatformActiveSitesPanel";
+import { EmptyState } from "../../../components/AsyncPanel";
 
 const SitesMap = lazy(() => import("@/components/SitesMap"));
 
@@ -77,7 +78,9 @@ function SitesPage() {
   });
   const { site: selected } = useSelectedSite();
 
-  const canEdit = !(me.data?.roles?.includes("read_only") || me.data?.roles?.includes("expired"));
+  const canEdit =
+    !(me.data?.roles?.includes("read_only") || me.data?.roles?.includes("expired")) &&
+    !save.comingSoon;
 
   const saveMutation = useMutation({
     mutationFn: (input: {
@@ -198,6 +201,12 @@ function SitesPage() {
           </button>
         )}
       </header>
+      {save.comingSoon && (
+        <EmptyState
+          title={t.label("Not available yet")}
+          body={t.copy("Site changes are not connected to the MikroMagic engine yet. Existing site and router data remains available read-only.")}
+        />
+      )}
       <DeviceLimitCard kind="sites" />
 
       {me.data?.isPlatformAdmin && <PlatformActiveSitesPanel />}
@@ -271,7 +280,7 @@ function SitesPage() {
               onChange={(e) => setDraft({ ...draft, timezone: e.target.value })}
             />
             <button
-              disabled={!draft.name || saveMutation.isPending}
+              disabled={save.comingSoon || !draft.name || saveMutation.isPending}
               onClick={() =>
                 saveMutation.mutate(
                   {
@@ -297,7 +306,7 @@ function SitesPage() {
               }
               className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50"
             >
-              {saveMutation.isPending ? "Saving…" : "Add site"}
+              {save.comingSoon ? t.label("Not available yet") : saveMutation.isPending ? "Saving…" : "Add site"}
             </button>
           </div>
           <p className="mt-2 text-xs text-muted-foreground">
@@ -391,9 +400,10 @@ function SitesPage() {
                         if (window.confirm(`Delete site "${s.name}"?`))
                           deleteMutation.mutate({ id: s.id });
                       }}
-                      className="rounded-md border border-red-500/40 px-3 py-1.5 text-xs text-red-200 hover:bg-red-500/10"
+                      disabled={remove.comingSoon || deleteMutation.isPending}
+                      className="rounded-md border border-red-500/40 px-3 py-1.5 text-xs text-red-200 hover:bg-red-500/10 disabled:opacity-40"
                     >
-                      Delete
+                      {remove.comingSoon ? t.label("Not available yet") : "Delete"}
                     </button>
                   )}
                 </div>
@@ -422,7 +432,7 @@ function SitesPage() {
                     aria-label="Timezone"
                   />
                   <button
-                    disabled={!editDraft.name.trim() || saveMutation.isPending}
+                    disabled={save.comingSoon || !editDraft.name.trim() || saveMutation.isPending}
                     onClick={() =>
                       saveMutation.mutate(
                         {
@@ -446,7 +456,7 @@ function SitesPage() {
                     }
                     className="rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50"
                   >
-                    {saveMutation.isPending ? "Saving…" : "Save changes"}
+                    {save.comingSoon ? t.label("Not available yet") : saveMutation.isPending ? "Saving…" : "Save changes"}
                   </button>
                 </div>
               )}
@@ -475,9 +485,10 @@ function SitesPage() {
                             siteId: null,
                           })
                         }
-                        className="text-xs text-muted-foreground hover:text-red-300"
+                        disabled={assign.comingSoon || assignMutation.isPending}
+                        className="text-xs text-muted-foreground hover:text-red-300 disabled:opacity-40"
                       >
-                        Remove
+                        {assign.comingSoon ? t.label("Not available yet") : "Remove"}
                       </button>
                     )}
                   </div>
@@ -489,6 +500,7 @@ function SitesPage() {
                       Attach a router
                     </label>
                     <select
+                      disabled={assign.comingSoon || assignMutation.isPending}
                       className="mt-1 w-full rounded-md border border-border bg-surface px-3 py-2 text-sm"
                       defaultValue=""
                       onChange={(e) => {
