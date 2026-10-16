@@ -176,7 +176,7 @@ function Overview() {
   const daysLeft = expiresAt != null ? Math.ceil((expiresAt - Date.now()) / 86_400_000) : null;
 
   const statusFor = (to: string): { kind: StatusKind; label: string } | null => {
-    const routerCount = status.data?.count ?? s?.routers ?? 0;
+    const routerCount = status.data?.count ?? s?.router_count ?? 0;
 
     switch (to) {
       case "/app/routers":
@@ -213,8 +213,8 @@ function Overview() {
           : { kind: "red", label: "Last publish failed" };
       case "/app/sites":
         if (!s) return loadingPill;
-        return s.sites > 0
-          ? { kind: "green", label: `${s.sites} site${s.sites === 1 ? "" : "s"}` }
+        return s.site_count > 0
+          ? { kind: "green", label: `${s.site_count} site${s.site_count === 1 ? "" : "s"}` }
           : { kind: "yellow", label: "No sites yet" };
       case "/app/access-points":
         if (!s) return loadingPill;

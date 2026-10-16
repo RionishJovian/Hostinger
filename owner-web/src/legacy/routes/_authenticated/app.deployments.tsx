@@ -8,6 +8,7 @@ import { listDeployments } from "@/lib/deployments.functions";
 import { DelayedFallback, SkeletonList } from "@/components/ui/skeleton";
 import { RecordPagination } from "@/components/RecordPagination";
 import { PAGE_SIZE } from "@/components/record-pagination.helpers";
+import { EmptyState } from "../../../components/AsyncPanel";
 
 export const Route = createFileRoute("/_authenticated/app/deployments")({
   head: () => ({
@@ -73,15 +74,9 @@ function DeploymentsPage() {
       {q.isLoading && (
         <DelayedFallback loading label="Loading history" fallback={<SkeletonList rows={4} />} />
       )}
-      {q.isError && (
-        <p className="text-sm text-red-300">
-          {t.copy("We could not load the deployment history. Try again in a moment.")}
-        </p>
-      )}
-      {!q.isLoading && rows.length === 0 && (
-        <p className="panel p-5 text-sm text-muted-foreground">
-          {t.copy("No deployments recorded yet. Rehearsals appear here too.")}
-        </p>
+      {q.isError && <EmptyState title={t.label("Not available yet")} body={t.copy("Deployment history is not connected to the engine yet.")} tone="danger" />}
+      {!q.isLoading && !q.isError && rows.length === 0 && (
+        <EmptyState title={t.label("Nothing here yet")} body={t.copy("No deployments have been recorded yet.")} />
       )}
 
       <div className="grid gap-3">

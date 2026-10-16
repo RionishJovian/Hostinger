@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { LockKeyhole } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { EmptyState } from "../../../components/AsyncPanel";
 import {
   closeOwnerBusinessDay,
   createVoucherReseller,
@@ -89,7 +90,7 @@ function OwnerOperationsPage() {
     );
   const d = dashboard.data;
   if (timedOut && dashboard.isLoading)
-    return <AccessState message="Reseller Operation is taking too long to respond. Refresh and try again." />;
+    return <EmptyState title="Not available yet" body="Reseller Operation is taking too long to respond. Refresh and try again." tone="danger" />;
   return (
     <div className="space-y-6">
       <header className="flex flex-wrap items-start justify-between gap-3">
@@ -107,10 +108,12 @@ function OwnerOperationsPage() {
           Open vouchers
         </Link>
       </header>
-      {dashboard.isLoading || !d ? (
+      {dashboard.isLoading ? (
         <div className="glass-panel rounded-2xl p-6 text-sm text-muted-foreground">
           Loading reseller operation…
         </div>
+      ) : !d ? (
+        <EmptyState title="Not available yet" body="Reseller Operation is not connected to the MikroMagic engine yet." />
       ) : (
         <>
           <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
