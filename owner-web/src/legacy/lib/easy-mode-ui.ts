@@ -1,4 +1,3 @@
-// @ts-nocheck
 export type EasyResourceState = {
   label: string;
   state: "loading" | "ready" | "empty" | "error";

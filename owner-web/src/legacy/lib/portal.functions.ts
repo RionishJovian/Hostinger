@@ -1,10 +1,9 @@
-// @ts-nocheck
 // Engine data layer for the copied Lovable screen: calls go to /v1/owner/* or report coming soon.
 import { engineFn } from "@/engine";
-export type PushPlansScope = any;
-export type PushedVoucherProfile = any;
-export type PlanPushPlanResult = any;
-export type IssuePlanVouchersInput = any;
+export type PushPlansScope = Record<string, unknown>;
+export type PushedVoucherProfile = Record<string, unknown>;
+export type PlanPushPlanResult = Record<string, unknown>;
+export type IssuePlanVouchersInput = Record<string, unknown>;
 export const getPortalSettings = engineFn("getPortalSettings");
 export const savePortalSettings = engineFn("savePortalSettings");
 export const uploadPortalAsset = engineFn("uploadPortalAsset");
