@@ -1,4 +1,3 @@
-{/* NOTION-FIX RECONCILE 2026-10-16: Codex interrupted; reconciled screen (read-only audit verified) */}
 import React,{useState} from 'react';
 // Inactive tabs stay mounted: a just-issued code exists only in the page's memory.
 export default function VoucherTabs({tabs,initial,label}){

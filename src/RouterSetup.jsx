@@ -1,4 +1,3 @@
-{/* NOTION-FIX RECONCILE 2026-10-16: Codex interrupted; reconciled screen (read-only audit verified) */}
 import React from 'react';
 import {ArrowRight,CheckCircle,Circle} from '@phosphor-icons/react';
 import {useSMELocalization} from './SMELocalization.jsx';
