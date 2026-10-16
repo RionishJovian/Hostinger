@@ -13,6 +13,7 @@ import { escapeHtml } from "@/lib/html-escape";
 import { RecordPagination } from "@/components/RecordPagination";
 import { PAGE_SIZE } from "@/components/record-pagination.helpers";
 import { useT } from "@/lib/i18n";
+import { EmptyState } from "../../../components/AsyncPanel";
 
 export const Route = createFileRoute("/_authenticated/app/revenue")({
   head: () => ({
@@ -183,12 +184,14 @@ function RevenuePage() {
         <div className="flex gap-2">
           <button
             onClick={exportCsv}
+            disabled={!d || d.totals.count_all === 0}
             className="rounded-full border border-[color:var(--glass-border)] bg-white/5 px-3 py-1.5 text-xs backdrop-blur-xl transition hover:border-primary/50 hover:text-primary active:scale-95"
           >
             Export CSV
           </button>
           <button
             onClick={exportPdf}
+            disabled={!d || d.totals.count_all === 0}
             className="rounded-full border border-[color:var(--glass-border)] bg-white/5 px-3 py-1.5 text-xs backdrop-blur-xl transition hover:border-primary/50 hover:text-primary active:scale-95"
           >
             Download PDF
@@ -214,6 +217,10 @@ function RevenuePage() {
         <div className="rounded-2xl border border-red-500/40 bg-red-500/10 p-4 text-sm text-red-200">
           {(dash.error as Error)?.message ?? "Couldn't load revenue."}
         </div>
+      )}
+
+      {!dash.isLoading && !dash.isError && !d && (
+        <EmptyState title={t.label("Not available yet")} body={t.copy("Revenue is not connected to the MikroMagic engine yet.")} />
       )}
 
       {d && (
