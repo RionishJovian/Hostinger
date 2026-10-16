@@ -1,3 +1,4 @@
+{/* NOTION-FIX RECONCILE 2026-10-16: Codex interrupted; reconciled screen (read-only audit verified) */}
 import React,{useRef,useState} from 'react';
 import {voucherSheet} from './voucher-stock.mjs';
 import {passServiceName} from './sme-terms.mjs';

@@ -1,3 +1,4 @@
+{/* NOTION-FIX RECONCILE 2026-10-16: Codex interrupted; reconciled screen (read-only audit verified) */}
 import React,{useEffect,useRef,useState} from 'react';
 import {ledgerCsv} from './revenue-csv.mjs';
 import {todayIn,methodSummary,voucherReturns} from './revenue-days.mjs';

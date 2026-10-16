@@ -1,3 +1,4 @@
+{/* NOTION-FIX RECONCILE 2026-10-16: Codex interrupted; reconciled screen (read-only audit verified) */}
 import React,{useCallback,useEffect,useMemo,useRef,useState} from 'react';
 import {LAYOUTS,MAGIC_TEMPLATES,PRODUCTION_STEPS,calibrationSheet,loadPrintPrefs,nextStep,paperSummary,plan,productionSheets,savePrintPrefs,serial} from './voucher-production.mjs';
 import {shopSsid,ssidForSite} from './site-settings.mjs';
