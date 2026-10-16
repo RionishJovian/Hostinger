@@ -20,6 +20,7 @@ import { ButtonSpinner } from "@/components/ui/button";
 import { getMe } from "@/lib/auth.functions";
 import { meHasFeature } from "@/lib/operator-features";
 import { toErrorMessage } from "@/lib/error-message";
+import { EmptyState } from "../../../components/AsyncPanel";
 
 export const Route = createFileRoute("/_authenticated/app/incidents")({
   head: () => ({
@@ -80,6 +81,12 @@ function IncidentsPage() {
   const sweep = useEngineFn(runHealthSweep);
   const saveRule = useEngineFn(saveAlertRule);
   const savePrefs = useEngineFn(saveNotificationPrefs);
+  const writesUnavailable =
+    ack.comingSoon ||
+    dismiss.comingSoon ||
+    sweep.comingSoon ||
+    saveRule.comingSoon ||
+    savePrefs.comingSoon;
 
   const incidents = useQuery({
     queryKey: ["incidents"],
@@ -159,14 +166,20 @@ function IncidentsPage() {
         <button
           type="button"
           onClick={() => running.mutate()}
-          disabled={running.isPending}
+          disabled={sweep.comingSoon || running.isPending}
           aria-busy={running.isPending || undefined}
           className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-primary px-5 text-sm font-semibold text-primary-foreground transition-all duration-200 disabled:opacity-50"
         >
           {running.isPending && <ButtonSpinner />}
-          {running.isPending ? "Checking…" : "Check now"}
+          {sweep.comingSoon ? t.label("Not available yet") : running.isPending ? "Checking…" : "Check now"}
         </button>
       </header>
+      {writesUnavailable && (
+        <EmptyState
+          title={t.label("Not available yet")}
+          body={t.copy("Incident actions and alert preferences are not connected to the MikroMagic engine yet. Existing alert data remains readable.")}
+        />
+      )}
 
       <section className="grid gap-3">
         {incidents.isLoading && (
@@ -204,7 +217,7 @@ function IncidentsPage() {
               <div className="flex items-start gap-2">
                 <button
                   type="button"
-                  disabled={!!i.acknowledged_at || acking.isPending}
+                  disabled={ack.comingSoon || !!i.acknowledged_at || acking.isPending}
                   onClick={() => acking.mutate(i.id)}
                   className="inline-flex min-h-11 items-center rounded-full border border-[color:var(--glass-border)] px-4 text-xs disabled:opacity-40"
                 >
@@ -213,7 +226,7 @@ function IncidentsPage() {
                 {i.acknowledged_at && (
                   <button
                     type="button"
-                    disabled={dismissing.isPending}
+                    disabled={dismiss.comingSoon || dismissing.isPending}
                     onClick={() => dismissing.mutate(i.id)}
                     className="inline-flex min-h-11 items-center rounded-full border border-red-500/40 px-4 text-xs text-red-300 hover:bg-red-500/10 disabled:opacity-40"
                   >
@@ -255,7 +268,7 @@ function IncidentsPage() {
                   <input
                     type="checkbox"
                     checked={r.enabled}
-                    disabled={!canAlerts}
+                    disabled={!canAlerts || saveRule.comingSoon}
                     onChange={(e) =>
                       rulePatch.mutate({
                         kind,
@@ -275,7 +288,7 @@ function IncidentsPage() {
                     min={1}
                     max={20}
                     defaultValue={r.threshold}
-                    disabled={!canAlerts}
+                    disabled={!canAlerts || saveRule.comingSoon}
                     className="input w-20"
                     onBlur={(e) =>
                       rulePatch.mutate({
@@ -295,7 +308,7 @@ function IncidentsPage() {
                     min={1}
                     max={1440}
                     defaultValue={r.cooldown_minutes}
-                    disabled={!canAlerts}
+                    disabled={!canAlerts || saveRule.comingSoon}
                     className="input w-24"
                     onBlur={(e) =>
                       rulePatch.mutate({
@@ -322,6 +335,7 @@ function IncidentsPage() {
               <input
                 type="checkbox"
                 checked={p.in_app}
+                disabled={savePrefs.comingSoon}
                 onChange={(e) =>
                   prefPatch.mutate({
                     inApp: e.target.checked,
@@ -338,6 +352,7 @@ function IncidentsPage() {
               <input
                 type="checkbox"
                 checked={p.email}
+                disabled={savePrefs.comingSoon}
                 onChange={(e) =>
                   prefPatch.mutate({
                     inApp: p.in_app,
@@ -355,6 +370,7 @@ function IncidentsPage() {
               <select
                 className="input w-32"
                 value={p.min_severity}
+                disabled={savePrefs.comingSoon}
                 onChange={(e) =>
                   prefPatch.mutate({
                     inApp: p.in_app,

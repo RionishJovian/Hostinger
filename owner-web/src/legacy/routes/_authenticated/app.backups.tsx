@@ -5,6 +5,7 @@ import { useEngineFn } from "@/shims/react-start";
 import { toast } from "sonner";
 import { listDbBackups, runDbBackupNow, signDbBackup } from "@/lib/backups.functions";
 import { toErrorMessage } from "@/lib/error-message";
+import { EmptyState } from "../../../components/AsyncPanel";
 
 export const Route = createFileRoute("/_authenticated/app/backups")({
   head: () => ({
@@ -68,12 +69,18 @@ function BackupsPage() {
         </div>
         <button
           onClick={() => runMut.mutate()}
-          disabled={runMut.isPending}
+          disabled={runNow.comingSoon || runMut.isPending}
           className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50"
         >
-          {runMut.isPending ? "Running…" : "Run backup now"}
+          {runNow.comingSoon ? "Not available yet" : runMut.isPending ? "Running…" : "Run backup now"}
         </button>
       </header>
+      {(runNow.comingSoon || sign.comingSoon) && (
+        <EmptyState
+          title="Not available yet"
+          body="Backup actions are not connected to the MikroMagic engine yet. Existing records remain read-only."
+        />
+      )}
 
       <section className="glass-panel rounded-2xl p-4">
         <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
@@ -100,9 +107,10 @@ function BackupsPage() {
                   <td className="py-1 pr-2 text-right">
                     <button
                       onClick={() => download(f.path)}
-                      className="rounded border border-border/60 px-2 py-0.5 hover:bg-white/5"
+                      disabled={sign.comingSoon}
+                      className="rounded border border-border/60 px-2 py-0.5 hover:bg-white/5 disabled:opacity-40"
                     >
-                      Download
+                      {sign.comingSoon ? "Not available yet" : "Download"}
                     </button>
                   </td>
                 </tr>
