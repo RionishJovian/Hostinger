@@ -22,7 +22,7 @@ The VPS release remains unchanged.
 
 ## Verification
 
-- Focused Python tests: 4 passed.
+- Focused Python tests: 8 passed.
 - Python compileall: passed.
 - Owner-web build: passed after installing the declared local dependencies.
 - CI/CD: added `scripts/ci-check.sh`, a GitHub Actions check workflow, a manual production gate, and a macOS-dispatch workflow. The deploy job intentionally requires the reviewed Hostinger deployment script; this reconstructed archive does not contain that script or a pushed Git history.
