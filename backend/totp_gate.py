@@ -10,7 +10,10 @@ import time
 from dataclasses import dataclass
 from typing import Iterable
 
+from sqlalchemy import update
+
 from .mfa import totp
+from .models import AccountMFA
 
 
 def decode_base32_secret(secret: str) -> str:
@@ -47,6 +50,29 @@ class ReplayGuard:
             return True
 
 
+class DatabaseReplayGuard:
+    """Persist consumed TOTP steps in the account MFA row.
+
+    The update is conditional on the previous step, so concurrent workers
+    cannot both consume the same step. The caller owns the surrounding
+    transaction and commits it with the Safe Change gate decision.
+    """
+
+    def __init__(self, session) -> None:
+        self.session = session
+
+    def consume(self, subject: str, step: int, minimum_step: int | None = None) -> bool:
+        if not isinstance(subject, str) or not subject or not isinstance(step, int):
+            return False
+        values = {'last_step': step}
+        statement = update(AccountMFA).where(
+            AccountMFA.user_id == subject,
+            AccountMFA.enabled == True,
+            AccountMFA.last_step < step,
+        ).values(**values)
+        return bool(self.session.execute(statement).rowcount)
+
+
 def matching_totp_step(secret: str, code: str, now: float | None = None, window: int = 1, digits: int = 6, period: int = 30) -> int | None:
     normalized = decode_base32_secret(secret)
     if not isinstance(code, str) or not re.fullmatch(rf"[0-9]{{{digits}}}", code.strip()):
@@ -64,8 +90,8 @@ def matching_totp_step(secret: str, code: str, now: float | None = None, window:
     return matches[-1] if matches else None
 
 
-def verify_totp(secret: str, code: str, subject: str, replay_guard: ReplayGuard, now: float | None = None, window: int = 1, digits: int = 6, period: int = 30) -> bool:
-    if not isinstance(replay_guard, ReplayGuard):
+def verify_totp(secret: str, code: str, subject: str, replay_guard, now: float | None = None, window: int = 1, digits: int = 6, period: int = 30) -> bool:
+    if not hasattr(replay_guard, 'consume'):
         raise TypeError("a replay guard is required")
     step = matching_totp_step(secret, code, now=now, window=window, digits=digits, period=period)
     if step is None:
