@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useEngineFn } from "@/shims/react-start";
 import { useT } from "@/lib/i18n";
 import { listManagedDevices } from "@/lib/inventory.functions";
+import { getOwnerReadiness } from "@/lib/readiness.functions";
 import {
   ACTION_LABEL,
   CATEGORY_LABEL,
@@ -32,8 +33,10 @@ export const Route = createFileRoute("/_authenticated/app/readiness")({
 function ReadinessPage() {
   const t = useT();
   const fetchDevices = useEngineFn(listManagedDevices);
+  const fetchReadiness = useEngineFn(getOwnerReadiness);
 
   const devices = useQuery({ queryKey: ["managed-devices"], queryFn: () => fetchDevices() });
+  const readiness = useQuery({ queryKey: ["owner-readiness"], queryFn: () => fetchReadiness() });
 
   const usedVendors = new Set(
     ((devices.data ?? []) as unknown as Array<{ vendor: string }>).map((d) => d.vendor),
@@ -49,6 +52,37 @@ function ReadinessPage() {
           )}
         </p>
       </header>
+
+      <section className="panel p-5">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h2 className="text-lg font-semibold">{t.label("Connected router readiness")}</h2>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {t.copy("Connected means the Magic Hub handshake and authenticated management read are both fresh.")}
+            </p>
+          </div>
+          <span className={readiness.data?.ready ? "text-sm text-emerald-300" : "text-sm text-amber-300"}>
+            {readiness.isLoading ? t.label("Checking…") : readiness.data?.ready ? t.label("Ready") : t.label("Needs attention")}
+          </span>
+        </div>
+        {readiness.isError && <p className="mt-3 text-sm text-amber-300">{t.copy("Readiness is not available yet.")}</p>}
+        {!readiness.isLoading && !readiness.isError && readiness.data?.items.length === 0 && (
+          <p className="mt-3 text-sm text-muted-foreground">{t.copy("No routers are connected yet.")}</p>
+        )}
+        {!!readiness.data?.items.length && (
+          <ul className="mt-3 grid gap-2 sm:grid-cols-2">
+            {readiness.data.items.map((item) => (
+              <li key={item.router_id} className="rounded-xl border border-border/60 p-3">
+                <div className="flex items-center justify-between gap-2 text-sm font-medium">
+                  <span className="truncate">{item.router_name}</span>
+                  <span className={item.connected ? "text-emerald-300" : "text-amber-300"}>{item.connected ? t.label("Ready") : t.label("Stale")}</span>
+                </div>
+                <p className="mt-1 text-xs text-muted-foreground">Hub: {item.hub ? "fresh" : "stale"} · Management: {item.management ? "fresh" : "stale"}</p>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
 
       <section className="panel p-5">
         <h2 className="text-lg font-semibold">{t.label("Prerequisites")}</h2>

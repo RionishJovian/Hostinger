@@ -34,6 +34,7 @@ The VPS release remains unchanged.
 - P1/Q3 (increment): Topology is now owner-visible read-only, and its legacy reads use `/v1/owner/topology` instead of the empty platform-only shim.
 - Q4 (increment): Sites and managed-device reads now use `/v1/owner/topology`, `/v1/owner/fleet`, and `/v1/owner/devices`; unsupported writes remain fail-closed.
 - Q4/Q6 (increment): Services now reads the owner subscription-plan endpoint and normalizes the response for the legacy Services screen; unsupported purchases remain fail-closed.
+- Q11/R8 (increment): Readiness now consumes `/v1/owner/readiness` and shows fresh Hub/management status per router in the legacy screen.
 
 ## Verification
 
