@@ -38,6 +38,7 @@ The VPS release remains unchanged.
 - Q6/P7 (increment): Services now shows the shared unavailable state when the normalized plan has no connected service catalog.
 - Q6/P7 (increment): Devices and Sites now fail closed visibly when their engine mutations are unwired; add/edit/delete/assign/PoE controls are disabled while read-only inventory, topology and port reads remain usable.
 - Q6/P7 (increment): Backups and Incidents now show a shared unavailable state and disable unwired backup, incident, alert-rule and notification writes while preserving readable records.
+- Q6/P7 (increment): Privileged device-request approvals now show the shared unavailable state and keep approve/deny actions disabled until the engine endpoint is wired.
 
 ## Verification
 

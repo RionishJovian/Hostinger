@@ -11,6 +11,7 @@ import { aiUsageSummary, type UsageRow } from "@/lib/usage.functions";
 import { listDeviceRequests, decideDeviceRequest } from "@/lib/devices.functions";
 import { DelayedFallback, SkeletonContent, SkeletonCard } from "@/components/ui/skeleton";
 import { toErrorMessage } from "@/lib/error-message";
+import { EmptyState } from "../../../components/AsyncPanel";
 
 export const Route = createFileRoute("/_authenticated/app/usage")({
   head: () => ({
@@ -189,6 +190,12 @@ function UsagePage() {
           Accounts are limited to one router, one access-point controller and one site. Approving a
           request raises that account's allowance by one.
         </p>
+        {decideFn.comingSoon && (
+          <EmptyState
+            title="Not available yet"
+            body="Device-request approvals are not connected to the MikroMagic engine yet. Requests remain read-only."
+          />
+        )}
         {requests.data && requests.data.length === 0 && (
           <p className="mt-3 text-xs text-muted-foreground">No requests yet.</p>
         )}
@@ -208,14 +215,14 @@ function UsagePage() {
                 <div className="flex gap-2">
                   <button
                     className="rounded-full border border-success/50 px-3 py-1 text-success"
-                    disabled={decide.isPending}
+                    disabled={decideFn.comingSoon || decide.isPending}
                     onClick={() => decide.mutate({ id: r.id, approve: true })}
                   >
                     Approve
                   </button>
                   <button
                     className="rounded-full border border-border px-3 py-1"
-                    disabled={decide.isPending}
+                    disabled={decideFn.comingSoon || decide.isPending}
                     onClick={() => decide.mutate({ id: r.id, approve: false })}
                   >
                     Deny
