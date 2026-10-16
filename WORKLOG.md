@@ -25,6 +25,7 @@ The VPS release remains unchanged.
 - Q6/P7 (increment): legacy Deployments and Reseller Operation use the shared unavailable/empty state for failed or unwired reads.
 - Q8 (increment): the shared legacy engine plus overview, fleet, routers, devices, topology and deployments adapters now compile without `@ts-nocheck`.
 - G1/G2/G3/G7 (increment): owner and legacy surfaces now share Midnight graphite/emerald tokens, load the specified Open Sans/JetBrains Mono/Cinzel/Noto Sans Myanmar families, update the theme color, and raise core navigation/button touch targets to 44px.
+- Q8 (increment): deployment and reseller operation screens now compile without `@ts-nocheck`, with explicit dashboard row types.
 
 ## Verification
 
